@@ -58,6 +58,8 @@ interface SeedEntry {
   /** A pending draft after the submissions (or the only content, for an entry never submitted). */
   readonly draft?: string;
   readonly access?: Access;
+  /** Shared by its author, then unshared by a leader, so the author's notice shows. */
+  readonly unsharedByLeader?: boolean;
   readonly comments?: readonly SeedComment[];
 }
 
@@ -84,7 +86,7 @@ export const SEED_ENTRIES: readonly SeedEntry[] = [
     daysAgo: 2,
     title: '念佛一小時',
     submissions: [p('晚上在家念佛一小時，用計數器記了一千零八十聲。')],
-    access: 'open',
+    access: 'course',
     comments: [
       {
         leader: 'leader.lin',
@@ -99,7 +101,7 @@ export const SEED_ENTRIES: readonly SeedEntry[] = [
     daysAgo: 5,
     title: '與家人的對話',
     submissions: [p('和父親談起學佛的事，他第一次沒有反對。')],
-    access: 'wait_for_open',
+    unsharedByLeader: true,
   },
   {
     owner: 'chenmd',
@@ -131,7 +133,7 @@ export const SEED_ENTRIES: readonly SeedEntry[] = [
     daysAgo: 0,
     title: '照顧母親的一天',
     submissions: [p('母親住院第三天。整天在病房，只能在走廊默念佛號。')],
-    access: 'wait_for_open',
+    access: 'course',
   },
   {
     owner: 'wangdt',
@@ -148,7 +150,7 @@ export const SEED_ENTRIES: readonly SeedEntry[] = [
     daysAgo: 1,
     title: '共修後的反省',
     submissions: [p('共修時一直在意旁邊的人念得太大聲。回家後想想，其實是自己的心不夠靜。')],
-    access: 'open',
+    access: 'course',
   },
   {
     owner: 'leader.lin',
@@ -242,11 +244,13 @@ export async function seed(ctx: AppContext, options: { reset: boolean }): Promis
         await saveDraft(dayCtx, owner.id, document.id, { title: entry.title, body: entry.draft });
       }
     }
-    if (entry.access === 'wait_for_open' || entry.access === 'open') {
-      await changeAccess(dayCtx, owner, document.id, 'request');
+    if (entry.access === 'course' || entry.unsharedByLeader) {
+      await changeAccess(dayCtx, owner, document.id, { kind: 'share', scope: 'course' });
     }
-    if (entry.access === 'open') {
-      await changeAccess(dayCtx, seededLeader(created, 'leader.lin'), document.id, 'approve');
+    if (entry.unsharedByLeader) {
+      await changeAccess(dayCtx, seededLeader(created, 'leader.lin'), document.id, {
+        kind: 'unshare',
+      });
     }
     for (const comment of entry.comments ?? []) {
       await saveMyComment(dayCtx, seededLeader(created, comment.leader), document.id, {

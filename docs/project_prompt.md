@@ -4,6 +4,7 @@
 > Consolidated from the original requirement rounds (old project `F:\ai_workspace\diary_webapp`) and the deployed, many-times-revised behavior (`F:\ai_workspace\diary-app`).
 > **Revised 2026-10-14:** multiple course leaders and SYS_ADMINs, server-held encryption keys, installable web app instead of an Android app; usage limits and
 > SYS_ADMIN activity alerts. Design decisions are recorded in `docs/ARCHITECTURE.md`.
+> **Revised 2026-10-19:** sharing is the author's choice, with no leader approval; leaders may stop sharing an entry (D29).
 > App title: **修行日記** (English: **Cultivation Diary**) · Languages: 繁體中文 (default) / English, switchable everywhere.
 
 ---
@@ -14,7 +15,7 @@ This is a private diary platform with a supervision workflow:
 
 1. **Users write diaries** privately. Content is encrypted at rest, and the administrators who manage accounts (SYS_ADMIN) can never read it.
 2. **Course leaders (COURSE_LEADER)** — one or more — can read every *submitted* diary and attach **comments (批注)** to them. A user's unsubmitted drafts are never visible to leaders. A comment is invisible to the user until its leader submits it.
-3. **Users may volunteer to share** a diary. Sharing needs a course leader's approval. Once approved ("Open"), any logged-in user can read that diary's content and submitted comments.
+3. **Users may choose to share** a diary with their class. No approval is needed, to keep leaders' work light; once shared, everyone in the class can read that diary's content and submitted comments. Any course leader can stop sharing an entry, and its author can share it again only after updating it.
 4. Separately, everyone participates in a collective **报数 (daily count)** of their **Great Compassion Mantra (大悲咒)** recitations: each user reports how many times they recited it that day, contributing to a shared goal of 10,000,000 recitations, with an optional automatic daily submission. The page is titled 大悲咒共修報數, and its tab reads 大悲咒 / Mantra (2026-10-15).
 5. A **web app** serves all of this and can be **installed on a phone's home screen** (web app manifest). An Android wrapper app is a fallback, built only if installing the web app proves impractical for the users (§9).
 
@@ -28,10 +29,10 @@ This is a private diary platform with a supervision workflow:
 | Role | Count | Purpose |
 |---|---|---|
 | NORMAL_USER | any | Write diaries, read open diaries, report counts |
-| COURSE_LEADER | one or more | Read all submitted diaries, write comments, approve sharing; may keep their own diary |
+| COURSE_LEADER | one or more | Read all submitted diaries, write comments, stop sharing; may keep their own diary |
 | SYS_ADMIN | one or more (the last one cannot be deleted or demoted) | Manage users & documents (metadata only), reset passwords, administer 报数 |
 
-- Each account has exactly one role. A COURSE_LEADER may also keep their own diary, exactly like a NORMAL_USER. Leaders treat it like anyone's: they (and other leaders) may comment on it and approve its sharing (after it has been requested, like anyone's).
+- Each account has exactly one role. A COURSE_LEADER may also keep their own diary, exactly like a NORMAL_USER. Leaders treat it like anyone's: they (and other leaders) may comment on it, and other leaders may stop sharing it.
 - SYS_ADMIN accounts must log in with a second factor (authenticator app, TOTP).
 - **Production starts empty.** The first SYS_ADMIN is created with a server command-line tool. SYS_ADMINs then create other accounts and assign roles; normal users may also self-register.
 - **Test environments** are seeded with sample accounts and diaries (§11). The seed must refuse to run against production.
@@ -41,7 +42,7 @@ This is a private diary platform with a supervision workflow:
 
 **user profile** — username (immutable), password, email, address, photo (auto-resized to 300×300 on selection), family name, given name, preferred font size.
 
-**document (diary)** — title (stored in plaintext), content (**encrypted**), date (the Beijing date on which the entry was **created**, set by the server; a user may write several entries on one date, but can never choose or change the date), submitted flag (never submitted / submitted), current unsubmitted draft (**encrypted**), accessibility state (`Private` / `Wait for open` / `Open`), and up to **3 submitted history versions** (**encrypted**).
+**document (diary)** — title (stored in plaintext), content (**encrypted**), date (the Beijing date on which the entry was **created**, set by the server; a user may write several entries on one date, but can never choose or change the date), submitted flag (never submitted / submitted), current unsubmitted draft (**encrypted**), sharing level (`Private` / `Class` / `Everyone`; only `Private` and `Class` are offered while there is one class), whether a leader stopped sharing it since its last update, and up to **3 submitted history versions** (**encrypted**).
 
 **comment** — belongs to one document and one course leader; text (**encrypted**); state (draft / submitted). Each course leader has at most one comment per document, which they may edit and resubmit.
 
@@ -91,8 +92,8 @@ This is a private diary platform with a supervision workflow:
 create → edit → 暂存 (draft, any number of times, auto-saved every 5 min)   ← visible to the owner only
        → 提交 (first submit)                                                  ← now visible to course leaders
        → 更新 (update; keeps the previous content as a history version, max 3)
-→ optional: request open → Wait for open → a course leader confirms → Open
-                                                └ or denies/reverts → Private
+→ optional: the author shares it with their class → Class
+                                                └ the author or a course leader stops sharing → Private
 course leader reads → writes comment draft (invisible) → submits comment (visible)
 ```
 - After a diary has been submitted, the owner may keep editing and drafting; course leaders continue to see the **last submitted** version until the owner updates it.
@@ -110,16 +111,21 @@ course leader reads → writes comment draft (invisible) → submits comment (vi
 - After submitting, content must survive re-entry exactly as saved.
 - All rich text is sanitized on the server against an allowlist of the editor's own tags and attributes, before storing and before display.
 
-### 5.3 Sharing (open-access) flow
+### 5.3 Sharing flow (revised 2026-10-19)
 ```
-NORMAL_USER checks the open box  → state = 'Wait for open'  (a request)
-A COURSE_LEADER checks it (with a confirm dialog) → state = 'Open'
-Owner or any COURSE_LEADER unchecks → state = 'Private'
+The author checks the share box (with a confirm dialog) → 'Class'
+The author unchecks it                                  → 'Private'; they may share again at any time
+Any COURSE_LEADER stops sharing (with a confirm dialog) → 'Private'; the author may share again only after 更新
 ```
-- The checkbox shows checked for both `Open` and `Wait for open`; default unchecked.
-- Only a submitted diary can be shared.
-- `Open` means content **and** all submitted comments readable by all logged-in users.
-- The server enforces these transitions; a normal user can never set `Open` directly.
+- Sharing is the author's choice; nobody approves it. A leader can only stop sharing.
+- Default unchecked. Only a submitted diary can be shared.
+- `Class` means content **and** all submitted comments readable by everyone in the author's class. There is
+  only one class for now, so that is every logged-in user.
+- After a leader stops sharing, the author sees why and the box stays off until they submit an update that
+  changes the entry.
+- **Later, with several classes:** authors choose between their own class and everyone. The data already
+  holds an `Everyone` level; it is not offered yet.
+- The server enforces these rules.
 
 ### 5.4 Comment visibility
 - A course leader's 暂存 comment → invisible to the user and to other leaders.
@@ -171,7 +177,7 @@ Both sets of values are constants, each in its own file so they're easy to find 
 ## 6. Pages & Behaviors
 
 ### 6.1 Document lists (shared component, two modes)
-- **By user:** that user's documents, newest date first, one month per page with prev/next month and prev/next year buttons. Rows: title, date, comment-present mark (✅/❌), expand toggle (+/−), access badge in own mode (🔓 Open green / ⏳ Wait for open orange / 🔒 Private gray).
+- **By user:** that user's documents, newest date first, one month per page with prev/next month and prev/next year buttons. Rows: title, date, comment-present mark (✅/❌), expand toggle (+/−), access badge in own mode (🔓 Shared green / 🔒 Private gray).
 - **By date** (COURSE_LEADER): all users' submitted documents for a date, `n` per page (default 20, `n` editable 1–100), numeric page navigation.
 - **Expanded row format:** a meta line of **values only, separated by tabs — no key names**: title, date, [username], family name-given name (when present), [accessibility], comment mark. Below it the content (sanitized), then translation buttons, then — if submitted comments exist — the label `Comment:` above each comment (leader's name, then text) with its own translation buttons.
 - **Click semantics:** in **My Diary**, clicking the title opens the editor; in **Open Diary**, clicking the title only expands/collapses — never opens an editor.
@@ -182,12 +188,11 @@ Both sets of values are constants, each in its own file so they're easy to find 
 
 ### 6.3 COURSE_LEADER home
 - **Calendar** (Chinese weekday headers, month navigation, today & selected highlighted). Immediately after login, **today's submitted documents are shown directly below the calendar** without clicking a date; clicking a date shows that date's list; clicking a user shows that user's list; clicking a document opens the comment editor.
-- A list of diaries waiting for open approval (`Wait for open`), with a count.
 - Document rows expand with all info including family name-given name.
 
 ### 6.4 COURSE_LEADER comment editor
 - Shows the document's title, last submitted content, date, and the other leaders' submitted comments; the editor edits this leader's own comment; 暂存/提交 per §5.4.
-- Contains the approval checkbox: only `Open` counts as checked; turning it on requires a confirm dialog; a `Wait for open` document shows the hint "⏳ 用户已申请开放，等待确认".
+- A shared document has a 取消開放 (stop sharing) button with a confirm dialog.
 
 ### 6.5 SYS_ADMIN home (sequential sections)
 1. **User management** — list users; fuzzy search by username with `?` / `*`; add a user (username + password + role required, others optional; a generated password is shown once); edit everything except username, including role; delete a user (confirm) — deleting a user **deletes all their documents**; batch delete of normal users. The last SYS_ADMIN cannot be deleted or demoted.
@@ -287,12 +292,12 @@ Build this only if testing on the users' actual phones shows the installable web
 - [ ] Limits: entry date is set by the server and cannot be changed; 20 creates, 20 first submissions and 50 updates per day; 2 photos and 5,000 characters per entry (drafts over the limit still save); every limit enforced by the server, with a clear message and no lost text.
 - [ ] Deleting: users have no delete action; only a SYS_ADMIN deletes entries. Storage used is shown on the account page.
 - [ ] Leaders: a never-submitted diary is invisible to course leaders; after submitting, leaders see the submitted version, not later drafts.
-- [ ] Sharing: user request → Wait for open → leader confirm → Open; open diary + submitted comments readable by another user; uncheck returns to Private; a normal user cannot set Open directly.
+- [ ] Sharing: the author shares after a confirm dialog; shared diary + submitted comments readable by another user; uncheck returns to Private; a leader can stop sharing, after which the author can share again only after an update; nobody but the author can share.
 - [ ] Comments: several leaders can comment on one diary; a draft is invisible to the user and other leaders; submitted comments are visible with the leader's name; no caret jump; translations render as plain text.
 - [ ] SYS_ADMIN: can search/add/edit/delete users and change roles, reset passwords, query/delete documents — but receives no plaintext content or comments from any endpoint; the last SYS_ADMIN cannot be removed.
-- [ ] COURSE_LEADER: sees today's submitted documents immediately after login; calendar/user navigation reaches the comment editor; can approve open requests.
+- [ ] COURSE_LEADER: sees today's submitted documents immediately after login; calendar/user navigation reaches the comment editor; can stop sharing an entry.
 - [ ] Password change and admin reset both keep the user's old documents readable by the user.
 - [ ] 报数: clamped 1–1080 input (client and server); count date today or up to 5 days back; a later report replaces that date's number; at most 20 manual reports per count date; manual submit updates everything; auto-submit toggle persists; admin list shows all users with toggle + delete-entries (all or by date range) + last-run status; auto job runs at 02:00 Beijing.
 - [ ] Attention: reaching a limit, failed-login bursts and new-device bursts flag the account in the SYS_ADMIN Attention list; with email configured, SYS_ADMINs also get a throttled email; activity views and emails contain no content; sign-out-all and lock work.
 - [ ] Installable: the app can be added to the home screen on Android and iPhone, opens standalone, stays logged in, picks up new versions, and never caches diary content.
-- [ ] Seed data (test environments only): 2 SYS_ADMINs, 2 COURSE_LEADERs, several NORMAL_USERs with encrypted sample diaries (including one Open, two Wait for open, one never-submitted draft, one submitted diary with a later unsubmitted draft, and comments in draft and submitted state from different leaders).
+- [ ] Seed data (test environments only): 2 SYS_ADMINs, 2 COURSE_LEADERs, several NORMAL_USERs with encrypted sample diaries (including three shared, one a leader stopped sharing, one never-submitted draft, one submitted diary with a later unsubmitted draft, and comments in draft and submitted state from different leaders).

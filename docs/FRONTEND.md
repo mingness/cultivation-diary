@@ -37,7 +37,7 @@ just hue.
 | `--on-primary` | `#FFFFFF` | `#1A1714` | text on primary |
 | `--primary-soft` | `#F1E6D8` | `#3A2F24` | selected states |
 | `--green` / `--green-soft` | `#2F6B3A` / `#E3EFE3` | `#8CC79A` / `#22342A` | Open, success |
-| `--amber` / `--amber-soft` | `#8A5300` / `#F7EBD6` | `#E8B465` / `#3A2E1C` | Wait for open, warnings |
+| `--amber` / `--amber-soft` | `#8A5300` / `#F7EBD6` | `#E8B465` / `#3A2E1C` | Warnings |
 | `--blue` / `--blue-soft` | `#2F5D8C` / `#E2EBF4` | `#8DB4DE` / `#1F2C3A` | comments, info, 報數 progress, auto-submit names |
 | `--danger` | `#A63A2A` | `#F09A8A` | delete, logout |
 | `--focus` | `#2F5D8C` | `#8DB4DE` | 3 px focus ring |
@@ -69,7 +69,7 @@ just hue.
 | Role | Phone (< 768 px): bottom tab bar | Desktop (≥ 1024 px): top bar |
 |---|---|---|
 | NORMAL_USER | 日記 · 開放日記 · 報數 · 我的 | same four, as top links |
-| COURSE_LEADER | 批閱 (badge: share requests) · 日記 · 開放日記 · 報數 · 我的 | 批閱 (badge) · 我的日記 · 開放日記 · 報數 · 我的 |
+| COURSE_LEADER | 批閱 · 日記 · 開放日記 · 報數 · 我的 | 批閱 · 我的日記 · 開放日記 · 報數 · 我的 |
 | SYS_ADMIN | 注意 (badge) · 用戶 (badge) · 日記 · 報數 · 我的 | 注意 (badge) · 用戶 (badge) · 日記管理 · 報數 · 我的 (報數管理 is a link on 報數; admins take part in 報數 too) |
 
 - The tab bar replaces the spec's My Diary / Open Diary toggle and its scattered header buttons (§6.2, §7.4).
@@ -99,8 +99,8 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
 
 - **Top:** the 撰寫日記 button, full width, then month navigation (« ‹ 2026 年 10 月 › », year jumps at the ends).
 - **The month as a continuous feed (2026-10-15, "fewest clicks"):** every entry in full, newest first, each
-  with its state chip (草稿・未提交 / 已提交 / 已提交・有未提交的修改), access chip (私人 / 等待開放 / 已開放),
-  comment count, a small 編輯, its share request and its comments (新 on ones the owner hasn't seen). No
+  with its state chip (草稿・未提交 / 已提交 / 已提交・有未提交的修改), access chip (私人 / 已開放),
+  comment count, a small 編輯, its share box and its comments (新 on ones the owner hasn't seen). No
   separate entry page: entries load as they come near the screen, and showing a comment marks it seen.
 - **Polling** every 30 s while the screen is visible. New comments raise the toast 有新批注！ and refresh the
   list. Polling stops in editors and background tabs.
@@ -122,8 +122,10 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
   the reason.
 - **Limits reached:** a notice names the limit and when it resets (midnight Beijing time); the text stays in the
   editor.
-- **Share request:** a checkbox row "申請開放給大家閱讀", disabled with a hint until the entry has been
-  submitted once.
+- **Sharing (D29):** a checkbox row "開放給同班學員閱讀", disabled with a hint until the entry has been
+  submitted once. Checking it asks for confirmation (nobody reviews the entry first), then shares at once;
+  unchecking stops sharing. After a leader stops sharing, the hint says so and the box stays disabled until
+  an 更新 that changes the entry.
 - **Sticky bottom bar:** 暫存 (secondary), 提交 (primary; reads **更新** once the entry has been submitted),
   歷史版本. Enable and disable follow spec §5.2.
 - **History** opens as a bottom sheet (phone) or side panel (desktop) listing the versions, each expandable.
@@ -140,16 +142,15 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
   has no translation provider (`GET /api/me` → `features.translation: false`), the buttons are greyed out.
 - **Comments:** the `Comment:` label, then one card per submitted comment (leader name, date, text, its own
   translate buttons).
-- **Owner actions:** 編輯 (opens 4.3), and the share request toggle.
+- **Owner actions:** 編輯 (opens 4.3), and the share box.
 - **開放日記 (revised 2026-10-15):** just for reading. One month as a continuous feed of whole entries
   (title, date, author, text, translate, comments, a leader's own included), with no chips, counts, editing
-  or sharing controls, the reader's own open entries included. Filters: a day on the calendar and/or an
-  author (those with open entries that month), kept in the address; beside the feed on wide screens, folded
+  or sharing controls, the reader's own shared entries included. Filters: a day on the calendar and/or an
+  author (those with shared entries that month), kept in the address; beside the feed on wide screens, folded
   under a one-line summary on phones. No page per entry. Stopping sharing happens elsewhere: the owner's
   share toggle, or 取消開放 beside the 已開放 chip in the leaders' review.
 - **Visual weight (2026-10-15):** the entry is the most visible thing. Notes (draft, pending changes) are
-  muted lines, not boxes; an open entry has no notice at all (in review, a small 取消開放 beside its chip); a
-  share request is one line with an amber edge and small 批准開放 / 婉拒. Without a translation provider the
+  muted lines, not boxes; a shared entry has no notice at all (in review, a small 取消開放 beside its chip). Without a translation provider the
   translate buttons are greyed, the reason in their tooltip. Formatting toolbars, translate and stepping use the compact
   size (`--touch-compact`, 40 px at 18 px text); main actions keep 45 / 52 px.
 - **Posted comments (2026-10-15):** once submitted, a leader's comment reads like the others, with 編輯 to
@@ -197,13 +198,12 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
 ### 4.7 Leader review: 批閱 (revised 2026-10-15)
 
 One tab and one feed of submitted entries, each in full: the text, translate, the other leaders' comments,
-**my comment** and, for a share request, 批准開放 (with a confirm dialog) / 婉拒 (**F3**). An open entry shows
-its 已開放 chip with a small 取消開放 beside it.
+and **my comment**. A shared entry shows its 已開放 chip with a small 取消開放 beside it (with a confirm dialog;
+**F3**, revised by D29: there is nothing to approve).
 
 - **Filters** (beside the feed from 768 px, folded under a summary line on phones):
   - **未讀 (n):** what this leader hasn't read since it was last submitted (read audit, last 90 days, never their
     own); holds still while reading, pressing it again refreshes.
-  - **申請開放 (n):** share requests, oldest first; a decided one leaves the feed.
   - **Calendar:** a day's entries (the default is today, so a leader sees them at once); 20 per page,
     adjustable (spec §6.1).
   - **學員:** search, monthly counts; a student's entries for the calendar's month.
@@ -211,11 +211,11 @@ its 已開放 chip with a small 取消開放 beside it.
   提交批注); once submitted it reads like the others, with 編輯 (and 取消) to change it. Changing the filter
   with an unsaved comment asks first.
 - **Leaders' own diaries:** under 我的日記, identical to 4.2. They also appear in 批閱 like anyone's, and the
-  leader may comment on and approve them there.
+  leader may comment on them there; sharing them uses the owner's share box.
 - **API:** `GET leader/calendar?month=` → `{date: count}`; `GET leader/documents?date=&page=&size=`,
   `?user=&month=` and `?unread=true&page=&size=` → per entry `id, title, author, myCommentState,
-  otherLeaderCommented, unread, access`; `GET leader/users?month=` → names + counts; `GET leader/open-requests`;
-  `GET documents/:id` per entry as it loads; `PUT comments/mine`; `POST access approve|decline|revoke`.
+  otherLeaderCommented, unread, access`; `GET leader/users?month=` → names + counts;
+  `GET documents/:id` per entry as it loads; `PUT comments/mine`; `POST access {action: unshare}`.
 
 ### 4.8 SYS_ADMIN (desktop first; revised 2026-10-15)
 
@@ -357,7 +357,7 @@ paid cloud features.
 |---|---|---|
 | F1 | Tapping an own entry: open the editor directly (spec §6.1) or a read view with 編輯? | **Read view** first, because that's where comments and translations live, and it avoids accidental edits. Since 2026-10-15 the read view is the 我的日記 feed itself, with a small 編輯 on each entry |
 | F2 | List style: the spec's table with ✅/❌ and +/− expand, or cards with chips? | **Cards** on phones; leaders and admins keep tables on desktop. The values-only rule still holds |
-| F3 | Approving an open request: the spec's checkbox, or explicit 批准開放 / 婉拒 buttons? | **Buttons**, plus the confirm dialog on approve; the current state is shown as a chip |
+| F3 | Approving an open request: the spec's checkbox, or explicit 批准開放 / 婉拒 buttons? | **Buttons**, plus the confirm dialog on approve; the current state is shown as a chip. **Superseded 2026-10-19 (D29):** no approval; leaders have only 取消開放, with a confirm dialog |
 | F4 | Libraries in §10 | Approve TanStack Query and Tiptap |
 | F5 | zh-Hant strings in traditional characters throughout, fixing 攥写 → 撰寫 | Yes |
 | F6 | Offline writing (queue drafts while offline) | Not in v1; show an offline notice. Revisit after real use |

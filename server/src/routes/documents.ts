@@ -1,6 +1,6 @@
 /**
  * The diary (spec §5): the owner's create, 暫存, 提交/更新, history and month list; reading an entry as its
- * owner, as a leader, or as a reader of an open entry; the open-entry list; leaders' comments; and sharing
+ * owner, as a leader, or as a reader of a shared entry; the shared-entry list; leaders' comments; and sharing
  * changes.
  */
 import type { FastifyBaseLogger, FastifyInstance, FastifyRequest } from 'fastify';
@@ -239,8 +239,9 @@ export function documentRoutes(app: FastifyInstance, ctx: AppContext): void {
       schema: {
         tags: TAG,
         summary:
-          'Sharing. Owner: request, withdraw, revoke. Leader (not on own entries): approve, decline, revoke. ' +
-          'Only submitted entries; 409 invalid_transition when the current state does not allow it.',
+          'Sharing. The author shares (scope `course`) or unshares; a leader can only unshare. Only ' +
+          'submitted entries; 409 invalid_transition when the current state does not allow it, ' +
+          'unshared_by_leader when a leader unshared it and the author has not updated it since.',
         params: DocumentIdParams,
         body: AccessChangeRequest,
         response: { 200: AccessChangeResponse },
@@ -251,7 +252,9 @@ export function documentRoutes(app: FastifyInstance, ctx: AppContext): void {
         ctx,
         authOf(request).actor,
         request.params.id,
-        request.body.action,
+        request.body.action === 'share'
+          ? { kind: 'share', scope: request.body.scope }
+          : { kind: 'unshare' },
       ),
     }),
   );

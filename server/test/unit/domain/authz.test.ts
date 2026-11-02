@@ -25,7 +25,7 @@ const ACTORS = {
 } as const satisfies Record<string, Actor>;
 type ActorName = keyof typeof ACTORS;
 
-const ACCESS: readonly Access[] = ['private', 'wait_for_open', 'open'];
+const ACCESS: readonly Access[] = ['private', 'course', 'everyone'];
 const doc = (submitted: boolean, access: Access): DocumentFacts => ({
   ownerId: OWNER_ID,
   submitted,
@@ -45,7 +45,7 @@ describe('documentView', () => {
         'otherUser',
         submitted,
         access,
-        submitted && access === 'open' ? 'reader' : null,
+        submitted && access !== 'private' ? 'reader' : null,
       ]);
     }
   }
@@ -69,14 +69,7 @@ describe('canOnDocument', () => {
       otherLeader: [false, false],
       sysAdmin: [false, false],
     },
-    [A.RequestOpen]: {
-      owner: [true, true],
-      ownerLeader: [true, true],
-      otherUser: [false, false],
-      otherLeader: [false, false],
-      sysAdmin: [false, false],
-    },
-    [A.WithdrawOpen]: {
+    [A.Share]: {
       owner: [true, true],
       ownerLeader: [true, true],
       otherUser: [false, false],
@@ -90,7 +83,7 @@ describe('canOnDocument', () => {
       otherLeader: [false, true],
       sysAdmin: [false, false],
     },
-    [A.RevokeOpen]: {
+    [A.Unshare]: {
       owner: [true, true],
       ownerLeader: [true, true],
       otherUser: [false, false],
@@ -98,20 +91,6 @@ describe('canOnDocument', () => {
       sysAdmin: [false, false],
     },
     [A.Comment]: {
-      owner: [false, false],
-      ownerLeader: [false, true],
-      otherUser: [false, false],
-      otherLeader: [false, true],
-      sysAdmin: [false, false],
-    },
-    [A.ApproveOpen]: {
-      owner: [false, false],
-      ownerLeader: [false, true],
-      otherUser: [false, false],
-      otherLeader: [false, true],
-      sysAdmin: [false, false],
-    },
-    [A.DeclineOpen]: {
       owner: [false, false],
       ownerLeader: [false, true],
       otherUser: [false, false],
@@ -152,7 +131,9 @@ describe('canOnDocument', () => {
   });
 
   it('denies unknown actions (default deny)', () => {
-    expect(canOnDocument(ACTORS.owner, 'publish' as DocumentAction, doc(true, 'open'))).toBe(false);
+    expect(canOnDocument(ACTORS.owner, 'publish' as DocumentAction, doc(true, 'course'))).toBe(
+      false,
+    );
   });
 
   it('a SYS_ADMIN who somehow owns an entry still gets no owner powers', () => {

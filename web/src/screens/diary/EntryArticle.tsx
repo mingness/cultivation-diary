@@ -18,7 +18,7 @@ import { buttonClass } from '../../components/Button.js';
 import { Icon } from '../../components/Icon.js';
 import { useI18n } from '../../i18n/index.js';
 import { formatDiaryDate } from '../../lib/dates.js';
-import { ApprovalBar, StopSharing } from '../review/ApprovalBar.js';
+import { StopSharing } from '../review/StopSharing.js';
 import { CommentEditor } from '../review/CommentEditor.js';
 import { AccessChip, CommentChip, StateChip } from './chips.js';
 import { CommentList } from './CommentList.js';
@@ -69,7 +69,7 @@ export function EntryArticle({
   // Not a reader's view: the leader's own comment and sharing state are known.
   const withMine = entry.view === 'reader' ? null : entry;
   const reviewing = context === 'review' && entry.view !== 'reader';
-  // Leaders write comments in review (批閱 / 開放申請); elsewhere their own shows with the others, read-only.
+  // Leaders write comments in review (批閱); elsewhere their own shows with the others, read-only.
   const commenting = isLeader && submitted && context === 'review';
   const myName =
     session?.status === 'ready'
@@ -115,7 +115,10 @@ export function EntryArticle({
         {/* For reading, the comments speak for themselves and everything shown is open. */}
         {ownView && <StateChip state={ownView.state} />}
         {context !== 'read' && withMine && <AccessChip access={withMine.access} />}
-        {reviewing && withMine?.access === 'open' && <StopSharing documentId={entry.id} />}
+        {/* A leader's own entry has the author's share box below instead. */}
+        {reviewing && entry.view === 'leader' && entry.access !== 'private' && (
+          <StopSharing documentId={entry.id} />
+        )}
         {context !== 'read' && <CommentChip count={comments.length} />}
       </div>
       {/* Quiet lines, not boxes: the entry itself should be the most visible thing here. */}
@@ -123,13 +126,17 @@ export function EntryArticle({
       {ownView?.submitted && ownView.draft && (
         <p className={styles.note}>{t('entry.pendingNote')}</p>
       )}
-      {reviewing && withMine && <ApprovalBar documentId={entry.id} access={withMine.access} />}
       <div className={styles.body}>
         {shown.body ? <RichContent html={shown.body} /> : t('entry.empty')}
       </div>
       <TranslateBlock target={{ documentId: entry.id }} />
       {ownView && (
-        <ShareToggle documentId={ownView.id} access={ownView.access} submitted={submitted} />
+        <ShareToggle
+          documentId={ownView.id}
+          access={ownView.access}
+          submitted={submitted}
+          unsharedByLeader={ownView.unsharedByLeader}
+        />
       )}
       <CommentList comments={comments} />
       {commenting && withMine && (

@@ -1,6 +1,6 @@
 /**
  * The leader's review data (spec §6.3–6.4, FRONTEND.md §4.7): calendar counts, the day's or a student's
- * entries, the student list, open requests, and the leader's own comment on an entry.
+ * entries, the student list, and the leader's own comment on an entry.
  */
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type { z } from 'zod';
@@ -10,12 +10,11 @@ import type {
   LeaderDocumentList,
   LeaderUserList,
   MyComment,
-  OpenRequestList,
 } from '@diary/shared';
 import { api } from './client.js';
 import { diaryKeys } from './diary.js';
 
-/** How often review lists and the requests badge look for new entries while on screen. */
+/** How often review lists look for new entries while on screen. */
 export const LEADER_POLL_MS = 60_000;
 
 export const leaderKeys = {
@@ -24,7 +23,6 @@ export const leaderKeys = {
   documents: (query: LeaderListQuery) => ['leader', 'documents', query] as const,
   users: (month: string) => ['leader', 'users', month] as const,
   unreadCount: ['leader', 'unread-count'] as const,
-  requests: ['leader', 'requests'] as const,
 };
 
 export type LeaderListQuery =
@@ -43,7 +41,7 @@ export function useLeaderCalendar(month: string) {
   });
 }
 
-export function useLeaderDocuments(query: LeaderListQuery, enabled = true) {
+export function useLeaderDocuments(query: LeaderListQuery) {
   const params = new URLSearchParams(
     Object.entries(query).map(([key, value]) => [key, String(value)]),
   );
@@ -51,7 +49,6 @@ export function useLeaderDocuments(query: LeaderListQuery, enabled = true) {
     queryKey: leaderKeys.documents(query),
     queryFn: () =>
       api<z.infer<typeof LeaderDocumentList>>('GET', `/api/leader/documents?${params}`),
-    enabled,
     // The unread list holds still while the leader works through it (entries would vanish as they're read);
     // choosing 未讀 again refreshes it. The other lists keep up with new submissions.
     ...(isUnreadQuery(query)
@@ -88,15 +85,6 @@ export function useStudents(month: string) {
   return useQuery({
     queryKey: leaderKeys.users(month),
     queryFn: () => api<z.infer<typeof LeaderUserList>>('GET', `/api/leader/users?month=${month}`),
-  });
-}
-
-export function useOpenRequests(enabled = true) {
-  return useQuery({
-    queryKey: leaderKeys.requests,
-    queryFn: () => api<z.infer<typeof OpenRequestList>>('GET', '/api/leader/open-requests'),
-    refetchInterval: LEADER_POLL_MS,
-    enabled,
   });
 }
 

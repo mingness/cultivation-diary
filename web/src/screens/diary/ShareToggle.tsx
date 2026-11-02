@@ -1,10 +1,11 @@
 /**
- * The owner's sharing request (spec §5.3): checked for both "waiting" and "open". Checking asks a leader to
- * open the entry; unchecking withdraws the request, or, once open, stops sharing after a confirmation.
+ * The author's sharing choice (spec §5.3): checking shares the entry with their class at once, after a
+ * confirmation, since nobody reviews it first; unchecking stops sharing. After a leader has stopped sharing
+ * it, the box stays off until the author updates the entry.
  */
 import { useState } from 'react';
 import type { Access } from '@diary/shared';
-import { useAccessChange } from '../../api/diary.js';
+import { useAccessChange, type AccessChange } from '../../api/diary.js';
 import { Button } from '../../components/Button.js';
 import { ConfirmDialog } from '../../components/Dialog.js';
 import { CheckboxRow } from '../../components/Field.js';
@@ -15,66 +16,66 @@ export function ShareToggle({
   documentId,
   access,
   submitted,
+  unsharedByLeader,
 }: {
   /** Null for a new entry that hasn't been saved yet. */
   documentId: string | null;
   access: Access;
   submitted: boolean;
+  unsharedByLeader: boolean;
 }) {
   const t = useT();
   const toast = useToast();
   const change = useAccessChange(documentId ?? '');
-  const [confirmRevoke, setConfirmRevoke] = useState(false);
+  const [confirmShare, setConfirmShare] = useState(false);
   // The box follows the click at once; the server's answer (or a refusal) settles it.
   const [pending, setPending] = useState<boolean | null>(null);
-  const run = (action: 'request' | 'withdraw' | 'revoke', checked: boolean) => {
+  const run = (body: AccessChange, checked: boolean) => {
     setPending(checked);
-    change.mutate(action, { onError: toast.showError, onSettled: () => setPending(null) });
+    change.mutate(body, { onError: toast.showError, onSettled: () => setPending(null) });
   };
 
+  const shared = access !== 'private';
   const hint = !submitted
     ? t('share.notSubmitted')
-    : access === 'wait_for_open'
-      ? t('share.waiting')
-      : access === 'open'
-        ? t('share.open')
+    : shared
+      ? t('share.shared')
+      : unsharedByLeader
+        ? t('share.unsharedByLeader')
         : undefined;
-
-  function toggle(checked: boolean) {
-    if (checked) run('request', true);
-    else if (access === 'open') setConfirmRevoke(true);
-    else run('withdraw', false);
-  }
 
   return (
     <>
       <CheckboxRow
         label={t('share.label')}
         {...(hint ? { hint } : {})}
-        checked={pending ?? access !== 'private'}
-        disabled={!documentId || !submitted || change.isPending}
-        onChange={(e) => toggle(e.target.checked)}
+        checked={pending ?? shared}
+        disabled={!documentId || !submitted || (unsharedByLeader && !shared) || change.isPending}
+        onChange={(e) => {
+          if (e.target.checked) setConfirmShare(true);
+          else run({ action: 'unshare' }, false);
+        }}
       />
       <ConfirmDialog
-        open={confirmRevoke}
-        title={t('share.revokeTitle')}
-        onCancel={() => setConfirmRevoke(false)}
+        open={confirmShare}
+        title={t('share.confirmTitle')}
+        onCancel={() => setConfirmShare(false)}
         actions={
           <>
-            <Button onClick={() => setConfirmRevoke(false)}>{t('common.cancel')}</Button>
+            <Button onClick={() => setConfirmShare(false)}>{t('common.cancel')}</Button>
             <Button
-              variant="danger"
+              variant="primary"
               onClick={() => {
-                setConfirmRevoke(false);
-                run('revoke', false);
+                setConfirmShare(false);
+                run({ action: 'share', scope: 'course' }, true);
               }}
             >
-              {t('share.revokeConfirm')}
+              {t('share.confirm')}
             </Button>
           </>
         }
       >
-        <p>{t('share.revokeBody')}</p>
+        <p>{t('share.confirmBody')}</p>
       </ConfirmDialog>
     </>
   );

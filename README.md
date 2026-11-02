@@ -11,7 +11,7 @@ daily-count (報數) activity. Diaries are encrypted at rest; account administra
 **Status:** Phase A done (slices 1–10): skeleton; core domain; users and sign-in; SYS_ADMIN user management,
 activity log, Attention list and optional email alerts; the diary (encrypted entries, drafts, 提交/更新 with
 history, limits, sanitising) and SYS_ADMIN document management; the leader API (review lists, calendar,
-reading submitted entries with a read audit, comments, sharing requests and approvals); open diaries; the account API (profile, appearance, password, devices); 報數 (count, progress, auto-submit at
+reading submitted entries with a read audit, comments, and stopping sharing); open diaries; the account API (profile, appearance, password, devices); 報數 (count, progress, auto-submit at
 02:00 Beijing, SYS_ADMIN tools); translation through an optional OpenAI-compatible provider. Phase B (the web
 app) has begun: the app shell (themes, text sizes, both languages); sign-in, registration, forgot password
 and authenticator setup; my diary, the entry view, the editor (photos, limits, 提交/更新, history) and open

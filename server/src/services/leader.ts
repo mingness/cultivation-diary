@@ -172,15 +172,3 @@ export async function usersWithMonthCounts(ctx: AppContext, month: string) {
   const byOwner = new Map(counts.map((c) => [c.ownerId, c.n]));
   return { users: people.map((p) => ({ ...p, entries: byOwner.get(p.id) ?? 0 })) };
 }
-
-/** Entries waiting for approval to open, oldest request first (docs/FRONTEND.md §4.7). */
-export async function openRequests(ctx: AppContext, leaderId: string) {
-  return {
-    documents: await rows(
-      ctx,
-      leaderId,
-      [...reviewable, eq(documents.access, 'wait_for_open')],
-      [asc(documents.accessDecidedAt), asc(documents.id)],
-    ),
-  };
-}

@@ -28,9 +28,9 @@ export interface DocumentFacts {
 export const Capability = {
   /** Write one's own diary entries. */
   WriteDiary: 'diary.write',
-  /** List and read entries that are open to everyone. */
+  /** List and read entries their authors have shared (開放日記). */
   ReadOpenDiaries: 'diary.read_open',
-  /** The leader review screens: calendar, day lists, open requests, comments. */
+  /** The leader review screens: calendar, day lists, comments, unsharing. */
   LeaderReview: 'leader.review',
   ManageUsers: 'admin.users',
   ManagePasswordResets: 'admin.password_resets',
@@ -74,7 +74,7 @@ export function hasCapability(actor: Actor, capability: Capability): boolean {
  * How much of an entry the actor may see:
  *  - `owner`: everything, including the unsubmitted draft and history.
  *  - `leader`: the last submitted content, history, all submitted comments and their own draft comment.
- *  - `reader`: an open entry's submitted content and submitted comments.
+ *  - `reader`: a shared entry's submitted content and submitted comments.
  *  - `metadata`: title, date, owner and state only (SYS_ADMIN).
  *  - `null`: nothing; the entry doesn't exist as far as this actor is concerned.
  */
@@ -85,8 +85,18 @@ export function documentView(actor: Actor, doc: DocumentFacts): DocumentView | n
   if (actor.id === doc.ownerId) return 'owner';
   if (!doc.submitted) return null;
   if (actor.role === 'COURSE_LEADER') return 'leader';
-  if (doc.access === 'open') return 'reader';
+  if (sharedWithReader(doc.access)) return 'reader';
   return null;
+}
+
+/**
+ * Whether a shared entry reaches a signed-in reader who is neither its author nor a leader. There is only one
+ * class for now, so everyone is in the author's class and `course` reaches the same people as `everyone`.
+ * When classes arrive, `course` must compare the reader's class with the author's here and in the 開放日記
+ * list query.
+ */
+export function sharedWithReader(access: Access): boolean {
+  return access === 'course' || access === 'everyone';
 }
 
 export const DocumentAction = {
@@ -95,18 +105,17 @@ export const DocumentAction = {
   ReadVersions: 'read_versions',
   /** Write or update one's own comment. */
   Comment: 'comment',
-  RequestOpen: 'request_open',
-  WithdrawOpen: 'withdraw_open',
-  ApproveOpen: 'approve_open',
-  DeclineOpen: 'decline_open',
-  RevokeOpen: 'revoke_open',
+  /** Share the entry, or change who it's shared with. The author's choice alone. */
+  Share: 'share',
+  /** Take a shared entry back to private. */
+  Unshare: 'unshare',
   Delete: 'delete',
 } as const;
 export type DocumentAction = (typeof DocumentAction)[keyof typeof DocumentAction];
 
 /**
  * Whether the actor may perform `action` on the entry. This checks WHO may act; whether the entry's current
- * state allows the change (e.g. approving something that isn't waiting) is the sharing state machine's job.
+ * state allows the change (e.g. unsharing a private entry) is the sharing state machine's job.
  */
 export function canOnDocument(actor: Actor, action: DocumentAction, doc: DocumentFacts): boolean {
   const isOwner = actor.id === doc.ownerId && actor.role !== 'SYS_ADMIN';
@@ -115,15 +124,12 @@ export function canOnDocument(actor: Actor, action: DocumentAction, doc: Documen
 
   switch (action) {
     case DocumentAction.Edit:
-    case DocumentAction.RequestOpen:
-    case DocumentAction.WithdrawOpen:
+    case DocumentAction.Share:
       return isOwner;
     case DocumentAction.ReadVersions:
-    case DocumentAction.RevokeOpen:
+    case DocumentAction.Unshare:
       return isOwner || asLeader;
     case DocumentAction.Comment:
-    case DocumentAction.ApproveOpen:
-    case DocumentAction.DeclineOpen:
       return asLeader;
     case DocumentAction.Delete:
       // The spec gives deleting entries to SYS_ADMIN (§6.5), which needs no access to content.

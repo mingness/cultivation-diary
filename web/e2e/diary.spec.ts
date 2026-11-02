@@ -182,7 +182,10 @@ test('over 5,000 characters 提交 waits, but 暫存 still saves', async ({ user
   await expect(page.getByRole('button', { name: t('editor.saveDraft') })).toBeDisabled();
 });
 
-test('sharing can be asked for once submitted, and withdrawn', async ({ userPage: page, t }) => {
+test('sharing is the author’s choice once submitted, after a confirmation, and can be stopped', async ({
+  userPage: page,
+  t,
+}) => {
   await page.goto('/diary/new/edit');
   const share = page.getByRole('checkbox', { name: t('share.label') });
   await expect(share).toBeDisabled();
@@ -191,10 +194,13 @@ test('sharing can be asked for once submitted, and withdrawn', async ({ userPage
   await page.getByRole('button', { name: t('editor.submit'), exact: true }).click();
   await expect(share).toBeEnabled();
 
-  await share.check();
-  await expect(page.getByText(t('share.waiting'))).toBeVisible();
+  await share.click();
+  const dialog = page.getByRole('dialog', { name: t('share.confirmTitle') });
+  await dialog.getByRole('button', { name: t('share.confirm') }).click();
+  await expect(page.getByText(t('share.shared'))).toBeVisible();
+  await expect(share).toBeChecked();
   await share.uncheck();
-  await expect(page.getByText(t('share.waiting'))).toBeHidden();
+  await expect(page.getByText(t('share.shared'))).toBeHidden();
   await expect(share).not.toBeChecked();
 });
 

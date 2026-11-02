@@ -216,7 +216,8 @@ export const jobRuns = pgTable(
 // Diary entries (spec §5, docs/ARCHITECTURE.md §5). Content, drafts, versions and comments are encrypted with
 // the entry's own DEK, which is wrapped by DIARY_KEYRING. Only server/src/services/diary/ handles them.
 
-export const accessEnum = pgEnum('access', ['private', 'wait_for_open', 'open']);
+/** Who an entry is shared with (shared/src/roles.ts `Access`); `everyone` isn't offered yet. */
+export const accessEnum = pgEnum('access', ['private', 'course', 'everyone']);
 
 export const documents = pgTable(
   'documents',
@@ -241,9 +242,14 @@ export const documents = pgTable(
     firstSubmittedAt: timestamptz('first_submitted_at'),
     lastSubmittedAt: timestamptz('last_submitted_at'),
     access: accessEnum('access').notNull().default('private'),
-    /** Who last changed sharing, and when (for a waiting entry: the owner's request). */
+    /** Who last changed sharing, and when. */
     accessDecidedBy: uuid('access_decided_by').references(() => users.id, { onDelete: 'set null' }),
     accessDecidedAt: timestamptz('access_decided_at'),
+    /**
+     * When a leader last unshared the entry; the author can't share it again until an 更新 with a change
+     * clears this.
+     */
+    unsharedByLeaderAt: timestamptz('unshared_by_leader_at'),
     dekWrapped: bytea('dek_wrapped').notNull(),
     /** Copy of the wrapped key's version, so key rotation can find old ones with an index. */
     keyVersion: integer('key_version').notNull(),

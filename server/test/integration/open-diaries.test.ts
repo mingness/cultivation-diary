@@ -51,23 +51,26 @@ beforeAll(async () => {
   leader = await person('COURSE_LEADER');
 });
 
-/** A submitted entry by `owner`, opened by the leader unless `share` says otherwise. */
+/**
+ * A submitted entry by `owner`, shared by them unless `share` says otherwise; `unshared` means shared and then
+ * unshared by the leader.
+ */
 async function entry(
   owner: Who,
   title: string,
   body: string,
-  share: 'open' | 'wait_for_open' | 'private' = 'open',
+  share: 'shared' | 'unshared' | 'private' = 'shared',
 ): Promise<string> {
   const { id } = (await call(owner, 'POST', '/api/documents', { title, body })).json();
   await call(owner, 'POST', `/api/documents/${id}/submit`, { title, body });
   if (share !== 'private')
-    await call(owner, 'POST', `/api/documents/${id}/access`, { action: 'request' });
-  if (share === 'open')
-    await call(leader, 'POST', `/api/documents/${id}/access`, { action: 'approve' });
+    await call(owner, 'POST', `/api/documents/${id}/access`, { action: 'share', scope: 'course' });
+  if (share === 'unshared')
+    await call(leader, 'POST', `/api/documents/${id}/access`, { action: 'unshare' });
   return id;
 }
 
-describe('reading an open entry (spec §5.3)', () => {
+describe('reading a shared entry (spec §5.3)', () => {
   it('shows the submitted version and submitted comments only, and is not audited', async () => {
     const owner = await person();
     const id = await entry(owner, '公開', '<p>shared text</p>');
@@ -104,18 +107,15 @@ describe('reading an open entry (spec §5.3)', () => {
     expect(reads).toEqual([]);
   });
 
-  it('a private or waiting entry stays invisible, and so does one closed again', async () => {
+  it('a private entry stays invisible, and so does one unshared again', async () => {
     const owner = await person();
     const reader = await person();
     const privateId = await entry(owner, 'private', '<p>x</p>', 'private');
-    const waitingId = await entry(owner, 'waiting', '<p>x</p>', 'wait_for_open');
-    const openId = await entry(owner, 'open', '<p>x</p>');
-    for (const id of [privateId, waitingId]) {
-      expect((await call(reader, 'GET', `/api/documents/${id}`)).statusCode).toBe(404);
-    }
-    expect((await call(reader, 'GET', `/api/documents/${openId}`)).statusCode).toBe(200);
-    await call(owner, 'POST', `/api/documents/${openId}/access`, { action: 'revoke' });
-    expect((await call(reader, 'GET', `/api/documents/${openId}`)).statusCode).toBe(404);
+    const sharedId = await entry(owner, 'shared', '<p>x</p>');
+    expect((await call(reader, 'GET', `/api/documents/${privateId}`)).statusCode).toBe(404);
+    expect((await call(reader, 'GET', `/api/documents/${sharedId}`)).statusCode).toBe(200);
+    await call(owner, 'POST', `/api/documents/${sharedId}/access`, { action: 'unshare' });
+    expect((await call(reader, 'GET', `/api/documents/${sharedId}`)).statusCode).toBe(404);
   });
 
   it('a reader can read but never write, comment or change sharing', async () => {
@@ -131,7 +131,7 @@ describe('reading an open entry (spec §5.3)', () => {
         { body: '<p>x</p>', state: 'submitted' },
         'forbidden',
       ],
-      ['POST', `/api/documents/${id}/access`, { action: 'revoke' }, 'forbidden'],
+      ['POST', `/api/documents/${id}/access`, { action: 'unshare' }, 'forbidden'],
     ] as const;
     for (const [method, url, payload, expected] of attempts) {
       expect(code(await call(reader, method, url, payload)), url).toBe(expected);
@@ -140,12 +140,12 @@ describe('reading an open entry (spec §5.3)', () => {
 });
 
 describe('the 開放日記 list (spec §6.1)', () => {
-  it('lists open entries for the month, mine included, with submitted-comment counts', async () => {
+  it('lists shared entries for the month, mine included, with submitted-comment counts', async () => {
     const owner = await person();
     const me = await person();
     const theirs = await entry(owner, 'theirs', '<p>x</p>');
     const mine = await entry(me, 'mine', '<p>x</p>');
-    const waiting = await entry(owner, 'waiting', '<p>x</p>', 'wait_for_open');
+    const unshared = await entry(owner, 'unshared', '<p>x</p>', 'unshared');
     await call(leader, 'PUT', `/api/documents/${theirs}/comments/mine`, {
       body: '<p>sent</p>',
       state: 'submitted',
@@ -158,7 +158,7 @@ describe('the 開放日記 list (spec §6.1)', () => {
     const list = await openList(me);
     const ids = list.map((d) => d.id);
     expect(ids).toEqual(expect.arrayContaining([theirs, mine]));
-    expect(ids).not.toContain(waiting);
+    expect(ids).not.toContain(unshared);
     expect(list.find((d) => d.id === theirs)).toMatchObject({
       title: 'theirs',
       author: { id: owner.id, username: owner.username },

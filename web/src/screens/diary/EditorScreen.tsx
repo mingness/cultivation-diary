@@ -162,6 +162,8 @@ function EntryEditor({ initial }: { initial: OwnerEntry | null }) {
   // Sharing changes go straight to the server (ShareToggle) and land in the cached entry.
   const live = useEntry(server.id).data;
   const access = live?.view === 'owner' ? live.access : server.access;
+  // A new entry can't have been unshared; otherwise the server's answer decides (a refusal explains itself).
+  const unsharedByLeader = live?.view === 'owner' && live.unsharedByLeader;
 
   const dirty = (view?.bodyChanged ?? false) || title !== savedTitle;
   useReportUnsaved(dirty);
@@ -348,7 +350,12 @@ function EntryEditor({ initial }: { initial: OwnerEntry | null }) {
         </div>
       )}
 
-      <ShareToggle documentId={server.id} access={access} submitted={server.submittedOnce} />
+      <ShareToggle
+        documentId={server.id}
+        access={access}
+        submitted={server.submittedOnce}
+        unsharedByLeader={unsharedByLeader}
+      />
 
       <div aria-live="polite">
         {message && (

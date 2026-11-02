@@ -92,6 +92,7 @@ export function toOwnDocument(ctx: AppContext, row: DocumentRow): OwnDocument {
     diaryDate: row.diaryDate,
     state: stateOf(row),
     access: row.access,
+    unsharedByLeader: row.unsharedByLeaderAt !== null,
     submitted,
     draft,
     createdAt: row.createdAt.toISOString(),
@@ -251,6 +252,8 @@ export async function submitDocument(
         contentNonce: content.nonce,
         firstSubmittedAt: current.firstSubmittedAt ?? now,
         lastSubmittedAt: now,
+        // An update with a change is what a leader's unshare waits for (an unchanged 更新 returned above).
+        unsharedByLeaderAt: null,
         ...clearDraft,
         updatedAt: now,
       })

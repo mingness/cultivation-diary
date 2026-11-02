@@ -75,7 +75,7 @@ README.md          what it is, quick start, how to run tests
 - Sessions use HttpOnly, Secure, SameSite cookies or short-lived tokens. Protect state-changing requests against
   CSRF. Sign out the user's other sessions on password change, and all sessions on admin reset.
 - **Sanitise rich-text HTML on the server** with an allowlist (the editor's tags and attributes only) before storing
-  and before rendering. Shared ("Open") diaries are shown to other users, so stored XSS is a real risk. Set a
+  and before rendering. Shared diaries are shown to other users, so stored XSS is a real risk. Set a
   Content-Security-Policy.
 - Validate all input on the server (including the 1–1080 clamp, image size limits, and request body size). Client
   validation is UX only.

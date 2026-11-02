@@ -1,6 +1,6 @@
 /** Diary entries (spec §5): the owner's, leader's and reader's views, comments and sharing. */
 import { z } from 'zod';
-import { Access } from './roles.js';
+import { Access, ShareScope } from './roles.js';
 import { ENTRY_LIMITS } from './limits.js';
 
 export const DocumentTitle = z.string().trim().max(ENTRY_LIMITS.titleChars);
@@ -30,6 +30,11 @@ export const OwnDocument = z.object({
   diaryDate: z.iso.date(),
   state: DocumentState,
   access: Access,
+  /**
+   * A leader stopped sharing this entry and it hasn't been updated since; sharing it again waits for the
+   * next 更新 with a change.
+   */
+  unsharedByLeader: z.boolean(),
   /** What leaders currently see; null until the first 提交. */
   submitted: z.object({ title: z.string(), body: z.string(), at: z.iso.datetime() }).nullable(),
   /** The owner's working copy, if it differs from what was submitted; null when there's nothing pending. */
@@ -39,7 +44,7 @@ export const OwnDocument = z.object({
 });
 export type OwnDocument = z.infer<typeof OwnDocument>;
 
-/** A submitted comment, as the owner, other leaders and (for open entries) readers see it (spec §5.4). */
+/** A submitted comment, as the owner, other leaders and (for shared entries) readers see it (spec §5.4). */
 export const SubmittedComment = z.object({
   id: z.uuid(),
   /** "family given", or the username without a name; null when the leader's account has been deleted. */
@@ -92,7 +97,7 @@ export const LeaderEntryView = z.object({
 });
 
 /**
- * `GET /api/documents/:id` for any other signed-in user, when the entry is open (spec §5.3): the last
+ * `GET /api/documents/:id` for any other signed-in user, when the entry is shared with them (spec §5.3): the last
  * submitted version and the submitted comments. Never drafts, history or draft comments.
  */
 export const ReaderEntryView = z.object({
@@ -119,10 +124,14 @@ export const SaveCommentRequest = z.object({
   state: z.enum(['draft', 'submitted']),
 });
 
-/** Sharing changes (spec §5.3, docs/ARCHITECTURE.md §7.2). The server decides who may do which. */
-export const AccessChangeRequest = z.object({
-  action: z.enum(['request', 'withdraw', 'approve', 'decline', 'revoke']),
-});
+/**
+ * Sharing changes (spec §5.3, docs/ARCHITECTURE.md §7.2): the author shares or unshares; a leader can only
+ * unshare. The server decides who may do which.
+ */
+export const AccessChangeRequest = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('share'), scope: ShareScope }),
+  z.object({ action: z.literal('unshare') }),
+]);
 export const AccessChangeResponse = z.object({ access: Access });
 
 /** `YYYY-MM`, a Beijing calendar month. */
@@ -133,7 +142,7 @@ export const MyDocumentsQuery = z.object({ month: Month });
 /** `GET /api/documents/open`: the 開放日記 list for one Beijing month. */
 export const OpenDocumentsQuery = z.object({ month: Month });
 
-/** Open entries, newest first; content comes from `GET /api/documents/:id` when a row is expanded. */
+/** Entries shared with the reader, newest first; content comes from `GET /api/documents/:id` when a row is expanded. */
 export const OpenDocumentList = z.object({
   documents: z.array(
     z.object({

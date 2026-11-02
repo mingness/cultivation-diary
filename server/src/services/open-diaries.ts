@@ -1,15 +1,15 @@
 /**
- * The 開放日記 list (spec §5.3, §6.1): entries their owners asked to share and a leader approved. Titles are
+ * The 開放日記 list (spec §5.3, §6.1): entries their authors chose to share. Titles are
  * plaintext by design (spec §3) and names come from profiles, so this never touches diary content; each
  * entry's content is read through `GET /api/documents/:id`, which checks access again.
  */
-import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
+import { and, desc, gte, inArray, lt, sql } from 'drizzle-orm';
 import type { AppContext } from '../context.js';
 import { documents } from '../db/schema.js';
 import { monthDates } from '../domain/count/schedule.js';
 import { peopleByIds } from './people.js';
 
-/** Open entries dated in the Beijing month, newest first, with their submitted-comment counts. */
+/** Shared entries dated in the Beijing month, newest first, with their submitted-comment counts. */
 export async function listOpenMonth(ctx: AppContext, month: string) {
   const { first, next } = monthDates(month);
   const rows = await ctx.db
@@ -25,7 +25,8 @@ export async function listOpenMonth(ctx: AppContext, month: string) {
     .from(documents)
     .where(
       and(
-        eq(documents.access, 'open'),
+        // Everyone is in the one class for now, so both levels reach every reader (sharedWithReader).
+        inArray(documents.access, ['course', 'everyone']),
         gte(documents.diaryDate, first),
         lt(documents.diaryDate, next),
       ),

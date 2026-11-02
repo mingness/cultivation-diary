@@ -71,6 +71,3 @@ export const LeaderCalendar = z.object({ counts: z.record(z.iso.date(), z.number
 export const LeaderUserList = z.object({
   users: z.array(EntryAuthor.extend({ entries: z.number().int() })),
 });
-
-/** Entries waiting for a leader's approval to open (spec §6.3), oldest request first. */
-export const OpenRequestList = z.object({ documents: z.array(LeaderDocumentRow) });

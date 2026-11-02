@@ -1,6 +1,6 @@
 /**
  * The leader's side of the diary (spec §5.3, §5.4, §6.3; docs/ARCHITECTURE.md §7): reading submitted entries,
- * comments, review lists and sharing decisions, against a real database.
+ * comments, review lists and unsharing, against a real database.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { and, eq } from 'drizzle-orm';
@@ -14,7 +14,6 @@ import {
   LeaderDocumentList,
   LeaderUserList,
   MyDocumentList,
-  OpenRequestList,
   OwnerEntryView,
   type Profile,
 } from '@diary/shared';
@@ -62,8 +61,10 @@ const ownerView = async (who: Who, id: string) => OwnerEntryView.parse(await vie
 const leaderView = async (who: Who, id: string) => LeaderEntryView.parse(await view(who, id));
 const comment = (who: Who, id: string, body: string, state: 'draft' | 'submitted') =>
   call(who, 'PUT', `/api/documents/${id}/comments/mine`, { body, state });
-const access = (who: Who, id: string, action: string) =>
-  call(who, 'POST', `/api/documents/${id}/access`, { action });
+const access = (who: Who, id: string, body: object) =>
+  call(who, 'POST', `/api/documents/${id}/access`, body);
+const SHARE = { action: 'share', scope: 'course' };
+const UNSHARE = { action: 'unshare' };
 
 /** An entry by `owner`, submitted with `body` unless `submitted` is false. */
 async function entry(owner: Who, title: string, body: string, submitted = true): Promise<string> {
@@ -115,7 +116,7 @@ describe('reading as a leader (spec §5.1, docs/ARCHITECTURE.md §7.1)', () => {
     expect(JSON.stringify(await view(owner, id))).not.toContain(leader.username);
   });
 
-  it('a leader’s own entry: owner view, and they may comment on it and open it like any other', async () => {
+  it('a leader’s own entry: owner view, and they may comment on it and share it like any other', async () => {
     const leader = await person('COURSE_LEADER');
     const id = await entry(leader, 'mine', '<p>x</p>');
     expect((await comment(leader, id, '<p>note to self</p>', 'submitted')).statusCode).toBe(200);
@@ -129,10 +130,7 @@ describe('reading as a leader (spec §5.1, docs/ARCHITECTURE.md §7.1)', () => {
       commentCount: 1,
       hasUnseenComment: false,
     });
-    // Still request first, then approve: the state machine is the same for everyone.
-    expect(code(await access(leader, id, 'approve'))).toBe('invalid_transition');
-    await access(leader, id, 'request');
-    expect((await access(leader, id, 'approve')).json()).toEqual({ access: 'open' });
+    expect((await access(leader, id, SHARE)).json()).toEqual({ access: 'course' });
     // Another leader reads it as a leader, comment included.
     expect((await leaderView(await person('COURSE_LEADER'), id)).comments).toMatchObject([
       { body: '<p>note to self</p>' },
@@ -371,7 +369,6 @@ describe('review lists (spec §6.3)', () => {
       '/api/leader/documents?date=2026-10-14',
       '/api/leader/calendar?month=2026-10',
       '/api/leader/users?month=2026-10',
-      '/api/leader/open-requests',
     ];
     for (const [who, status] of [
       [null, 401],
@@ -388,44 +385,63 @@ describe('review lists (spec §6.3)', () => {
 });
 
 describe('sharing (spec §5.3, docs/ARCHITECTURE.md §7.2)', () => {
-  it('owner asks → leader approves → anyone revokes; the queue lists the oldest request first', async () => {
+  it('the author shares at once; a leader’s unshare holds until the author updates the entry', async () => {
     const owner = await person();
     const leader = await person('COURSE_LEADER');
+    const reader = await person();
     const draftOnly = await entry(owner, 'unsent', '<p>x</p>', false);
-    expect(code(await access(owner, draftOnly, 'request'))).toBe('not_submitted');
+    expect(code(await access(owner, draftOnly, SHARE))).toBe('not_submitted');
 
-    const first = await entry(owner, 'first', '<p>x</p>');
-    const second = await entry(owner, 'second', '<p>x</p>');
-    expect((await access(owner, second, 'request')).json()).toEqual({ access: 'wait_for_open' });
-    t.clock.advance(60_000);
-    await access(owner, first, 'request');
-    const queue = OpenRequestList.parse(
-      (await call(leader, 'GET', '/api/leader/open-requests')).json(),
-    ).documents.map((d) => d.id);
-    expect(queue.indexOf(second)).toBeLessThan(queue.indexOf(first));
+    const id = await entry(owner, 'shared', '<p>x</p>');
+    expect((await access(owner, id, SHARE)).json()).toEqual({ access: 'course' });
+    expect((await view(reader, id)).view).toBe('reader');
 
-    // A user can never open their own entry; a leader can't approve twice.
-    expect(code(await access(owner, second, 'approve'))).toBe('forbidden');
-    expect((await access(leader, second, 'approve')).json()).toEqual({ access: 'open' });
-    expect(code(await access(leader, second, 'approve'))).toBe('invalid_transition');
-    expect((await access(leader, second, 'revoke')).json()).toEqual({ access: 'private' });
+    expect((await access(leader, id, UNSHARE)).json()).toEqual({ access: 'private' });
+    expect((await call(reader, 'GET', `/api/documents/${id}`)).statusCode).toBe(404);
+    expect(await ownerView(owner, id)).toMatchObject({ access: 'private', unsharedByLeader: true });
+    expect(code(await access(owner, id, SHARE))).toBe('unshared_by_leader');
 
-    expect((await access(leader, first, 'decline')).json()).toEqual({ access: 'private' });
-    await access(owner, first, 'request');
-    expect((await access(owner, first, 'withdraw')).json()).toEqual({ access: 'private' });
-    // Someone else's private entry stays invisible.
-    expect(code(await access(await person(), first, 'request'))).toBe('not_found');
+    // Submitting the same text again isn't an edit, so the leader's decision still stands.
+    await call(owner, 'POST', `/api/documents/${id}/submit`, { title: 'shared', body: '<p>x</p>' });
+    expect(code(await access(owner, id, SHARE))).toBe('unshared_by_leader');
+    await call(owner, 'POST', `/api/documents/${id}/submit`, { title: 'shared', body: '<p>y</p>' });
+    expect((await ownerView(owner, id)).unsharedByLeader).toBe(false);
+    expect((await access(owner, id, SHARE)).json()).toEqual({ access: 'course' });
+
+    // The author's own unshare leaves them free to share again.
+    await access(owner, id, UNSHARE);
+    expect((await access(owner, id, SHARE)).json()).toEqual({ access: 'course' });
   });
 
-  it('two leaders deciding at once: exactly one wins', async () => {
+  it('only the author shares, only with their class for now; nobody else sees a private entry', async () => {
+    const owner = await person();
+    const leader = await person('COURSE_LEADER');
+    const id = await entry(owner, 'mine', '<p>x</p>');
+    expect(code(await access(leader, id, SHARE))).toBe('forbidden');
+    expect(code(await access(await person(), id, SHARE))).toBe('not_found');
+    expect(code(await access(owner, id, { action: 'share', scope: 'everyone' }))).toBe(
+      'validation_failed',
+    );
+    expect(code(await access(owner, id, UNSHARE))).toBe('invalid_transition');
+  });
+
+  it('a leader unsharing their own entry acts as its author', async () => {
+    const leader = await person('COURSE_LEADER');
+    const id = await entry(leader, 'mine', '<p>x</p>');
+    await access(leader, id, SHARE);
+    await access(leader, id, UNSHARE);
+    expect((await access(leader, id, SHARE)).json()).toEqual({ access: 'course' });
+  });
+
+  it('two leaders unsharing at once: exactly one wins', async () => {
     const owner = await person();
     const [l1, l2] = [await person('COURSE_LEADER'), await person('COURSE_LEADER')];
     for (let round = 0; round < 10; round++) {
-      const id = await entry(owner, `decide${round}`, '<p>x</p>');
-      await changeAccess(t.ctx, owner, id, 'request');
+      const id = await entry(owner, `unshare${round}`, '<p>x</p>');
+      await changeAccess(t.ctx, owner, id, { kind: 'share', scope: 'course' });
       const results = await Promise.allSettled([
-        changeAccess(t.ctx, l1, id, 'approve'),
-        changeAccess(t.ctx, l2, id, 'decline'),
+        changeAccess(t.ctx, l1, id, { kind: 'unshare' }),
+        changeAccess(t.ctx, l2, id, { kind: 'unshare' }),
       ]);
       expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
     }

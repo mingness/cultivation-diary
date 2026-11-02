@@ -10,7 +10,8 @@
 
 **Goals**
 - A private, bilingual (繁體中文 default / English) diary platform, 修行日記, with supervision: users write
-  encrypted diaries; course leaders read *submitted* entries and comment; sharing needs a leader's approval.
+  encrypted diaries; course leaders read *submitted* entries and comment; authors choose to share an entry
+  with their class, and any leader can stop sharing it (D29).
 - A collective daily-count activity (报数) with a 10,000,000 goal and a nightly auto-submit (§7).
 - Installable on phones as a web app (manifest + service worker), with an Android wrapper only as a fallback.
 - Built to §12: tested, observable, no secrets in git, CI-gated, reproducible.
@@ -132,8 +133,9 @@ documents
   last_submitted_at NULL
   CHECKs: ciphertext/nonce pairs set together; content exists iff first_submitted_at is set; only submitted
   entries can be anything but private
-  access ENUM(private, wait_for_open, open)
-  access_decided_by FK users NULL, access_decided_at NULL   -- last sharing change; for a waiting entry, the request
+  access ENUM(private, course, everyone)  -- who it's shared with (D29); `everyone` is not offered yet
+  access_decided_by FK users NULL, access_decided_at NULL   -- last sharing change
+  unshared_by_leader_at NULL              -- a leader stopped sharing; cleared by the next 更新 with a change
   dek_wrapped, key_version
   created_at, updated_at
   INDEX (diary_date) WHERE first_submitted_at IS NOT NULL, INDEX (owner_id, diary_date), INDEX (access)
@@ -248,17 +250,23 @@ using `actor.role`, `isOwner`, and the document's `first_submitted_at` and `acce
 |---|---|
 | Owner | Always, including draft and history |
 | COURSE_LEADER (not the owner) | `first_submitted_at` is set. They see the submitted content, history versions, all submitted comments, and their own draft comment. Never the owner's unsubmitted draft. |
-| Other NORMAL_USERs | `access = open`: submitted content + submitted comments |
+| Other NORMAL_USERs | `access` is `course` (same class; one class for now, so everyone) or `everyone`: submitted content + submitted comments |
 | SYS_ADMIN | Never. Metadata only (title, date, owner, access state) |
 
-### 7.2 Sharing state machine
+### 7.2 Sharing (revised 2026-10-19, D29)
 
 ```
-owner:   private ──request──► wait_for_open ──withdraw──► private
-leader:  wait_for_open ──approve (confirm dialog)──► open      (any leader, on their own entries too)
-leader:  wait_for_open ──decline──► private
-either:  open ──revoke──► private
+owner:   private ──share(scope) (confirm dialog)──► scope    refused while a leader's unshare stands
+owner:   scope ──share(other scope)──► other scope
+owner:   scope ──unshare──► private
+leader:  scope ──unshare (confirm dialog)──► private, and unshared_by_leader_at = now
+owner:   更新 with a change ──► unshared_by_leader_at = NULL (sharing is the owner's call again)
 ```
+
+Nobody approves sharing; leaders only unshare, which keeps their work light. A leader unsharing their own
+entry acts as its author, so it sets no lock. `scope` is `course` for now; `everyone` is in the enum so offering
+it later is an API and UI change, not a migration. When classes arrive, `course` must compare the reader's
+class with the author's in `sharedWithReader` (`server/src/domain/authz/policy.ts`) and in the 開放日記 query.
 
 Only submitted entries can be shared. All transitions are server-enforced; access fields in draft or submit
 bodies are ignored.
@@ -274,11 +282,10 @@ bodies are ignored.
 | `POST /api/documents`, `PUT /:id/draft`, `POST /:id/submit` (first submit or update) | – | own, daily limits | own, daily limits | ❌ |
 | `GET /api/documents/open?month=` | – | ✅ | ✅ | ❌ |
 | `GET /api/documents/:id`, `/:id/versions` | – | per §7.1 | per §7.1 | ❌ |
-| `POST /api/documents/:id/access` (`request`/`withdraw`/`revoke`) | – | own | own | ❌ |
-| `POST /api/documents/:id/access` (`approve`/`decline`/`revoke`) | – | ❌ | ✅ submitted, own included | ❌ |
+| `POST /api/documents/:id/access` (`{action: share, scope: course}` / `{action: unshare}`) | – | own | own | ❌ |
+| `POST /api/documents/:id/access` (`{action: unshare}`) | – | ❌ | ✅ submitted | ❌ |
 | `GET /api/leader/documents?date=&page=&size=`, `?user=&month=` and `?unread=true&page=&size=` → per entry `myCommentState, otherLeaderCommented, unread, access` | – | ❌ | ✅ submitted only | ❌ |
 | `GET /api/leader/calendar?month=` → submitted-entry count per day | – | ❌ | ✅ | ❌ |
-| `GET /api/leader/open-requests` | – | ❌ | ✅ | ❌ |
 | `GET /api/leader/users?month=` → names + entries this month | – | ❌ | ✅ | ❌ |
 | `PUT /api/documents/:id/comments/mine` (`{body, state}`) | – | ❌ | ✅ submitted, own included | ❌ |
 | `GET /api/admin/users?q=&role=&status=&page=&size=`; `GET /api/admin/users/:id` | – | ❌ | ❌ | ✅ incl. decrypted profiles |
@@ -298,8 +305,8 @@ Translate takes an **id**, not free text. The server checks read access and decr
 keeps the endpoint from becoming a free LLM proxy.
 
 Because each account has exactly one role, separation of duties is automatic: a SYS_ADMIN account can never read
-diaries. A leader's own entries follow the owner rows and the leader rows alike: leaders may comment on and decide sharing
-for any submitted entry, their own included, and the review lists include their own entries.
+diaries. A leader's own entries follow the owner rows and the leader rows alike: leaders may comment on and unshare
+any submitted entry, their own included, and the review lists include their own entries.
 
 ## 8. Feature design notes
 
@@ -404,7 +411,7 @@ for any submitted entry, their own included, and the review lists include their 
 ### 8.4 Pages
 
 Designed in `docs/FRONTEND.md`: role-based tab bar on phones and top bar on desktop; a read view before the
-editor (F1); cards on phones and tables on desktop (F2); approve/decline buttons for open requests (F3);
+editor (F1); cards on phones and tables on desktop (F2); a 取消開放 button for leaders (F3, revised by D29);
 traditional characters throughout (F5); no offline writing in v1 (F6).
 
 ### 8.5 报数
@@ -619,7 +626,8 @@ states. Each slice is one screen group, with Playwright e2e tests at 360 px and 
     read-only feed (calendar day and author, worked out from the month's list; no page per entry), and the
     leaders got 未讀 (`?unread=true`, from the read audit). Finally (agreed 2026-10-15, "fewest clicks"):
     every list is a continuous feed; 開放申請 became a filter of the one 批閱 tab; no page per entry and no
-    one-at-a-time view, so the stepper and reading pane are gone.)*
+    one-at-a-time view, so the stepper and reading pane are gone. Then (D29, 2026-10-19) the approval flow
+    went: no 申請開放 filter, badge or `GET /api/leader/open-requests`; leaders keep 取消開放.)*
 15. **SYS_ADMIN screens**, including Attention and activity. *(Done, except 報數管理, which comes with 報數 in
     slice 16. Password resets became a filter of 用戶 (the 等待重設 count is its tab's badge) rather than a tab.
     Tabs: 注意 · 用戶 · 日記管理 · 我的. The e2e setup signs in one SYS_ADMIN (`admin2`, with its
@@ -669,7 +677,7 @@ Each slice ships with tests, both languages where it has UI, permission tests pe
 | D13 | 报数 scope | **Agreed**: app-wide |
 | D14 | Show owners who read their entry | **Agreed: no**. The read audit stays internal |
 | D18 | A leader account is deleted | **Agreed**: submitted comments stay, labelled "former leader"; drafts are deleted |
-| D19 | Can a COURSE_LEADER keep a diary? | **Agreed: yes**. Other leaders read and comment on it. Changed 2026-10-15: a leader may also comment on and approve sharing for their own entry, so the leader rules have no own-entry exception |
+| D19 | Can a COURSE_LEADER keep a diary? | **Agreed: yes**. Other leaders read and comment on it. Changed 2026-10-15: a leader may also comment on and approve sharing for their own entry, so the leader rules have no own-entry exception (approval itself removed by D29) |
 | D20 | API explorer for checking the backend by hand | **Agreed**: `@fastify/swagger` + `@fastify/swagger-ui` + `fastify-type-provider-zod` (OpenAPI from the zod schemas; assets bundled, no CDN). On by default outside production, off in production; staging sets `API_DOCS=true` |
 | D21 | Usage limits against a hijacked account | **Agreed**: per user per day 20 creates, 20 first submissions, 50 updates; per entry 2 photos and 5,000 characters (framed as care for the reading leader); 20 manual count reports per count date (a report replaces that date's number, so this only limits traffic; changed 2026-10-15). §8.3, §8.5 |
 | D22 | Entry dates and the submit button | **Agreed**: date = creation date, set by the server; several entries per date; no backdating. 提交 for the first submit, then 更新 |
@@ -680,4 +688,5 @@ Each slice ships with tests, both languages where it has UI, permission tests pe
 | D27 | Alerting SYS_ADMINs | **Agreed**: in-app Attention list always; email via SMTP (`nodemailer`, approved) from a QQ/163 mailbox when `SMTP_URL` is set. Web Push rejected: Android push is blocked in mainland China |
 | D28 | Warning levels separate from caps | **Agreed**: limits exist to spot misuse, keep leaders' reading load manageable and keep entries lean. Caps refuse; warning levels (about half the caps, plus 40 submitted comments a day) only flag the account, once a day. Per-entry refusals no longer flag. Comments have the entry's per-entry limits. §8.3, §8.9 |
 | Q1 | SYS_ADMIN resetting their own authenticator (spec §4.4 "set up / reset") | **Agreed** (2026-10-15): yes, with the password and a current code, confirmed by a code from the new app; other devices are signed out and a 注意 alert is raised. A lost authenticator is still removed by another SYS_ADMIN or the CLI (§8, sign-in) |
+| D29 | Who decides sharing | **Agreed** (2026-10-19, to reduce leaders' work): the author shares, with no approval. Any leader can unshare; the author can share again only after an 更新 that changes the entry. Levels `private` / `course` / `everyone`; only `course` is offered while there is one class. Migration 0009 turned `open` and `wait_for_open` into `course` |
 | F1–F6 | Frontend decisions | **Agreed**: see FRONTEND.md §11 |

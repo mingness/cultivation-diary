@@ -6,7 +6,6 @@
 import type { ReactNode } from 'react';
 import { NavLink, useMatches } from 'react-router';
 import { useAlertStatus, useWaitingResets } from '../api/admin.js';
-import { useOpenRequests } from '../api/leader.js';
 import type { Role } from '@diary/shared';
 import { useI18n, type MessageKey } from '../i18n/index.js';
 import { Icon, type IconName } from './Icon.js';
@@ -22,8 +21,8 @@ interface NavItem {
   icon: IconName;
   /** Only in the desktop top bar; phones keep to four or five tabs. */
   desktopOnly?: boolean;
-  /** What the badge counts: share requests (leaders), open flags or waiting resets (SYS_ADMINs). */
-  badge?: 'requests' | 'alerts' | 'resets';
+  /** What the badge counts: open flags or waiting resets (SYS_ADMINs). */
+  badge?: 'alerts' | 'resets';
 }
 
 // Destinations appear here as their screens are built (docs/ARCHITECTURE.md §11, Phase B).
@@ -35,7 +34,7 @@ const ME: NavItem = { to: '/me', label: 'nav.me', icon: 'user' };
 const NAV: Record<Role, readonly NavItem[]> = {
   NORMAL_USER: [DIARY, OPEN, COUNT, ME],
   COURSE_LEADER: [
-    { to: '/review', label: 'nav.review', icon: 'review', badge: 'requests' },
+    { to: '/review', label: 'nav.review', icon: 'review' },
     { ...DIARY, wideLabel: 'nav.myDiary' },
     OPEN,
     COUNT,
@@ -64,10 +63,9 @@ function useRouteFlag(flag: 'detail' | 'wide'): boolean {
 /** A tab's count, shown as a number with words for screen readers; kept fresh by its query's polling. */
 function Badge({ kind }: { kind: NonNullable<NavItem['badge']> }) {
   const { t } = useI18n();
-  const requests = useOpenRequests(kind === 'requests').data?.documents.length;
   const alerts = useAlertStatus(kind === 'alerts').data?.openCount;
   const resets = useWaitingResets(kind === 'resets').data;
-  const count = { requests, alerts, resets }[kind] ?? 0;
+  const count = { alerts, resets }[kind] ?? 0;
   if (count === 0) return null;
   return (
     <span className={styles.badge}>

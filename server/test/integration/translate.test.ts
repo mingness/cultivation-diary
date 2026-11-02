@@ -79,11 +79,13 @@ describe('what each reader gets translated (spec §8)', () => {
     expect(auditsAfter).toHaveLength(auditsBefore);
   });
 
-  it('another user only once the entry is open; never a SYS_ADMIN', async () => {
+  it('another user only once the entry is shared; never a SYS_ADMIN', async () => {
     const other = await person();
     expect(await sent(other, { documentId: docId })).toBe('HTTP 404');
-    await call(owner, 'POST', `/api/documents/${docId}/access`, { action: 'request' });
-    await call(leader, 'POST', `/api/documents/${docId}/access`, { action: 'approve' });
+    await call(owner, 'POST', `/api/documents/${docId}/access`, {
+      action: 'share',
+      scope: 'course',
+    });
     expect(await sent(other, { documentId: docId })).toBe('已提交的內容\n第二段');
     expect(await sent(await signedInAdmin(t), { documentId: docId })).toBe('HTTP 403');
     expect(await sent(null, { documentId: docId })).toBe('HTTP 401');

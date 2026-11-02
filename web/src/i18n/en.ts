@@ -122,8 +122,7 @@ export const en: Messages = {
   'chip.submitted': 'Submitted',
   'chip.pending': 'Submitted · changes not sent',
   'chip.private': 'Private',
-  'chip.waiting': 'Waiting to open',
-  'chip.open': 'Open',
+  'chip.shared': 'Shared',
   'chip.comment': '{n} comment',
   'chip.comments': '{n} comments',
   'chip.noComment': 'No comments',
@@ -147,14 +146,15 @@ export const en: Messages = {
   'translate.result': 'Translation',
   'translate.off': 'Translation isn’t switched on for this server.',
 
-  'share.label': 'Ask to share with everyone',
-  'share.notSubmitted': 'You can ask to share once the entry has been submitted.',
-  'share.waiting': 'Requested; waiting for a leader to approve.',
-  'share.open': 'Open: every user can read this entry and its submitted comments.',
-  'share.revokeTitle': 'Stop sharing?',
-  'share.revokeBody':
-    'Other users won’t be able to read this entry any more. To share it again you’ll need to ask, and a leader to approve.',
-  'share.revokeConfirm': 'Stop sharing',
+  'share.label': 'Share with my class',
+  'share.notSubmitted': 'You can share an entry once it has been submitted.',
+  'share.shared': 'Shared: everyone in your class can read this entry and its submitted comments.',
+  'share.unsharedByLeader':
+    'A leader stopped sharing this entry. You can share it again after you update it.',
+  'share.confirmTitle': 'Share this entry?',
+  'share.confirmBody':
+    'Everyone in your class will be able to read this entry and its submitted comments. You can stop sharing at any time, and so can a leader.',
+  'share.confirm': 'Share',
 
   'editor.newTitle': 'Write an entry',
   'editor.editTitle': 'Edit entry',
@@ -239,9 +239,6 @@ export const en: Messages = {
 
   'review.title': 'Review',
   'review.unread': 'Unread',
-  'review.requests': 'Share requests',
-  'review.requestsCount': '{n} share requests',
-  'review.requestsHeading': 'Asking to share',
   'review.unreadCount': '{n} unread',
   'review.unreadHeading': 'Not read yet',
   'review.unreadHint': 'Submitted or updated in the last 90 days, and not read by you since.',
@@ -278,20 +275,11 @@ export const en: Messages = {
   'comment.saved': 'Comment saved as a draft.',
   'comment.sent': 'Comment submitted. The student can see it now.',
 
-  'approval.waiting': 'The student has asked to share this entry.',
-  'approval.approve': 'Approve sharing',
-  'approval.decline': 'Decline',
-  'approval.confirmTitle': 'Approve sharing?',
-  'approval.confirmBody':
-    'Once approved, every user can read this entry and its submitted comments.',
-  'approval.revoke': 'Stop sharing',
-  'approval.revokeBody':
-    'Other users won’t be able to read this entry any more. The student would need to ask again to share it.',
-  'approval.approved': 'Sharing approved.',
-  'approval.declined': 'Request declined.',
-  'approval.revoked': 'Sharing stopped.',
-
-  'requests.empty': 'No requests waiting',
+  'unshare.button': 'Stop sharing',
+  'unshare.title': 'Stop sharing?',
+  'unshare.body':
+    'Other students won’t be able to read this entry any more. The student can share it again after updating it.',
+  'unshare.done': 'Sharing stopped.',
 
   'reading.end': 'That’s the last one.',
 
@@ -585,6 +573,7 @@ export const en: Messages = {
   'error.forbidden': 'You’re not allowed to do this.',
   'error.invalid_transition': 'This can’t be done in the current state.',
   'error.not_submitted': 'The entry must be submitted first.',
+  'error.unshared_by_leader': 'A leader stopped sharing this entry. Update it to share it again.',
   'error.invalid_credentials':
     'Wrong username or password, or the account is waiting for a password reset.',
   'error.captcha_failed': 'The verification answer was wrong or expired. Here’s a new one.',

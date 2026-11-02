@@ -15,6 +15,8 @@ export const ErrorCode = {
   Forbidden: 'forbidden',
   /** A sharing change that isn't allowed from the entry's current state (docs/ARCHITECTURE.md §7.2). */
   InvalidTransition: 'invalid_transition',
+  /** A leader stopped sharing this entry; its author can share it again after an update (更新). */
+  UnsharedByLeader: 'unshared_by_leader',
   /** The entry has never been submitted, so it can't be shared or reviewed yet. */
   NotSubmitted: 'not_submitted',
   /** Login failed. Deliberately the same for unknown user, wrong password and locked account. */

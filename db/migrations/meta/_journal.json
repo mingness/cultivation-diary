@@ -64,6 +64,13 @@
       "when": 1792074506519,
       "tag": "0008_totp_change",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792440113837,
+      "tag": "0009_share_scope",
+      "breakpoints": true
     }
   ]
 }

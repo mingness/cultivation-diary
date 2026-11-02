@@ -7,7 +7,6 @@ import {
   LeaderDocumentsQuery,
   LeaderMonthQuery,
   LeaderUserList,
-  OpenRequestList,
 } from '@diary/shared';
 import type { AppContext } from '../context.js';
 import { Capability } from '../domain/authz/policy.js';
@@ -16,7 +15,6 @@ import {
   calendarCounts,
   documentsOfUser,
   documentsOnDate,
-  openRequests,
   unreadDocuments,
   usersWithMonthCounts,
 } from '../services/leader.js';
@@ -78,18 +76,5 @@ export function leaderRoutes(app: FastifyInstance, ctx: AppContext): void {
       },
     },
     async (request) => usersWithMonthCounts(ctx, request.query.month),
-  );
-
-  routes.get(
-    '/api/leader/open-requests',
-    {
-      onRequest: leader,
-      schema: {
-        tags: TAG,
-        summary: 'Entries waiting for approval to open, oldest request first',
-        response: { 200: OpenRequestList },
-      },
-    },
-    async (request) => openRequests(ctx, authOf(request).user.id),
   );
 }

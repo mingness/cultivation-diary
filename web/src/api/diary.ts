@@ -5,6 +5,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type { z } from 'zod';
 import type {
+  AccessChangeRequest,
   AccessChangeResponse,
   DocumentVersions,
   EntryView,
@@ -91,13 +92,14 @@ export const saveEntry = {
     api<OwnDocument>('POST', `/api/documents/${id}/submit`, content),
 };
 
-export type AccessAction = 'request' | 'withdraw' | 'approve' | 'decline' | 'revoke';
+/** Share with the author's class, or unshare (the only change a leader can make). */
+export type AccessChange = z.infer<typeof AccessChangeRequest>;
 
 export function useAccessChange(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (action: AccessAction) =>
-      api<{ access: Access }>('POST', `/api/documents/${id}/access`, { action }),
+    mutationFn: (change: AccessChange) =>
+      api<{ access: Access }>('POST', `/api/documents/${id}/access`, change),
     onSuccess: ({ access }) => {
       queryClient.setQueryData<EntryView>(diaryKeys.entry(id), (old) =>
         old && 'access' in old ? { ...old, access } : old,

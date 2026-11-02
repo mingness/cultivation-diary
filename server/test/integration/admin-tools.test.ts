@@ -143,8 +143,11 @@ describe('seed entries (spec §11)', () => {
           (r) => (state === null || r.state === state) && (access === null || r.access === access),
         )
         .reduce((sum, r) => sum + r.n, 0);
-    expect(count(null, 'open')).toBe(2);
-    expect(count(null, 'wait_for_open')).toBe(2);
+    expect(count(null, 'course')).toBe(3);
+    const { rows: unshared } = await t.testDb.database.pool.query<{ n: number }>(
+      'SELECT count(*)::int AS n FROM documents WHERE unshared_by_leader_at IS NOT NULL',
+    );
+    expect(unshared[0]!.n).toBe(1);
     expect(count('draft', null)).toBeGreaterThanOrEqual(1);
     expect(count('submitted_with_draft', null)).toBeGreaterThanOrEqual(1);
     const { rows: versions } = await t.testDb.database.pool.query<{ n: number }>(
