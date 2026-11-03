@@ -42,6 +42,29 @@ just hue.
 | `--danger` | `#A63A2A` | `#F09A8A` | delete, logout |
 | `--focus` | `#2F5D8C` | `#8DB4DE` | 3 px focus ring |
 
+### 2.1.1 Mantra site palette (D31; proposed 2026-11-02, to confirm on screen in slice 22)
+
+The mantra site (ARCHITECTURE.md §8.11) uses the same token names with colours taken from the Gold Coast
+Dharma Realm site (https://gcdr.org.au/): forest green, muted gold and warm off-whites. The diary keeps its
+brown, which already sits close to that gold, so the two apps look related without being the same. Tokens
+not listed (status colours, danger, focus) stay as in §2.1 until checked against these backgrounds.
+
+| Token | Light | Dark | Note |
+|---|---|---|---|
+| `--bg` | `#FBFBFA` | `#1B231E` | |
+| `--surface` | `#FFFFFF` | `#222E27` | |
+| `--surface-2` | `#F0EDE6` | `#29382F` | |
+| `--text` | `#1E2420` | `#FBFBFA` | |
+| `--muted` | `#565956` | `#B9BFB8` | |
+| `--primary` | `#29382F` (green) | `#BF956C` (gold) | white on the green ≈ 12:1 |
+| `--on-primary` | `#FFFFFF` | `#1B231E` | |
+| `--primary-soft` | `#E6EBE3` | `#2F3D34` | |
+| accent (progress bar) | `#8A6A4A` | `#BF956C` | ≈ 4.8:1 and ≈ 5:1 as text |
+
+The bright gold `#C9A050` fails as text and is used only for decoration, such as the progress bar's fill.
+The site's heading face (Cormorant Garamond) is not adopted: a web font is download weight for little gain on
+phones (§2.2). The icon is 大悲 in off-white on the green.
+
 ### 2.2 Type
 
 - **Fonts are system fonts only.** CJK web fonts run to megabytes and can't come from a CDN (§12.4).
@@ -70,8 +93,11 @@ just hue.
 |---|---|---|
 | NORMAL_USER | 日記 · 開放日記 · 報數 · 我的 | same four, as top links |
 | COURSE_LEADER | 批閱 · 日記 · 開放日記 · 報數 · 我的 | 批閱 · 我的日記 · 開放日記 · 報數 · 我的 |
+| COUNT_USER (either site) | 報數 · 我的 | same two |
 | SYS_ADMIN | 注意 (badge) · 用戶 (badge) · 日記 · 報數 · 我的 | 注意 (badge) · 用戶 (badge) · 日記管理 · 報數 · 我的 (報數管理 is a link on 報數; admins take part in 報數 too) |
 
+- **The mantra site** shows only 報數 · 我的, whatever the role: diary members who sign in there see the
+  same two tabs, and use the diary site for the rest.
 - The tab bar replaces the spec's My Diary / Open Diary toggle and its scattered header buttons (§6.2, §7.4).
   "Go Diary" from the count page is simply the 日記 tab.
 - The language switch (spec §10.1) sits top right on every screen and shows both languages, the one in use
@@ -90,7 +116,12 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
   (修行日記 / 報數, default 報數, remembered), "記住此裝置" (default on), 登入.
 - **Errors** show inline above the button, and a failed CAPTCHA reloads the image.
 - **TOTP step:** if the account needs a second factor (SYS_ADMIN), a second step asks for the 6-digit code.
-- **Register:** the same visual pattern, with username, family and given name, address, password twice and CAPTCHA.
+- **Register (mantra site only, D30):** the same visual pattern, with username, display name (optional,
+  "shown on the 報數 board"), email and phone (help text: "at least one, so the admin can reach you if you
+  forget your password"), password twice and CAPTCHA.
+- **Diary site:** no register link; one line under the form points mantra-only visitors to the mantra site
+  (`mantraUrl`).
+- **Mantra site:** no 修行日記 / 報數 choice; signing in lands on 報數.
 - **Forgot password:** username, then the confirmation "已經提交給管理員".
 - **API:** `GET captcha → {id, svg}`; `POST login → {user, needsTotp?}`; `POST login/totp`; `POST register`;
   `POST forgot-password`.
@@ -192,6 +223,8 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
 - **Signed-in devices:** device name from the user agent, "this device" marker, last used, and 登出 for each.
 - **Rows:** change password (a sheet), "加到手機主畫面" (the install how-to), 登出.
 - **SYS_ADMIN:** an authenticator section.
+- **COUNT_USER:** profile is display name, email and phone (at least one stays); no photo, address or storage
+  row. Appearance, password, devices, install how-to and 登出 as for everyone.
 - **API:** `GET/PUT me` (including `fontSize`, `theme`), `POST me/password`, `GET/DELETE me/sessions`,
   `POST me/totp/*`.
 
@@ -287,6 +320,8 @@ snapshot at 360 px and 1280 px.
 
 ## 9. Installable app UX
 
+- **Two apps (D31):** the diary installs as 修行日記 and the mantra site as 大悲咒共修報數, each with its own icon
+  and theme colour.
 - After the user's third visit on a phone browser that supports installing, a dismissible banner offers
   "加到主畫面" once. The Account page always has the how-to.
 - When a new version is ready, a banner at the top offers "新版本可用 — 重新載入". It's never shown while an editor has

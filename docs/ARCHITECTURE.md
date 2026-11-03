@@ -12,7 +12,8 @@
 - A private, bilingual (繁體中文 default / English) diary platform, 修行日記, with supervision: users write
   encrypted diaries; course leaders read *submitted* entries and comment; authors choose to share an entry
   with their class, and any leader can stop sharing it (D29).
-- A collective daily-count activity (报数) with a 10,000,000 goal and a nightly auto-submit (§7).
+- A collective daily-count activity (报数) with a 10,000,000 goal and a nightly auto-submit (§7), also open to
+  the wider community on its own site with self-registered, mantra-only accounts (D30, D31, §8.11).
 - Installable on phones as a web app (manifest + service worker), with an Android wrapper only as a fallback.
 - Built to §12: tested, observable, no secrets in git, CI-gated, reproducible.
 
@@ -21,7 +22,7 @@
   the server's secrets can read diaries. `docs/SECURITY.md` must say so plainly.
 - Courses (isolated groups of users). The app behaves as one course for now. Keep the schema open to adding a
   `courses` table later, but build nothing for it.
-- Email verification (§4.2), multi-tenant support.
+- Email or phone verification (§4.2), multi-tenant support.
 
 ### 1.1 Changes from the original spec (agreed 2026-10-14, now folded into the spec)
 
@@ -250,7 +251,8 @@ using `actor.role`, `isOwner`, and the document's `first_submitted_at` and `acce
 |---|---|
 | Owner | Always, including draft and history |
 | COURSE_LEADER (not the owner) | `first_submitted_at` is set. They see the submitted content, history versions, all submitted comments, and their own draft comment. Never the owner's unsubmitted draft. |
-| Other NORMAL_USERs | `access` is `course` (same class; one class for now, so everyone) or `everyone`: submitted content + submitted comments |
+| Other diary members (NORMAL_USER, COURSE_LEADER) | `access` is `course` (same class; one class for now, so every diary member) or `everyone`: submitted content + submitted comments |
+| COUNT_USER | Never; they have no diary capability at all (D30) |
 | SYS_ADMIN | Never. Metadata only (title, date, owner, access state) |
 
 ### 7.2 Sharing (revised 2026-10-19, D29)
@@ -273,36 +275,40 @@ bodies are ignored.
 
 ### 7.3 Endpoint matrix
 
-| Endpoint | Anon | NORMAL_USER | COURSE_LEADER | SYS_ADMIN |
-|---|---|---|---|---|
-| `GET /api/auth/captcha`; `POST /api/auth/login`, `/register`, `/forgot-password` | ✅ rate-limited | – | – | – |
-| `POST /api/auth/logout`; `GET/PUT /api/me` (includes `storageBytes`); `POST /api/me/password`; `GET/DELETE /api/me/sessions…` | – | ✅ | ✅ | ✅ |
-| `POST /api/me/totp/setup`, `/confirm` | – | ✅ optional | ✅ optional | ✅ required |
-| `GET /api/documents/mine?month=` → per entry `state, access, commentCount, hasUnseenComment` | – | ✅ | ✅ | ❌ |
-| `POST /api/documents`, `PUT /:id/draft`, `POST /:id/submit` (first submit or update) | – | own, daily limits | own, daily limits | ❌ |
-| `GET /api/documents/open?month=` | – | ✅ | ✅ | ❌ |
-| `GET /api/documents/:id`, `/:id/versions` | – | per §7.1 | per §7.1 | ❌ |
-| `POST /api/documents/:id/access` (`{action: share, scope: course}` / `{action: unshare}`) | – | own | own | ❌ |
-| `POST /api/documents/:id/access` (`{action: unshare}`) | – | ❌ | ✅ submitted | ❌ |
-| `GET /api/leader/documents?date=&page=&size=`, `?user=&month=` and `?unread=true&page=&size=` → per entry `myCommentState, otherLeaderCommented, unread, access` | – | ❌ | ✅ submitted only | ❌ |
-| `GET /api/leader/calendar?month=` → submitted-entry count per day | – | ❌ | ✅ | ❌ |
-| `GET /api/leader/users?month=` → names + entries this month | – | ❌ | ✅ | ❌ |
-| `PUT /api/documents/:id/comments/mine` (`{body, state}`) | – | ❌ | ✅ submitted, own included | ❌ |
-| `GET /api/admin/users?q=&role=&status=&page=&size=`; `GET /api/admin/users/:id` | – | ❌ | ❌ | ✅ incl. decrypted profiles |
-| `POST /api/admin/users`; `PATCH /api/admin/users/:id` (role, email, profile; never username) | – | ❌ | ❌ | ✅ not demoting the last SYS_ADMIN |
-| `DELETE /api/admin/users/:id`; `POST /api/admin/users/batch-delete` (NORMAL_USER only) | – | ❌ | ❌ | ✅ not yourself, not the last SYS_ADMIN |
-| `POST /api/admin/users/:id/password` (chosen or generated; unlocks reset-pending); `DELETE /api/admin/users/:id/totp` | – | ❌ | ❌ | ✅ (TOTP: not your own) |
-| `GET /api/admin/documents?user&date`, `DELETE /:id` | – | ❌ | ❌ | ✅ metadata only |
-| `GET /api/count/summary`, `/latest`; `POST /api/count` (`{count, countDate}`); `GET/PUT /api/count/settings` | – | ✅ | ✅ | ✅ |
-| `GET /api/admin/count/users`, `PUT /:u/auto`, `DELETE /:u/entries?from=&to=`, `GET /job-runs`, `POST /run-now` | – | ❌ | ❌ | ✅ |
-| `GET /api/admin/attention?status=`, `/attention/status`, `POST /api/admin/attention/:id/handled`; `GET /api/admin/activity?userId=&kind=&from=&to=`, `/activity/summary?sort=` | – | ❌ | ❌ | ✅ metadata only |
-| `POST /api/admin/users/:id/sign-out-all`, `/lock` | – | ❌ | ❌ | ✅ (lock: not yourself, never the last usable SYS_ADMIN) |
-| `POST /api/translate` (`{documentId}` or `{commentId}`, direction) | – | readable only, rate-limited | same | ❌ |
-| `POST /internal/count/auto-run` | Bearer `CRON_SECRET`, internal network only | | | |
-| `GET /healthz`, `/readyz` | ✅ | | | |
+| Endpoint | Anon | COUNT_USER | NORMAL_USER | COURSE_LEADER | SYS_ADMIN |
+|---|---|---|---|---|---|
+| `GET /api/auth/captcha`; `POST /api/auth/login`, `/register`, `/forgot-password` | ✅ rate-limited | – | – | – | – |
+| `POST /api/auth/logout`; `GET/PUT /api/me` (includes `storageBytes`); `POST /api/me/password`; `GET/DELETE /api/me/sessions…` | – | ✅ | ✅ | ✅ | ✅ |
+| `POST /api/me/totp/setup`, `/confirm` | – | ❌ | ✅ optional | ✅ optional | ✅ required |
+| `GET /api/documents/mine?month=` → per entry `state, access, commentCount, hasUnseenComment` | – | ❌ | ✅ | ✅ | ❌ |
+| `POST /api/documents`, `PUT /:id/draft`, `POST /:id/submit` (first submit or update) | – | ❌ | own, daily limits | own, daily limits | ❌ |
+| `GET /api/documents/open?month=` | – | ❌ | ✅ | ✅ | ❌ |
+| `GET /api/documents/:id`, `/:id/versions` | – | ❌ | per §7.1 | per §7.1 | ❌ |
+| `POST /api/documents/:id/access` (`{action: share, scope: course}` / `{action: unshare}`) | – | ❌ | own | own | ❌ |
+| `POST /api/documents/:id/access` (`{action: unshare}`) | – | ❌ | ❌ | ✅ submitted | ❌ |
+| `GET /api/leader/documents?date=&page=&size=`, `?user=&month=` and `?unread=true&page=&size=` → per entry `myCommentState, otherLeaderCommented, unread, access` | – | ❌ | ❌ | ✅ submitted only | ❌ |
+| `GET /api/leader/calendar?month=` → submitted-entry count per day | – | ❌ | ❌ | ✅ | ❌ |
+| `GET /api/leader/users?month=` → names + entries this month | – | ❌ | ❌ | ✅ | ❌ |
+| `PUT /api/documents/:id/comments/mine` (`{body, state}`) | – | ❌ | ❌ | ✅ submitted, own included | ❌ |
+| `GET /api/admin/users?q=&role=&status=&page=&size=`; `GET /api/admin/users/:id` | – | ❌ | ❌ | ❌ | ✅ incl. decrypted profiles |
+| `POST /api/admin/users`; `PATCH /api/admin/users/:id` (role, email, profile; never username) | – | ❌ | ❌ | ❌ | ✅ not demoting the last SYS_ADMIN; never a diary member to COUNT_USER |
+| `DELETE /api/admin/users/:id`; `POST /api/admin/users/batch-delete` (NORMAL_USER and COUNT_USER only) | – | ❌ | ❌ | ❌ | ✅ not yourself, not the last SYS_ADMIN |
+| `POST /api/admin/users/:id/password` (chosen or generated; unlocks reset-pending); `DELETE /api/admin/users/:id/totp` | – | ❌ | ❌ | ❌ | ✅ (TOTP: not your own) |
+| `GET /api/admin/documents?user&date`, `DELETE /:id` | – | ❌ | ❌ | ❌ | ✅ metadata only |
+| `GET /api/count/summary`, `/latest`; `POST /api/count` (`{count, countDate}`); `GET/PUT /api/count/settings` | – | ✅ | ✅ | ✅ | ✅ |
+| `GET /api/admin/count/users`, `PUT /:u/auto`, `DELETE /:u/entries?from=&to=`, `GET /job-runs`, `POST /run-now` | – | ❌ | ❌ | ❌ | ✅ |
+| `GET /api/admin/attention?status=`, `/attention/status`, `POST /api/admin/attention/:id/handled`; `GET /api/admin/activity?userId=&kind=&from=&to=`, `/activity/summary?sort=` | – | ❌ | ❌ | ❌ | ✅ metadata only |
+| `POST /api/admin/users/:id/sign-out-all`, `/lock` | – | ❌ | ❌ | ❌ | ✅ (lock: not yourself, never the last usable SYS_ADMIN) |
+| `POST /api/translate` (`{documentId}` or `{commentId}`, direction) | – | ❌ | readable only, rate-limited | same | ❌ |
+| `POST /internal/count/auto-run` | Bearer `CRON_SECRET`, internal network only | | | | |
+| `GET /healthz`, `/readyz` | ✅ | | | | |
 
 Translate takes an **id**, not free text. The server checks read access and decrypts the text itself, which
 keeps the endpoint from becoming a free LLM proxy.
+
+A COUNT_USER has only the account rows (no authenticator) and 報數. Every other row is refused by capability
+(`hasCapability`), never by a role list in the route, so a new diary route that forgets its guard is caught by
+the integration test that calls every diary, leader and translate route as a COUNT_USER.
 
 Because each account has exactly one role, separation of duties is automatic: a SYS_ADMIN account can never read
 diaries. A leader's own entries follow the owner rows and the leader rows alike: leaders may comment on and unshare
@@ -327,10 +333,19 @@ any submitted entry, their own included, and the review lists include their own 
   It needs the CAPTCHA and is rate-limited, because anyone can lock any account by name. SYS_ADMIN accounts
   can't be locked from this public form (otherwise anyone could lock every admin out); a locked-out admin is
   recovered by another admin or the CLI (`set-password`, `reset-totp`).
+- **Registration creates a COUNT_USER (D30):** `POST /api/auth/register` takes username, password, CAPTCHA,
+  an optional display name and an email and/or phone (at least one, checked by the shared schema). Neither is
+  verified. The display name is stored as the profile's given name, so every list that shows names (the 報數
+  board, and the diary's lists after a promotion) uses the one existing rule. The phone lives in the encrypted
+  profile: unlike email it is never unique and nothing is sent to it. Only the mantra site shows the form,
+  but the server doesn't check which site called: whatever the caller, the account reaches 報數 only.
 - **Closing registration:** `REGISTRATION_OPEN=false` (any environment, production included) makes
   `POST /api/auth/register` answer 403 `registration_closed` before reading the body, and
   `GET /api/auth/options` tells the sign-in screens to hide the register link. SYS_ADMINs still create
-  accounts. `deploy/make-env.sh` writes it closed (agreed 2026-10-15: no self-registration for now).
+  accounts. `deploy/make-env.sh` writes it closed; it opens when the mantra site goes live (D31).
+- **Roles only move up:** `PATCH /api/admin/users/:id` refuses to change a NORMAL_USER or COURSE_LEADER into a
+  COUNT_USER (409 `role_change_refused`), so no diary is ever left behind by an account that can't reach it.
+  COUNT_USER → NORMAL_USER (or any other role) is allowed.
 - **Changing one's own authenticator (Q1):** a SYS_ADMIN who still has their app can move to a new one from
   the account page. Step one (`POST /api/me/totp/change`) needs the password and a current code (both on the
   sign-in throttles) and stores a new secret as pending (sealed under its own label, `profile:<id>:totp-pending`);
@@ -426,6 +441,8 @@ traditional characters throughout (F5); no offline writing in v1 (F6).
   (`DISTINCT ON … ORDER BY seq DESC`; `seq` is an identity column, because two reports can share a timestamp).
   All rows are kept as traffic. The auto job skips users who already reported for today. Auto-submit always uses today. "Today's count" and "first count date" use
   `count_date`.
+- Every role reports, COUNT_USERs included; the board shows each person's name, or their username when they
+  have none.
 - SYS_ADMINs can delete a user's count entries by `count_date` range, so cleaning up after a hijacked account
   keeps the user's honest history.
 - The scheduler fires at 02:00 Asia/Shanghai using an injected clock and `pg_try_advisory_lock`, and records a
@@ -466,6 +483,32 @@ sends that text to a third-party provider.
   the site, and is not subject to Safari's 7-day storage purge (HttpOnly server cookie).
 - **Font size (§9):** becomes a per-user setting in Account, stored server-side.
 - **Fonts and assets** are bundled, with no CDN (§12.4).
+- **Two installable apps (D31):** the diary and the mantra builds each have their own manifest, name, icons,
+  theme colour and service worker, because each site is its own origin (§8.11).
+
+### 8.11 Diary and mantra sites (D30, D31, agreed 2026-11-02)
+
+The diary is curated; 報數 is open to the community. One server, one database and one account system serve
+two sites, so diary users keep a single login and their 報數 tab, while mantra-only people never touch the
+diary.
+
+- **Hosts:** `diary.gcdr.org.au` and `mantra.gcdr.org.au`. Caddy has a block for each; both reach the same
+  `web` container, on port 8080 (diary build) and 8082 (mantra build). Each nginx server block forwards `/api`
+  to the same `server`.
+- **Two builds of one codebase:** `VITE_SITE=diary|mantra` selects the routes, the manifest and icons, the
+  page title, and the sign-in screen (the mantra build has no 修行日記 / 報數 choice and is the only one with a
+  register link). The mantra build's routes: sign in, register, forgot password, 報數 (its home page) and the
+  account page. Separate builds keep each installable app's name, icon and precache apart without nginx
+  rewriting the manifest per host.
+- **Sessions are per site.** The `__Host-` cookie can't be shared between hosts, so signing in to one site
+  doesn't sign in to the other. That's intended: diary users use 報數 inside the diary.
+- **Wrong site:** a COUNT_USER who signs in on the diary site gets the count-only shell rather than an error
+  (their role decides the tabs either way). The diary sign-in page points mantra-only visitors to the mantra
+  site, using `mantraUrl` from `GET /api/auth/options` (config `MANTRA_URL`), so no URL is baked into a build.
+- **Admin:** SYS_ADMINs work on the diary site. The user list filters by role, and batch delete covers
+  COUNT_USERs, for cleaning up after spam signups.
+- **Development:** `npm run dev:mantra` serves the mantra build on :5174; compose publishes the mantra site on
+  :8082.
 
 ### 8.8 Android fallback (only if D10 says so)
 
@@ -644,6 +687,21 @@ states. Each slice is one screen group, with Playwright e2e tests at 360 px and 
     unsaved writing via `web/src/lib/unsaved.ts`. Install help is a sheet on the account page plus the
     third-visit banner on phones; icons come from `web/scripts/make-icons.mjs`.)*
 
+### Phase D: the mantra site (D30, D31, agreed 2026-11-02)
+
+19. **Spec and docs:** the COUNT_USER role, mantra registration and the two sites in the spec, this document
+    and FRONTEND.md.
+20. **The COUNT_USER role:** enum migration (`ALTER TYPE … ADD VALUE`), the policy row (報數 only), every
+    hand-written role list reviewed, the admin role filter, promotion allowed and demotion from the diary
+    roles refused, seed accounts; the web shell's 報數 · 我的 tabs and landing. Tests: the policy row, every
+    diary, leader and translate route refused to a COUNT_USER, the role-change rules.
+21. **Registration creates a COUNT_USER:** display name, email and/or phone (at least one), the phone in the
+    encrypted profile, shown to admins and editable on the account page.
+22. **Two front doors:** `VITE_SITE` builds, the mantra palette and icons, nginx on :8082, Caddy's second
+    block, `MANTRA_URL`, `npm run dev:mantra`, e2e for the mantra site (register → report → sign out, axe in
+    both themes, 360 px and 22 px text) and for the diary site having no register link.
+23. **Deploy docs:** the second DNS name and settings in DEPLOY-EC2.md; registration opened.
+
 ### Phase C: production
 
 18. **Ops:** deploy to Hong Kong with TLS, backup/restore, key rotation, RUNBOOK, SECURITY.md, PRIVACY.md,
@@ -689,4 +747,6 @@ Each slice ships with tests, both languages where it has UI, permission tests pe
 | D28 | Warning levels separate from caps | **Agreed**: limits exist to spot misuse, keep leaders' reading load manageable and keep entries lean. Caps refuse; warning levels (about half the caps, plus 40 submitted comments a day) only flag the account, once a day. Per-entry refusals no longer flag. Comments have the entry's per-entry limits. §8.3, §8.9 |
 | Q1 | SYS_ADMIN resetting their own authenticator (spec §4.4 "set up / reset") | **Agreed** (2026-10-15): yes, with the password and a current code, confirmed by a code from the new app; other devices are signed out and a 注意 alert is raised. A lost authenticator is still removed by another SYS_ADMIN or the CLI (§8, sign-in) |
 | D29 | Who decides sharing | **Agreed** (2026-10-19, to reduce leaders' work): the author shares, with no approval. Any leader can unshare; the author can share again only after an 更新 that changes the entry. Levels `private` / `course` / `everyone`; only `course` is offered while there is one class. Migration 0009 turned `open` and `wait_for_open` into `course` |
+| D30 | Who can sign up | **Agreed** (2026-11-02): the diary stays curated (accounts created by SYS_ADMINs after an invitation outside the app). Self-registration creates a **COUNT_USER**, who reaches 報數 and the account page only. Email and/or phone required (at least one), not verified; an optional display name. Promotion COUNT_USER → NORMAL_USER is allowed; diary members are never made COUNT_USERs. SMS or email verification, and auth frameworks with phone plugins, rejected for now: a paid SMS provider (and sender registration for mainland China) and a rewrite of working auth, for dozens of signups |
+| D31 | One app or two | **Agreed** (2026-11-02): two sites, `diary.gcdr.org.au` and `mantra.gcdr.org.au`, on one server, database and account system; two builds of the one web app (`VITE_SITE`), each its own installable app; sessions per site. The mantra palette follows gcdr.org.au. §8.11 |
 | F1–F6 | Frontend decisions | **Agreed**: see FRONTEND.md §11 |

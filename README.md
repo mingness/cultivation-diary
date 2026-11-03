@@ -17,7 +17,9 @@ app) has begun: the app shell (themes, text sizes, both languages); sign-in, reg
 and authenticator setup; my diary, the entry view, the editor (photos, limits, 提交/更新, history) and open
 diaries; the leaders' review; the SYS_ADMIN screens; 報數 and the account page; the installable app (manifest,
 app-shell-only service worker, offline notice, update banner, install help) (slices 11–17). Next: the D10 phone
-check, then Phase C (production). See the delivery plan in ARCHITECTURE.md §11.
+check, then Phase C (production). Planned next (Phase D, agreed 2026-11-02): 報數 opens to the community on its
+own site, mantra.gcdr.org.au, with self-registered mantra-only accounts, beside the curated diary at
+diary.gcdr.org.au. See the delivery plan in ARCHITECTURE.md §11.
 
 ## Quick start
 
