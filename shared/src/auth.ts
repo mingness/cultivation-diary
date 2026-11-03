@@ -74,6 +74,8 @@ export const CaptchaResponse = z.object({
 export const AuthOptions = z.object({
   /** Whether new users may register themselves. When false, the web app hides the register link. */
   registration: z.boolean(),
+  /** The mantra site, which the diary's sign-in page points mantra-only visitors to (D31); null for none. */
+  mantraUrl: z.string().nullable(),
 });
 
 export const LoginRequest = CaptchaAnswer.extend({

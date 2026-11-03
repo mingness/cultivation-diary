@@ -28,13 +28,13 @@ const options = async (t: TestApp) =>
 
 describe('registration', () => {
   it('works while open, and the sign-in screen is told so', async () => {
-    expect(await options(open)).toEqual({ registration: true });
+    expect(await options(open)).toEqual({ registration: true, mantraUrl: null });
     expect((await register(open.app, { username: 'newcomer1' })).statusCode).toBe(201);
     expect((await login(open.app, 'newcomer1')).res.statusCode).toBe(200);
   });
 
   it('when closed, is refused (before the form is even checked) and no account appears', async () => {
-    expect(await options(closed)).toEqual({ registration: false });
+    expect(await options(closed)).toEqual({ registration: false, mantraUrl: null });
     const refused = await register(closed.app, { username: 'newcomer2' });
     expect(refused.statusCode).toBe(403);
     expect(ErrorBody.parse(refused.json()).code).toBe('registration_closed');

@@ -3,6 +3,7 @@
  * device, and 報數 is the default. A COUNT_USER has no diary, so both choices land on 報數.
  */
 import type { Role } from '@diary/shared';
+import { SITE, type Site } from '../site.js';
 import { readPref, writePref } from './storage.js';
 
 export type Destination = 'diary' | 'count';
@@ -14,8 +15,9 @@ const DIARY_HOME: Record<Role, string> = {
   SYS_ADMIN: '/admin',
 };
 
-export function landingPath(role: Role, destination: Destination): string {
-  return destination === 'count' ? '/count' : DIARY_HOME[role];
+/** The mantra site (D31) has nothing but 報數 to land on. */
+export function landingPath(role: Role, destination: Destination, site: Site = SITE): string {
+  return destination === 'count' || site === 'mantra' ? '/count' : DIARY_HOME[role];
 }
 
 export function rememberedDestination(): Destination {

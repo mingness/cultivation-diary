@@ -22,6 +22,8 @@ export function stackAddresses() {
   if (!POSTGRES_PASSWORD) throw new Error('No POSTGRES_PASSWORD in .env: run npm run dev:setup');
   return {
     baseURL: `http://localhost:${stack.WEB_PORT}`,
+    /** The mantra site (ARCHITECTURE §8.11): the same server, its own build. */
+    mantraURL: `http://localhost:${stack.MANTRA_PORT}`,
     databaseUrl: `postgres://diary:${POSTGRES_PASSWORD}@localhost:${stack.DB_PORT}/diary`,
   };
 }

@@ -54,7 +54,11 @@ services:
       server:
         condition: service_healthy
     healthcheck:
-      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:8080/ >/dev/null || exit 1']
+      test:
+        [
+          'CMD-SHELL',
+          'wget -qO- http://127.0.0.1:8080/ >/dev/null && wget -qO- http://127.0.0.1:8082/ >/dev/null || exit 1',
+        ]
       interval: 3s
       timeout: 3s
       retries: 20
@@ -64,6 +68,7 @@ services:
     restart: unless-stopped
     environment:
       DOMAIN: ${DOMAIN:?run sh deploy/make-env.sh first}
+      MANTRA_DOMAIN: ${MANTRA_DOMAIN:?run sh deploy/make-env.sh first}
     ports:
       - '80:80'
       - '443:443'

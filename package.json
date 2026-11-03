@@ -16,6 +16,7 @@
     "db:down": "docker compose down",
     "dev": "npm run dev -w server",
     "dev:web": "npm run dev -w web",
+    "dev:mantra": "npm run dev -w web -- --mode mantra --port 5174",
     "seed": "npm run seed -w server --",
     "build": "npm run build -w shared && npm run build -w server && npm run build -w web",
     "format": "prettier --write .",

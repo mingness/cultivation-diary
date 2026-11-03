@@ -1,5 +1,6 @@
 # Local development stack. `npm run dev:setup` writes .env with throwaway keys first.
-#   docker compose up -d --wait        whole stack (app on http://localhost:8080, API on http://localhost:3000)
+#   docker compose up -d --wait        whole stack (diary on http://localhost:8080, mantra site on
+#                                      http://localhost:8082, API on http://localhost:3000)
 #   docker compose up -d --wait db     database only (for `npm run dev` and the integration tests)
 name: cultivation-diary
 
@@ -29,6 +30,8 @@ services:
       DATABASE_URL: postgres://diary:${POSTGRES_PASSWORD}@db:5432/diary
       # From .env, but overridable per project: the e2e stack forces it off (web/e2e/stack.env).
       SKIP_TOTP: ${SKIP_TOTP:-false}
+      # From .env, but the e2e stack points it at its own mantra port (web/e2e/stack.env).
+      MANTRA_URL: ${MANTRA_URL:-}
       HOST: 0.0.0.0
       PORT: '3000'
     depends_on:
@@ -51,8 +54,13 @@ services:
         condition: service_healthy
     ports:
       - '127.0.0.1:${WEB_PORT:-8080}:8080'
+      - '127.0.0.1:${MANTRA_PORT:-8082}:8082'
     healthcheck:
-      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:8080/ >/dev/null || exit 1']
+      test:
+        [
+          'CMD-SHELL',
+          'wget -qO- http://127.0.0.1:8080/ >/dev/null && wget -qO- http://127.0.0.1:8082/ >/dev/null || exit 1',
+        ]
       interval: 3s
       timeout: 3s
       retries: 20

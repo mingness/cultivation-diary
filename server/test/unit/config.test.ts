@@ -214,6 +214,18 @@ describe('loadConfig', () => {
     });
   });
 
+  describe('MANTRA_URL', () => {
+    it('is the link for the diary sign-in page; empty means none; not a web address is refused', () => {
+      expect(loadConfig(validEnv({ MANTRA_URL: '' })).mantraUrl).toBeNull();
+      expect(loadConfig(validEnv({ MANTRA_URL: 'https://mantra.gcdr.org.au' })).mantraUrl).toBe(
+        'https://mantra.gcdr.org.au',
+      );
+      expect(
+        configErrorFor(validEnv({ MANTRA_URL: 'mantra.gcdr.org.au' })).invalidVariables,
+      ).toEqual(['MANTRA_URL']);
+    });
+  });
+
   describe('REGISTRATION_OPEN', () => {
     it('is open unless turned off, in production too', () => {
       expect(loadConfig(validEnv()).registrationOpen).toBe(true);

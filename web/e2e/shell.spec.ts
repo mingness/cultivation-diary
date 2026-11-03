@@ -2,23 +2,7 @@
  * The app shell (FRONTEND.md §1–3, §8): language, text size and theme, navigation, and accessibility in
  * both themes. Every screen built so far gets an axe check here.
  */
-import AxeBuilder from '@axe-core/playwright';
-import type { Page } from '@playwright/test';
-import { expect, test } from './fixtures.js';
-
-async function expectNoAxeViolations(page: Page) {
-  const results = await new AxeBuilder({ page }).analyze();
-  expect(
-    results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(', ')}`),
-  ).toEqual([]);
-}
-
-async function expectNoSidewaysScroll(page: Page) {
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  );
-  expect(overflow).toBeLessThanOrEqual(0);
-}
+import { expect, expectNoAxeViolations, expectNoSidewaysScroll, test } from './fixtures.js';
 
 test('the language switch shows the language in use, switches every string and is remembered', async ({
   page,
@@ -47,7 +31,8 @@ test('the language switch shows the language in use, switches every string and i
 test('public screens pass axe in both themes and need no sideways scrolling at the largest size', async ({
   page,
 }) => {
-  for (const path of ['/login', '/register', '/forgot-password']) {
+  // Registering is on the mantra site (mantra.spec.ts).
+  for (const path of ['/login', '/forgot-password']) {
     await page.emulateMedia({ colorScheme: 'light' });
     await page.goto(path);
     await expect(page.getByRole('img').first()).toBeVisible();

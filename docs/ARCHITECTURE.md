@@ -705,7 +705,13 @@ states. Each slice is one screen group, with Playwright e2e tests at 360 px and 
     Profiles saved before this read with an empty phone. The pending-reset rows show email and phone.)*
 22. **Two front doors:** `VITE_SITE` builds, the mantra palette and icons, nginx on :8082, Caddy's second
     block, `MANTRA_URL`, `npm run dev:mantra`, e2e for the mantra site (register → report → sign out, axe in
-    both themes, 360 px and 22 px text) and for the diary site having no register link.
+    both themes, 360 px and 22 px text) and for the diary site having no register link. *(Done. `vite --mode
+    mantra` builds into `web/dist-mantra` with `web/public-mantra`; `data-site` is written into each build's
+    `index.html`, so the palette applies before any script runs. The routes test `import.meta.env.VITE_SITE`
+    directly, which keeps every diary screen out of the mantra bundle (5 files, about half the diary's). The
+    mantra site has no 報數管理 link (that screen is the diary's). The diary build has no `/register`.
+    `make-env.sh` now takes both hostnames. The e2e stack serves the mantra site on :8083; `mantra.spec.ts`
+    covers it, and the registration test moved there.)*
 23. **Deploy docs:** the second DNS name and settings in DEPLOY-EC2.md; registration opened.
 
 ### Phase C: production

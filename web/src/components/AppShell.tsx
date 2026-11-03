@@ -11,6 +11,7 @@ import { useI18n, type MessageKey } from '../i18n/index.js';
 import { Icon, type IconName } from './Icon.js';
 import { InstallSuggestion } from './InstallHelp.js';
 import { LanguageToggle } from './LanguageToggle.js';
+import { SITE, SITE_TITLE } from '../site.js';
 import styles from './AppShell.module.css';
 
 interface NavItem {
@@ -30,6 +31,9 @@ const DIARY: NavItem = { to: '/diary', label: 'nav.diary', icon: 'book' };
 const OPEN: NavItem = { to: '/open', label: 'nav.open', icon: 'bookOpen' };
 const COUNT: NavItem = { to: '/count', label: 'nav.count', icon: 'count' };
 const ME: NavItem = { to: '/me', label: 'nav.me', icon: 'user' };
+
+/** The mantra site (D31) shows 報數 and 我的 to everyone, whatever their role. */
+const MANTRA_NAV: readonly NavItem[] = [COUNT, ME];
 
 const NAV: Record<Role, readonly NavItem[]> = {
   COUNT_USER: [COUNT, ME],
@@ -84,13 +88,13 @@ export function AppShell({ role, children }: { role: Role; children: ReactNode }
     <>
       <InstallSuggestion />
       <header className={styles.header}>
-        <span className={styles.brand}>{t('app.title')}</span>
+        <span className={styles.brand}>{t(SITE_TITLE)}</span>
         <nav
           className={`${styles.nav} ${isDetail ? styles.navDetail : ''}`}
           aria-label={t('nav.label')}
         >
           <ul className={styles.tabs}>
-            {NAV[role].map((item) => (
+            {(SITE === 'mantra' ? MANTRA_NAV : NAV[role]).map((item) => (
               <li key={item.to} className={item.desktopOnly ? styles.desktopOnly : undefined}>
                 <NavLink to={item.to} className={styles.tab ?? ''}>
                   <span className={styles.icon}>

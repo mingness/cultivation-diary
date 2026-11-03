@@ -5,6 +5,7 @@
  */
 export const zhHant = {
   'app.title': '修行日記',
+  'app.titleMantra': '大悲咒共修報數',
   'app.loading': '載入中…',
   'lang.label': '語言 Language',
 
@@ -60,6 +61,8 @@ export const zhHant = {
   'enrol.submit': '完成設定',
   'enrol.done': '驗證器已設定。下次登入時需要輸入驗證碼。',
 
+  'auth.mantraOnly': '只參加大悲咒共修報數？',
+  'auth.toMantra': '前往報數網站',
   'register.title': '註冊',
   'register.closed': '目前暫停開放註冊。如需帳號，請聯絡管理員。',
   'register.usernameHint':

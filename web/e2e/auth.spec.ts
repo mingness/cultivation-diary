@@ -1,10 +1,11 @@
 /**
- * Sign-in, the authenticator steps, registration and forgot password (FRONTEND.md §4.1, spec §4), as a user
+ * Sign-in, the authenticator steps and forgot password on the diary site (FRONTEND.md §4.1, spec §4), as a user
  * meets them in the browser. The rules behind them (throttles, locked accounts, CAPTCHA checks) are covered
- * by the server's integration tests.
+ * by the server's integration tests. Registering is on the mantra site (mantra.spec.ts).
  */
 import { TOTP } from 'otpauth';
-import { expect, optionalField, seedInfo, signIn, test, unusedUsername } from './fixtures.js';
+import { expect, seedInfo, signIn, test, unusedUsername } from './fixtures.js';
+import { stackAddresses } from './stack.js';
 
 function codeFor(secret: string): string {
   return new TOTP({ secret, digits: 6, period: 30 }).generate();
@@ -103,43 +104,23 @@ test.describe('administrators', () => {
   });
 });
 
+test('the diary offers no registration, and points mantra-only visitors to the mantra site', async ({
+  page,
+  t,
+}) => {
+  await page.goto('/login');
+  await expect(page.getByRole('link', { name: t('auth.toRegister') })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: t('auth.toMantra') })).toHaveAttribute(
+    'href',
+    stackAddresses().mantraURL,
+  );
+  // The register screen isn't part of the diary build: signed out, the address leads to sign-in.
+  await page.goto('/register');
+  await expect(page).toHaveURL(/\/login$/);
+});
+
 test.describe('one project only (the server allows few of these per hour)', () => {
   test.skip(({ lang, viewport }) => lang !== 'zh-Hant' || (viewport?.width ?? 0) >= 1024);
-
-  test('registering makes a mantra-only account, leads to sign-in with the username filled in, and works', async ({
-    page,
-    t,
-  }) => {
-    const username = unusedUsername('e2e');
-    await page.goto('/login');
-    await page.getByRole('link', { name: t('auth.toRegister') }).click();
-
-    await page.getByLabel(t('auth.username')).fill(username);
-    await optionalField(page, t('register.displayName')).fill('測試');
-    await page.getByLabel(t('auth.password'), { exact: true }).fill('long-enough-pass');
-    await page.getByLabel(t('register.confirmPassword'), { exact: true }).fill('different-pass');
-    await page.getByLabel(t('auth.captchaAnswer')).fill('3');
-    await page.getByRole('button', { name: t('register.submit') }).click();
-    // Caught before anything is sent (spec §4.2): the mismatch, and no email or phone.
-    await expect(page.getByText(t('register.mismatch'))).toBeVisible();
-    await expect(page.getByText(t('register.contactRequired'))).toBeVisible();
-
-    await page.getByLabel(t('register.phone'), { exact: true }).fill('(07) 5555 1234');
-    await page.getByLabel(t('register.confirmPassword'), { exact: true }).fill('long-enough-pass');
-    await page.getByRole('button', { name: t('register.submit') }).click();
-
-    await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole('status').filter({ hasText: t('register.done') })).toBeVisible();
-    await expect(page.getByLabel(t('auth.username'))).toHaveValue(username);
-    await page.getByLabel(t('auth.password'), { exact: true }).fill('long-enough-pass');
-    await page.getByLabel(t('auth.captchaAnswer')).fill('3');
-    await page.getByRole('button', { name: t('auth.login'), exact: true }).click();
-    // Mantra only: 報數 and 我的, and the display name stands in for the username.
-    await expect(page).toHaveURL(/\/count$/);
-    await page.getByRole('link', { name: t('nav.me'), exact: true }).click();
-    await expect(page.getByText('測試', { exact: true })).toBeVisible();
-    await expect(page.getByLabel(t('register.phone'))).toHaveValue('(07) 5555 1234');
-  });
 
   test('forgot password confirms it was passed to the administrators', async ({ page, t }) => {
     await page.goto('/login');

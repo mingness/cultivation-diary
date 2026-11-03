@@ -16,7 +16,8 @@ import {
 } from '../../api/count.js';
 import { ApiError } from '../../api/client.js';
 import { useMe } from '../../api/session.js';
-import logo from '../../assets/count-logo.svg';
+import mantraLogo from '../../assets/count-logo-mantra.svg';
+import diaryLogo from '../../assets/count-logo.svg';
 import { Button, buttonClass } from '../../components/Button.js';
 import { DataTable, tableStyles } from '../../components/DataTable.js';
 import { CheckboxRow } from '../../components/Field.js';
@@ -27,6 +28,7 @@ import { useI18n, type Lang } from '../../i18n/index.js';
 import { formatDateTime, formatDiaryDate } from '../../lib/dates.js';
 import { useMediaQuery } from '../../lib/media.js';
 import { dateState, noticeKeys } from './countRules.js';
+import { SITE } from '../../site.js';
 import styles from './CountScreen.module.css';
 
 const number = (n: number, lang: Lang) => n.toLocaleString(lang === 'en' ? 'en-GB' : 'zh-Hant-TW');
@@ -39,7 +41,13 @@ export function CountScreen() {
     <div className={styles.page}>
       <header className={styles.header}>
         {/* Decorative and wordless, so it suits both languages; the title below names the page. */}
-        <img className={styles.logo} src={logo} alt="" width={400} height={80} />
+        <img
+          className={styles.logo}
+          src={SITE === 'mantra' ? mantraLogo : diaryLogo}
+          alt=""
+          width={400}
+          height={80}
+        />
         <h1>{t('count.title')}</h1>
         <p className={styles.subtitle}>{t('count.subtitle')}</p>
       </header>
@@ -54,7 +62,8 @@ export function CountScreen() {
         </>
       )}
       <Latest />
-      {me.role === 'SYS_ADMIN' && (
+      {/* 報數管理 is a diary-site screen; the mantra site has 報數 and 我的 only (D31). */}
+      {me.role === 'SYS_ADMIN' && SITE === 'diary' && (
         <Link to="/admin/count" className={`${buttonClass('secondary')} ${styles.manage}`}>
           {t('count.manage')}
         </Link>

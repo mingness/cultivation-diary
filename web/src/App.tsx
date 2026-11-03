@@ -212,6 +212,42 @@ function Crashed() {
   );
 }
 
+const countRoute: RouteObject = {
+  path: '/count',
+  lazy: async () => ({
+    Component: (await import('./screens/count/CountScreen.js')).CountScreen,
+  }),
+};
+
+/**
+ * Each site's screens (ARCHITECTURE §8.11, D31). The mantra site has 報數 and the account page, and is the
+ * only one where people register; the diary is curated. The condition tests the build-time value itself
+ * rather than `SITE` (web/src/site.ts): the bundler only drops the other site's screens when it is a literal
+ * in this module.
+ */
+const SITE_ROUTES: { public: RouteObject[]; private: RouteObject[] } =
+  import.meta.env.VITE_SITE === 'mantra'
+    ? {
+        public: [
+          { path: '/login', element: <LoginScreen /> },
+          { path: '/register', element: <RegisterScreen /> },
+          { path: '/forgot-password', element: <ForgotPasswordScreen /> },
+        ],
+        private: [countRoute],
+      }
+    : {
+        public: [
+          { path: '/login', element: <LoginScreen /> },
+          { path: '/forgot-password', element: <ForgotPasswordScreen /> },
+        ],
+        private: [
+          { element: <ForRoles roles={WRITERS} />, children: diaryRoutes },
+          { element: <ForRoles roles={LEADERS} />, children: reviewRoutes },
+          { element: <ForRoles roles={ADMINS} />, children: adminRoutes },
+          countRoute,
+        ],
+      };
+
 const router = createBrowserRouter([
   {
     element: (
@@ -224,29 +260,13 @@ const router = createBrowserRouter([
     ),
     errorElement: <Crashed />,
     children: [
-      {
-        element: <PublicLayout />,
-        children: [
-          { path: '/login', element: <LoginScreen /> },
-          { path: '/register', element: <RegisterScreen /> },
-          { path: '/forgot-password', element: <ForgotPasswordScreen /> },
-        ],
-      },
+      { element: <PublicLayout />, children: SITE_ROUTES.public },
       {
         element: <PrivateLayout />,
         children: [
           { index: true, element: <Home /> },
           { path: '/me', element: <AccountScreen /> },
-          { element: <ForRoles roles={WRITERS} />, children: diaryRoutes },
-          { element: <ForRoles roles={LEADERS} />, children: reviewRoutes },
-          { element: <ForRoles roles={ADMINS} />, children: adminRoutes },
-          // Landing destinations whose screens arrive in later slices (ARCHITECTURE §11).
-          {
-            path: '/count',
-            lazy: async () => ({
-              Component: (await import('./screens/count/CountScreen.js')).CountScreen,
-            }),
-          },
+          ...SITE_ROUTES.private,
           { path: '*', element: <NotFound /> },
         ],
       },

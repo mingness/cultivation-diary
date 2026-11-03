@@ -252,7 +252,7 @@ export function authRoutes(
         response: { 200: AuthOptions },
       },
     },
-    async () => ({ registration: ctx.config.registrationOpen }),
+    async () => ({ registration: ctx.config.registrationOpen, mantraUrl: ctx.config.mantraUrl }),
   );
 
   routes.post(

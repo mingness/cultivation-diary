@@ -1,13 +1,16 @@
 #!/bin/sh
-# Writes deploy/.env for a server deploy, with freshly generated keys. Run once per server:
-#   sh deploy/make-env.sh diary.example.com
+# Writes deploy/.env for a server deploy, with freshly generated keys. Run once per server, with the diary's
+# and the mantra site's hostnames (docs/ARCHITECTURE.md §8.11):
+#   sh deploy/make-env.sh diary.gcdr.org.au mantra.gcdr.org.au
 # Then copy deploy/.env somewhere safe off the server: losing DIARY_KEYRING or PROFILE_KEYRING loses every
 # diary and profile, and the database backups can't be read without them.
 set -eu
 
 domain=${1:-}
-if [ -z "$domain" ]; then
-  echo "Usage: sh deploy/make-env.sh <domain>   (e.g. diary.example.com, or 203-0-113-7.sslip.io)" >&2
+mantra_domain=${2:-}
+if [ -z "$domain" ] || [ -z "$mantra_domain" ]; then
+  echo "Usage: sh deploy/make-env.sh <diary domain> <mantra domain>" >&2
+  echo "   e.g. diary.gcdr.org.au mantra.gcdr.org.au, or diary-203-0-113-7.sslip.io mantra-203-0-113-7.sslip.io" >&2
   exit 1
 fi
 
@@ -23,8 +26,12 @@ umask 077
 cat >"$target" <<ENV
 # Written by deploy/make-env.sh on $(date -u +%Y-%m-%d). Secrets: keep a copy offline, never commit.
 DOMAIN=$domain
+MANTRA_DOMAIN=$mantra_domain
+# The diary's sign-in page links here for people who only take part in 報數.
+MANTRA_URL=https://$mantra_domain
 LOG_LEVEL=info
-# New users can't register themselves; admins create accounts under 用戶. Set to true to open it.
+# Registering (on the mantra site; it only ever makes mantra-only accounts) is closed. Set to true to open it.
+# Diary accounts are always created by admins under 用戶.
 REGISTRATION_OPEN=false
 
 POSTGRES_PASSWORD=$(hex 16)

@@ -3,6 +3,7 @@ import type { Messages } from './messages.js';
 
 export const en: Messages = {
   'app.title': 'Cultivation Diary',
+  'app.titleMantra': 'Great Compassion Mantra',
   'app.loading': 'Loading…',
   'lang.label': 'Language 語言',
 
@@ -60,6 +61,8 @@ export const en: Messages = {
   'enrol.submit': 'Finish setup',
   'enrol.done': 'Authenticator set up. You’ll need a code from it each time you sign in.',
 
+  'auth.mantraOnly': 'Here only for the mantra recitation count?',
+  'auth.toMantra': 'Go to the mantra site',
   'register.title': 'Create an account',
   'register.closed':
     'Registration is closed at the moment. To get an account, please contact an administrator.',

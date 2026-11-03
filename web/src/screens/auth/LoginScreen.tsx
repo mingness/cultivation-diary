@@ -1,6 +1,8 @@
 /**
  * Sign-in (FRONTEND.md §4.1, spec §4.1): username, password, CAPTCHA, where to land, and "remember this
- * device". A SYS_ADMIN then enters their authenticator code in a second step.
+ * device". A SYS_ADMIN then enters their authenticator code in a second step. The mantra site (D31) has no
+ * choice of where to land and is the only one that offers registering; the diary points mantra-only visitors
+ * there instead.
  */
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -16,6 +18,7 @@ import { CheckboxRow, PasswordField, SegmentedControl, TextField } from '../../c
 import { Notice } from '../../components/Notice.js';
 import { useI18n } from '../../i18n/index.js';
 import { rememberDestination, rememberedDestination, type Destination } from '../../lib/landing.js';
+import { SITE } from '../../site.js';
 import { CaptchaField, useCaptcha } from './Captcha.js';
 import styles from './auth.module.css';
 
@@ -118,16 +121,18 @@ function PasswordStep() {
         error={required('captcha', t('auth.captchaAnswer'))}
         inputRef={answerRef}
       />
-      <SegmentedControl<Destination>
-        legend={t('auth.destination')}
-        name="destination"
-        value={destination}
-        onChange={setDestination}
-        options={[
-          { value: 'diary', label: t('auth.destDiary') },
-          { value: 'count', label: t('auth.destCount') },
-        ]}
-      />
+      {SITE === 'diary' && (
+        <SegmentedControl<Destination>
+          legend={t('auth.destination')}
+          name="destination"
+          value={destination}
+          onChange={setDestination}
+          options={[
+            { value: 'diary', label: t('auth.destDiary') },
+            { value: 'count', label: t('auth.destCount') },
+          ]}
+        />
+      )}
       <CheckboxRow
         label={t('auth.remember')}
         hint={t('auth.rememberHint')}
@@ -145,8 +150,15 @@ function PasswordStep() {
       <div className={styles.links}>
         <Link to="/forgot-password">{t('auth.toForgot')}</Link>
         {/* Hidden until the server says registering is open, so a closed one never flashes the link. */}
-        {options.data?.registration && <Link to="/register">{t('auth.toRegister')}</Link>}
+        {SITE === 'mantra' && options.data?.registration && (
+          <Link to="/register">{t('auth.toRegister')}</Link>
+        )}
       </div>
+      {SITE === 'diary' && options.data?.mantraUrl && (
+        <p className={styles.intro}>
+          {t('auth.mantraOnly')} <a href={options.data.mantraUrl}>{t('auth.toMantra')}</a>
+        </p>
+      )}
     </form>
   );
 }

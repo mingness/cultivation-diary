@@ -42,7 +42,7 @@ just hue.
 | `--danger` | `#A63A2A` | `#F09A8A` | delete, logout |
 | `--focus` | `#2F5D8C` | `#8DB4DE` | 3 px focus ring |
 
-### 2.1.1 Mantra site palette (D31; proposed 2026-11-02, to confirm on screen in slice 22)
+### 2.1.1 Mantra site palette (D31; built 2026-11-02)
 
 The mantra site (ARCHITECTURE.md §8.11) uses the same token names with colours taken from the Gold Coast
 Dharma Realm site (https://gcdr.org.au/): forest green, muted gold and warm off-whites. The diary keeps its
@@ -56,12 +56,16 @@ not listed (status colours, danger, focus) stay as in §2.1 until checked agains
 | `--surface-2` | `#F0EDE6` | `#29382F` | |
 | `--text` | `#1E2420` | `#FBFBFA` | |
 | `--muted` | `#565956` | `#B9BFB8` | |
+| `--border` | `#D6D2C8` | `#3A4A40` | |
 | `--primary` | `#29382F` (green) | `#BF956C` (gold) | white on the green ≈ 12:1 |
 | `--on-primary` | `#FFFFFF` | `#1B231E` | |
 | `--primary-soft` | `#E6EBE3` | `#2F3D34` | |
-| accent (progress bar) | `#8A6A4A` | `#BF956C` | ≈ 4.8:1 and ≈ 5:1 as text |
+| `--blue` (progress, auto-submit names) | `#674E35` | `#BF956C` | gold; ≈ 6:1 on the row tint |
+| `--blue-soft` (alternate rows) | `#F3EDE4` | `#2A352E` | |
 
-The bright gold `#C9A050` fails as text and is used only for decoration, such as the progress bar's fill.
+The lighter gold proposed first (`#8A6A4A`) fell to about 4.2:1 on the alternate rows, so names use
+gcdr.org.au's own darker gold for light backgrounds. The 報數 banner placeholder has a mantra copy in green
+and gold (`web/src/assets/count-logo-mantra.svg`).
 The site's heading face (Cormorant Garamond) is not adopted: a web font is download weight for little gain on
 phones (§2.2). The icon is 大悲 in off-white on the green.
 

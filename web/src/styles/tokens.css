@@ -56,6 +56,26 @@
 }
 
 /*
+ * The mantra site's palette (FRONTEND.md §2.1.1, D31): forest green and gold after gcdr.org.au. `data-site`
+ * is written into the mantra build's index.html. This light block comes before the dark ones below, which
+ * then win in dark mode until the mantra dark blocks at the end (more specific) take over.
+ */
+:root[data-site='mantra'] {
+  --bg: #fbfbfa;
+  --surface: #ffffff;
+  --surface-2: #f0ede6;
+  --text: #1e2420;
+  --muted: #565956;
+  --border: #d6d2c8;
+  --primary: #29382f;
+  --on-primary: #ffffff;
+  --primary-soft: #e6ebe3;
+  /* 報數 progress and auto-submit names: gcdr.org.au's gold for light backgrounds (6:1 on the rows). */
+  --blue: #674e35;
+  --blue-soft: #f3ede4;
+}
+
+/*
  * English: Latin system fonts first. A Chinese font's Latin set draws curly quotes and apostrophes full-width
  * (right in Chinese, odd in "couldn’t"); Chinese characters still fall through to the Chinese fonts.
  * Diary text follows the interface language, since an entry's own language isn't known.
@@ -113,4 +133,34 @@
   --danger-soft: #3a221e;
   --focus: #8db4de;
   color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-site='mantra']:not([data-theme='light']) {
+    --bg: #1b231e;
+    --surface: #222e27;
+    --surface-2: #29382f;
+    --text: #fbfbfa;
+    --muted: #b9bfb8;
+    --border: #3a4a40;
+    --primary: #bf956c;
+    --on-primary: #1b231e;
+    --primary-soft: #2f3d34;
+    --blue: #bf956c;
+    --blue-soft: #2a352e;
+  }
+}
+
+:root[data-site='mantra'][data-theme='dark'] {
+  --bg: #1b231e;
+  --surface: #222e27;
+  --surface-2: #29382f;
+  --text: #fbfbfa;
+  --muted: #b9bfb8;
+  --border: #3a4a40;
+  --primary: #bf956c;
+  --on-primary: #1b231e;
+  --primary-soft: #2f3d34;
+  --blue: #bf956c;
+  --blue-soft: #2a352e;
 }

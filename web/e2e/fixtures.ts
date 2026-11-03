@@ -2,6 +2,7 @@
  * Shared test setup: each project's language and seeded user, the app's own string table (so tests read
  * the words a user sees in either language), and sign-in helpers.
  */
+import AxeBuilder from '@axe-core/playwright';
 import { existsSync, readFileSync } from 'node:fs';
 import { test as base, expect, type Browser, type Page } from '@playwright/test';
 import { en } from '../src/i18n/en.js';
@@ -132,4 +133,20 @@ export function optionalField(page: Page, label: string) {
 /** A username no account has, unique per call, so failures never throttle a real account. */
 export function unusedUsername(prefix: string): string {
   return `${prefix}${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
+}
+
+/** Fails with every axe violation on the page, by rule and element. */
+export async function expectNoAxeViolations(page: Page) {
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(
+    results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(', ')}`),
+  ).toEqual([]);
+}
+
+/** Fails if the page is wider than the screen (FRONTEND.md §1: 360 px and 22 px text). */
+export async function expectNoSidewaysScroll(page: Page) {
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
 }
