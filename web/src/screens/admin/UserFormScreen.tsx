@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Email, ErrorCode, Role, Username, type Profile } from '@diary/shared';
+import { canChangeRole, Email, ErrorCode, Role, Username, type Profile } from '@diary/shared';
 import { ApiError } from '../../api/client.js';
 import {
   useAdminUser,
@@ -195,11 +195,13 @@ function UserForm({ user }: { user: AdminUser | null }) {
             value={form.role}
             onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as AdminUser['role'] }))}
           >
-            {Role.options.map((r) => (
-              <option key={r} value={r}>
-                {t(roleKey(r))}
-              </option>
-            ))}
+            {Role.options
+              .filter((r) => !user || canChangeRole(user.role, r))
+              .map((r) => (
+                <option key={r} value={r}>
+                  {t(roleKey(r))}
+                </option>
+              ))}
           </select>
         </label>
         {user && form.role !== user.role && (

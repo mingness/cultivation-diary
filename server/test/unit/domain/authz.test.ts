@@ -3,7 +3,7 @@
  * docs/ARCHITECTURE.md §7, independently of the implementation, and every combination is checked.
  */
 import { describe, expect, it } from 'vitest';
-import type { Access } from '@diary/shared';
+import { canChangeRole, type Access } from '@diary/shared';
 import {
   canOnDocument,
   Capability,
@@ -22,6 +22,7 @@ const ACTORS = {
   otherUser: { id: 'someone-else', role: 'NORMAL_USER' },
   otherLeader: { id: 'a-leader', role: 'COURSE_LEADER' },
   sysAdmin: { id: 'an-admin', role: 'SYS_ADMIN' },
+  countUser: { id: 'a-mantra-user', role: 'COUNT_USER' },
 } as const satisfies Record<string, Actor>;
 type ActorName = keyof typeof ACTORS;
 
@@ -47,6 +48,8 @@ describe('documentView', () => {
         access,
         submitted && access !== 'private' ? 'reader' : null,
       ]);
+      // Shared entries reach diary members only (D30).
+      expected.push(['countUser', submitted, access, null]);
     }
   }
 
@@ -68,6 +71,7 @@ describe('canOnDocument', () => {
       otherUser: [false, false],
       otherLeader: [false, false],
       sysAdmin: [false, false],
+      countUser: [false, false],
     },
     [A.Share]: {
       owner: [true, true],
@@ -75,6 +79,7 @@ describe('canOnDocument', () => {
       otherUser: [false, false],
       otherLeader: [false, false],
       sysAdmin: [false, false],
+      countUser: [false, false],
     },
     [A.ReadVersions]: {
       owner: [true, true],
@@ -82,6 +87,7 @@ describe('canOnDocument', () => {
       otherUser: [false, false],
       otherLeader: [false, true],
       sysAdmin: [false, false],
+      countUser: [false, false],
     },
     [A.Unshare]: {
       owner: [true, true],
@@ -89,6 +95,7 @@ describe('canOnDocument', () => {
       otherUser: [false, false],
       otherLeader: [false, true],
       sysAdmin: [false, false],
+      countUser: [false, false],
     },
     [A.Comment]: {
       owner: [false, false],
@@ -96,6 +103,7 @@ describe('canOnDocument', () => {
       otherUser: [false, false],
       otherLeader: [false, true],
       sysAdmin: [false, false],
+      countUser: [false, false],
     },
     [A.Delete]: {
       owner: [false, false],
@@ -103,6 +111,7 @@ describe('canOnDocument', () => {
       otherUser: [false, false],
       otherLeader: [false, false],
       sysAdmin: [true, true],
+      countUser: [false, false],
     },
   };
 
@@ -146,7 +155,7 @@ describe('canOnDocument', () => {
 // The rules the spec states about roles, rather than a copy of the grant table.
 describe('role capabilities', () => {
   const C = Capability;
-  const ROLES: Actor['role'][] = ['NORMAL_USER', 'COURSE_LEADER', 'SYS_ADMIN'];
+  const ROLES: Actor['role'][] = ['COUNT_USER', 'NORMAL_USER', 'COURSE_LEADER', 'SYS_ADMIN'];
   const rolesWith = (capability: Capability) =>
     ROLES.filter((role) => hasCapability({ id: 'x', role }, capability));
 
@@ -159,6 +168,11 @@ describe('role capabilities', () => {
     ]) {
       expect(hasCapability(ACTORS.sysAdmin, contentCapability)).toBe(false);
     }
+  });
+
+  it('COUNT_USER can take part in 報數 and nothing else', () => {
+    const all = Object.values(C);
+    expect(all.filter((c) => hasCapability(ACTORS.countUser, c))).toEqual([C.Count]);
   });
 
   it('only COURSE_LEADER can review', () => {
@@ -177,5 +191,18 @@ describe('role capabilities', () => {
 
   it('every role can take part in 報數', () => {
     expect(rolesWith(C.Count)).toEqual(ROLES);
+  });
+});
+
+describe('canChangeRole (roles only move up, D30)', () => {
+  const ROLES = ['COUNT_USER', 'NORMAL_USER', 'COURSE_LEADER', 'SYS_ADMIN'] as const;
+  // Only these two moves are refused: a diary member never becomes a COUNT_USER.
+  const refused = new Set(['NORMAL_USER→COUNT_USER', 'COURSE_LEADER→COUNT_USER']);
+  const cases = ROLES.flatMap((from) =>
+    ROLES.map((to) => [from, to, !refused.has(`${from}→${to}`)] as const),
+  );
+
+  it.each(cases)('%s → %s: %s', (from, to, allowed) => {
+    expect(canChangeRole(from, to)).toBe(allowed);
   });
 });

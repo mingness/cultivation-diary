@@ -79,6 +79,6 @@ export const PasswordSet = z.object({
 export const BatchDeleteRequest = z.object({ ids: z.array(z.uuid()).min(1).max(200) });
 export const BatchDeleteResponse = z.object({
   deleted: z.array(z.uuid()),
-  /** Not deleted: not found, not a NORMAL_USER, or the admin themself. */
+  /** Not deleted: not found, not a NORMAL_USER or COUNT_USER, or the admin themself. */
   skipped: z.array(z.uuid()),
 });

@@ -509,6 +509,7 @@ export const en: Messages = {
   'account.totpReset': 'If you lose your authenticator, ask another administrator to remove it.',
   'account.totpOn': 'Your authenticator is on: sign-in asks for its code.',
 
+  'admin.role.COUNT_USER': 'Mantra only',
   'admin.role.NORMAL_USER': 'Student',
   'admin.role.COURSE_LEADER': 'Leader',
   'admin.role.SYS_ADMIN': 'Administrator',
@@ -585,6 +586,7 @@ export const en: Messages = {
   'error.csrf_failed': 'Your connection expired. Please reload the page.',
   'error.rate_limited': 'Too many attempts. Please try again later.',
   'error.last_admin': 'There must always be at least one system administrator.',
+  'error.role_change_refused': 'A student or leader cannot be changed to mantra only.',
   'error.wrong_password': 'Your current password is wrong.',
   'error.self_action': 'You can’t do this to your own account.',
   'error.limit_reached': 'A usage limit has been reached.',

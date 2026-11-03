@@ -279,7 +279,7 @@ bodies are ignored.
 |---|---|---|---|---|---|
 | `GET /api/auth/captcha`; `POST /api/auth/login`, `/register`, `/forgot-password` | ✅ rate-limited | – | – | – | – |
 | `POST /api/auth/logout`; `GET/PUT /api/me` (includes `storageBytes`); `POST /api/me/password`; `GET/DELETE /api/me/sessions…` | – | ✅ | ✅ | ✅ | ✅ |
-| `POST /api/me/totp/setup`, `/confirm` | – | ❌ | ✅ optional | ✅ optional | ✅ required |
+| `POST /api/me/totp/setup`, `/confirm` | – | ✅ optional | ✅ optional | ✅ optional | ✅ required |
 | `GET /api/documents/mine?month=` → per entry `state, access, commentCount, hasUnseenComment` | – | ❌ | ✅ | ✅ | ❌ |
 | `POST /api/documents`, `PUT /:id/draft`, `POST /:id/submit` (first submit or update) | – | ❌ | own, daily limits | own, daily limits | ❌ |
 | `GET /api/documents/open?month=` | – | ❌ | ✅ | ✅ | ❌ |
@@ -306,7 +306,7 @@ bodies are ignored.
 Translate takes an **id**, not free text. The server checks read access and decrypts the text itself, which
 keeps the endpoint from becoming a free LLM proxy.
 
-A COUNT_USER has only the account rows (no authenticator) and 報數. Every other row is refused by capability
+A COUNT_USER has only the account rows and 報數. Every other row is refused by capability
 (`hasCapability`), never by a role list in the route, so a new diary route that forgets its guard is caught by
 the integration test that calls every diary, leader and translate route as a COUNT_USER.
 

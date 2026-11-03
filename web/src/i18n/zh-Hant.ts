@@ -492,6 +492,7 @@ export const zhHant = {
   'account.totpReset': '如果遺失了驗證器，請聯絡另一位系統管理員移除它。',
   'account.totpOn': '已啟用驗證器，登入時需要輸入驗證碼。',
 
+  'admin.role.COUNT_USER': '僅報數',
   'admin.role.NORMAL_USER': '學員',
   'admin.role.COURSE_LEADER': '導師',
   'admin.role.SYS_ADMIN': '系統管理員',
@@ -566,6 +567,7 @@ export const zhHant = {
   'error.csrf_failed': '連線已過期，請重新載入頁面。',
   'error.rate_limited': '嘗試次數太多，請稍後再試。',
   'error.last_admin': '必須保留至少一位系統管理員。',
+  'error.role_change_refused': '日記學員或導師不能改為僅報數。',
   'error.wrong_password': '目前的密碼不正確。',
   'error.self_action': '不能對自己的帳戶進行這項操作。',
   'error.limit_reached': '已達使用上限。',

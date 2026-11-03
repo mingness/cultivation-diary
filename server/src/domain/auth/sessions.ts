@@ -20,13 +20,16 @@ export const MFA_PENDING_MS = 5 * 60 * 1000;
 /** Don't write last_seen_at on every request; once a minute is precise enough. */
 export const TOUCH_INTERVAL_MS = 60 * 1000;
 
+/** Roles whose remembered devices expire sooner (§8.2). */
+const PRIVILEGED_ROLES: ReadonlySet<Role> = new Set(['COURSE_LEADER', 'SYS_ADMIN']);
+
 export type SessionKind = 'browser' | 'device';
 export type MfaState = 'not_required' | 'pending' | 'enrolment_required' | 'verified';
 
 export function idleLimitMs(kind: SessionKind, role: Role, mfa: MfaState): number {
   if (mfa === 'pending') return MFA_PENDING_MS;
   if (kind === 'browser') return BROWSER_IDLE_MS;
-  return role === 'NORMAL_USER' ? DEVICE_IDLE_MS : PRIVILEGED_DEVICE_IDLE_MS;
+  return PRIVILEGED_ROLES.has(role) ? PRIVILEGED_DEVICE_IDLE_MS : DEVICE_IDLE_MS;
 }
 
 export function expiryFrom(now: Date, kind: SessionKind, role: Role, mfa: MfaState): Date {

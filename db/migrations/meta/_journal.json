@@ -71,6 +71,13 @@
       "when": 1792440113837,
       "tag": "0009_share_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793667072487,
+      "tag": "0010_count_user",
+      "breakpoints": true
     }
   ]
 }

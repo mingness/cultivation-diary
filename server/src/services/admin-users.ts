@@ -6,7 +6,7 @@
  * demoting each other at the same moment can't both succeed and leave none.
  */
 import { and, asc, count, eq, inArray, ne, sql, type SQL } from 'drizzle-orm';
-import { ErrorCode, type AdminUser, type Profile, type Role } from '@diary/shared';
+import { canChangeRole, ErrorCode, type AdminUser, type Profile, type Role } from '@diary/shared';
 import type { AppContext } from '../context.js';
 import type { Db } from '../db/client.js';
 import { comments, users } from '../db/schema.js';
@@ -31,6 +31,8 @@ const lastAdmin = () =>
   new HttpError(409, ErrorCode.LastAdmin, 'The last SYS_ADMIN cannot be removed or demoted');
 const selfAction = (what: string) =>
   new HttpError(409, ErrorCode.SelfAction, `You cannot ${what} your own account here`);
+const roleChangeRefused = () =>
+  new HttpError(409, ErrorCode.RoleChangeRefused, 'A diary member cannot become a COUNT_USER');
 const emailTaken = () => new HttpError(409, ErrorCode.EmailTaken, 'Email already in use');
 
 export function toAdminUser(ctx: AppContext, row: UserRow, storageBytes: number): AdminUser {
@@ -169,6 +171,9 @@ export async function adminUpdateUser(
       ) {
         throw lastAdmin();
       }
+      if (changes.role !== undefined && !canChangeRole(current.role, changes.role)) {
+        throw roleChangeRefused();
+      }
       roleChanged = changes.role !== undefined && changes.role !== current.role;
       const sealed = changes.profile
         ? sealProfile(ctx.config.profileKeyring, id, changes.profile, current.profileDekWrapped)
@@ -252,7 +257,10 @@ export async function adminDeleteUser(ctx: AppContext, actorId: string, id: stri
   });
 }
 
-/** Batch delete is for NORMAL_USER accounts only (spec §6.5); anything else is reported as skipped. */
+/**
+ * Batch delete is for NORMAL_USER and COUNT_USER accounts only (spec §6.5; COUNT_USERs for cleaning up spam
+ * signups); anything else is reported as skipped.
+ */
 export async function adminBatchDelete(
   ctx: AppContext,
   actorId: string,
@@ -261,7 +269,13 @@ export async function adminBatchDelete(
   const unique = [...new Set(ids)];
   const deleted = await ctx.db
     .delete(users)
-    .where(and(inArray(users.id, unique), eq(users.role, 'NORMAL_USER'), ne(users.id, actorId)))
+    .where(
+      and(
+        inArray(users.id, unique),
+        inArray(users.role, ['NORMAL_USER', 'COUNT_USER']),
+        ne(users.id, actorId),
+      ),
+    )
     .returning({ id: users.id });
   const deletedIds = new Set(deleted.map((r) => r.id));
   return {

@@ -172,3 +172,17 @@ test.describe('one project only (it signs in a fresh account; the server allows 
     await page.context().close();
   });
 });
+
+test('a mantra-only account lands on 報數, has only 報數 and 我的, and no diary', async ({
+  mantraPage: page,
+  t,
+}) => {
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/count$/);
+  const nav = page.getByRole('navigation', { name: t('nav.label') });
+  await expect(nav.getByRole('link')).toHaveText([t('nav.count'), t('nav.me')]);
+  // The board shows their display name rather than the username.
+  await expect(page.getByText('妙音').first()).toBeVisible();
+  await page.goto('/diary');
+  await expect(page.getByText(t('state.notFound'))).toBeVisible();
+});

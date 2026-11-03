@@ -32,6 +32,7 @@ const COUNT: NavItem = { to: '/count', label: 'nav.count', icon: 'count' };
 const ME: NavItem = { to: '/me', label: 'nav.me', icon: 'user' };
 
 const NAV: Record<Role, readonly NavItem[]> = {
+  COUNT_USER: [COUNT, ME],
   NORMAL_USER: [DIARY, OPEN, COUNT, ME],
   COURSE_LEADER: [
     { to: '/review', label: 'nav.review', icon: 'review' },

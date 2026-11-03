@@ -6,6 +6,7 @@ import type { ActivityKind, AlertRule, Role } from '@diary/shared';
 import type { MessageKey } from '../../i18n/index.js';
 
 const ROLE: Record<Role, MessageKey> = {
+  COUNT_USER: 'admin.role.COUNT_USER',
   NORMAL_USER: 'admin.role.NORMAL_USER',
   COURSE_LEADER: 'admin.role.COURSE_LEADER',
   SYS_ADMIN: 'admin.role.SYS_ADMIN',

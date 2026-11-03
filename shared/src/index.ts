@@ -32,6 +32,8 @@ export const ErrorCode = {
   RateLimited: 'rate_limited',
   /** The change would leave no SYS_ADMIN (deleting or demoting the last one). */
   LastAdmin: 'last_admin',
+  /** Roles only move up: a diary member (NORMAL_USER, COURSE_LEADER) is never made a COUNT_USER (D30). */
+  RoleChangeRefused: 'role_change_refused',
   /** The current password given to change it was wrong. Not 401: the session itself is fine. */
   WrongPassword: 'wrong_password',
   /** An admin action that can't be applied to one's own account (e.g. deleting it). */

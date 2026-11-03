@@ -45,6 +45,9 @@ export const SEED_USERS: readonly SeedUser[] = [
   { username: 'linjy', role: 'NORMAL_USER', profile: person('林', '佳穎') },
   { username: 'lijg', role: 'NORMAL_USER', profile: person('李', '建國') },
   { username: 'chenmh', role: 'NORMAL_USER', profile: person('陳', '美華'), resetPending: true },
+  // Mantra-only accounts (D30): one with a display name (kept as the given name), one without.
+  { username: 'mantra.amy', role: 'COUNT_USER', profile: person('', '妙音') },
+  { username: 'mantra.ben', role: 'COUNT_USER', profile: person('', '') },
 ];
 
 const p = (...lines: string[]) => lines.map((l) => `<p>${l}</p>`).join('');
@@ -175,6 +178,8 @@ export const SEED_COUNTS: readonly [string, readonly number[], boolean][] = [
   ['wuml', [1080, 1080, 1080, 1080, 1080, 1080, 1080], false],
   ['linjy', [0, 0, 0, 0, 0, 21, 0], false],
   ['leader.lin', [108, 108, 108, 108, 108, 108, 108], true],
+  ['mantra.amy', [21, 49, 49, 108, 0, 108, 49], false],
+  ['mantra.ben', [0, 0, 0, 7, 7, 0, 7], false],
 ];
 
 export interface SeedResult {
