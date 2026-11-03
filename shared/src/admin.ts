@@ -53,7 +53,7 @@ export const CreateUserRequest = z.object({
   username: Username,
   role: Role.default('NORMAL_USER'),
   email: Email.nullable().default(null),
-  profile: Profile.default({ familyName: '', givenName: '', address: '', photo: null }),
+  profile: Profile.default({ familyName: '', givenName: '', address: '', phone: '', photo: null }),
   credentials: NewPassword,
 });
 

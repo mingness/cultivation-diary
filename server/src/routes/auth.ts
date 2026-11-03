@@ -267,21 +267,24 @@ export function authRoutes(
       },
       schema: {
         tags: AUTH_TAG,
-        summary: 'Create a normal user account (no email verification, spec §4.2)',
+        summary:
+          'Create a mantra-only account (COUNT_USER, D30): email or phone required, neither verified (spec §4.2)',
         body: RegisterRequest,
         response: { 201: OkResponse },
       },
     },
     async (request, reply) => {
-      const { captchaId, captchaAnswer, username, password, email, profile } = request.body;
+      const { captchaId, captchaAnswer, username, password, email, phone, displayName } =
+        request.body;
       if (!(await consumeCaptcha(ctx, captchaId, captchaAnswer))) throw captchaFailed();
       try {
+        // The diary is curated: registering only ever creates a mantra-only account.
         const user = await createUser(ctx, {
           username,
           password,
           email,
-          role: 'NORMAL_USER',
-          profile: profile ?? EMPTY_PROFILE,
+          role: 'COUNT_USER',
+          profile: { ...EMPTY_PROFILE, givenName: displayName, phone },
         });
         request.log.info({ event: 'register', userId: user.id }, 'registered');
       } catch (err) {

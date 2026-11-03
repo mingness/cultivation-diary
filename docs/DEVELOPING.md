@@ -51,6 +51,7 @@ Every password is `password123`. With the development defaults, every CAPTCHA an
 | `leader.lin`, `leader.huang` | COURSE_LEADER | Each leads some of the users below |
 | `chenmd`, `zhangsf`, `wangdt`, `wuml`, `linjy`, `lijg` | NORMAL_USER | Sample diary entries, some shared |
 | `chenmh` | NORMAL_USER | Waiting for a password reset: can't sign in until an admin sets one |
+| `mantra.amy`, `mantra.ben` | COUNT_USER | Mantra only (報數 and 我的); `mantra.amy` has the display name 妙音 |
 
 To start from an empty database instead: `docker compose down -v` (deletes the database volume), then
 `docker compose up -d --wait --build`. With no users at all, create the first admin as in production (see

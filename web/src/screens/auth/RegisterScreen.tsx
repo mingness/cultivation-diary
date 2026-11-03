@@ -1,12 +1,12 @@
 /**
- * Self-registration (spec §4.2): creates a NORMAL_USER, with no email verification. On success the user goes
- * to sign-in with their username filled in.
+ * Self-registration (spec §4.2, D30): creates a mantra-only account (COUNT_USER), with an email or a phone
+ * (at least one) and no verification. On success the user goes to sign-in with their username filled in.
  */
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import { Email, ErrorCode, Password, Username } from '@diary/shared';
+import { Email, ErrorCode, hasContact, isPhone, Password, Username } from '@diary/shared';
 import { useAuthOptions } from '../../api/auth.js';
 import { ApiError, api } from '../../api/client.js';
 import { AuthLayout } from '../../components/AuthLayout.js';
@@ -20,10 +20,9 @@ import styles from './auth.module.css';
 
 interface Form {
   username: string;
-  familyName: string;
-  givenName: string;
-  address: string;
+  displayName: string;
   email: string;
+  phone: string;
   password: string;
   confirm: string;
   answer: string;
@@ -34,10 +33,9 @@ type Problems = Partial<Record<Field, MessageKey>>;
 
 const EMPTY: Form = {
   username: '',
-  familyName: '',
-  givenName: '',
-  address: '',
+  displayName: '',
   email: '',
+  phone: '',
   password: '',
   confirm: '',
   answer: '',
@@ -49,9 +47,11 @@ export function checkRegistration(form: Form): Problems {
   if (!Username.safeParse(form.username).success) problems.username = 'register.badUsername';
   if (!Password.safeParse(form.password).success) problems.password = 'register.badPassword';
   else if (form.password !== form.confirm) problems.confirm = 'register.mismatch';
-  if (form.email.trim() && !Email.safeParse(form.email.trim()).success) {
-    problems.email = 'register.badEmail';
-  }
+  const email = form.email.trim();
+  const phone = form.phone.trim();
+  if (email && !Email.safeParse(email).success) problems.email = 'register.badEmail';
+  if (phone && !isPhone(phone)) problems.phone = 'register.badPhone';
+  else if (!hasContact(email, phone)) problems.phone = 'register.contactRequired';
   if (!form.answer) problems.answer = 'auth.required';
   return problems;
 }
@@ -115,13 +115,9 @@ function RegisterForm() {
     register.mutate({
       username: form.username.trim(),
       password: form.password,
+      displayName: form.displayName.trim(),
       email: form.email.trim() || null,
-      profile: {
-        familyName: form.familyName.trim(),
-        givenName: form.givenName.trim(),
-        address: form.address.trim(),
-        photo: null,
-      },
+      phone: form.phone.trim(),
       captchaId: captcha.id,
       captchaAnswer: form.answer,
     });
@@ -147,41 +143,33 @@ function RegisterForm() {
           onChange={set('username')}
           error={problem('username')}
         />
-        <div className={styles.names}>
-          <TextField
-            label={t('register.familyName')}
-            optional
-            autoComplete="family-name"
-            maxLength={50}
-            value={form.familyName}
-            onChange={set('familyName')}
-          />
-          <TextField
-            label={t('register.givenName')}
-            optional
-            autoComplete="given-name"
-            maxLength={50}
-            value={form.givenName}
-            onChange={set('givenName')}
-          />
-        </div>
         <TextField
-          label={t('register.address')}
+          label={t('register.displayName')}
+          hint={t('register.displayNameHint')}
           optional
-          autoComplete="street-address"
-          maxLength={200}
-          value={form.address}
-          onChange={set('address')}
+          autoComplete="nickname"
+          maxLength={50}
+          value={form.displayName}
+          onChange={set('displayName')}
         />
+        <p className={styles.intro}>{t('register.contactHint')}</p>
         <TextField
           label={t('register.email')}
-          optional
           type="email"
           autoComplete="email"
           maxLength={200}
           value={form.email}
           onChange={set('email')}
           error={problem('email')}
+        />
+        <TextField
+          label={t('register.phone')}
+          type="tel"
+          autoComplete="tel"
+          maxLength={30}
+          value={form.phone}
+          onChange={set('phone')}
+          error={problem('phone')}
         />
         <PasswordField
           label={t('auth.password')}

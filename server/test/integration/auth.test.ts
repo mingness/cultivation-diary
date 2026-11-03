@@ -112,14 +112,14 @@ describe('CAPTCHA', () => {
 });
 
 describe('registration', () => {
-  it('creates a NORMAL_USER who can then sign in, ignoring any role in the request', async () => {
+  it('creates a mantra-only COUNT_USER who can then sign in, ignoring any role in the request', async () => {
     const username = uniqueName('Reg');
     const res = await register(t.app, { username, role: 'SYS_ADMIN' });
     expect(res.statusCode).toBe(201);
     const signin = await login(t.app, username.toLowerCase());
     expect(LoginResponse.parse(signin.res.json())).toMatchObject({
       status: 'ok',
-      user: { username, role: 'NORMAL_USER' },
+      user: { username, role: 'COUNT_USER' },
     });
   });
 
@@ -142,33 +142,48 @@ describe('registration', () => {
     ['too short username', { username: 'ab' }],
     ['username with spaces', { username: 'two words' }],
     ['short password', { password: 'short' }],
-    ['non-JPEG photo', { profile: { photo: 'data:image/png;base64,AAAA' } }],
+    ['neither email nor phone', { email: null, phone: '' }],
+    ['a phone that is not a number', { phone: 'call me' }],
   ])('rejects %s', async (_label, body) => {
     const res = await register(t.app, { username: uniqueName(), ...body });
     expect(res.statusCode).toBe(400);
     expect(errorCode(res)).toBe('validation_failed');
   });
 
-  it('stores the profile encrypted: names never appear in the database in plain text', async () => {
+  it('stores the display name and phone encrypted, as the profile’s given name and phone', async () => {
     const username = uniqueName('enc');
-    await register(t.app, {
-      username,
-      profile: { familyName: '歐陽', givenName: '靜修', address: 'Secret Street 9' },
-    });
+    await register(t.app, { username, displayName: '靜修', phone: '+61 7 5555 1234' });
     const [row] = await t.ctx.db
       .select({ dump: sql<string>`row_to_json(users)::text` })
       .from(users)
       .where(eq(users.username, username));
-    expect(row!.dump).not.toContain('歐陽');
-    expect(row!.dump).not.toContain('Secret Street');
+    expect(row!.dump).not.toContain('靜修');
+    expect(row!.dump).not.toContain('5555 1234');
 
     const signin = await login(t.app, username);
     const profile = MeResponse.parse((await me(as(signin))).json()).user.profile;
-    expect(profile).toMatchObject({
-      familyName: '歐陽',
-      givenName: '靜修',
-      address: 'Secret Street 9',
+    expect(profile).toMatchObject({ familyName: '', givenName: '靜修', phone: '+61 7 5555 1234' });
+  });
+
+  it('a mantra-only account can swap its phone for an email, but not drop both', async () => {
+    const username = uniqueName('contact');
+    await register(t.app, { username, phone: '0412 345 678' });
+    const signin = await login(t.app, username);
+    const put = (payload: object) =>
+      t.app.inject({ method: 'PUT', url: '/api/me', headers: as(signin), payload });
+    const profile = MeResponse.parse((await me(as(signin))).json()).user.profile;
+
+    const dropped = await put({ profile: { ...profile, phone: '' } });
+    expect(dropped.statusCode).toBe(400);
+    expect(errorCode(dropped)).toBe('contact_required');
+
+    const swapped = await put({
+      email: `${username}@example.com`,
+      profile: { ...profile, phone: '' },
     });
+    expect(swapped.statusCode).toBe(200);
+    // Now the email is the only contact, so clearing it alone is refused too.
+    expect(errorCode(await put({ email: null }))).toBe('contact_required');
   });
 });
 

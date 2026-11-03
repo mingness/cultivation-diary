@@ -130,6 +130,8 @@ export async function register(
       captchaId: await newCaptcha(app),
       captchaAnswer: CAPTCHA_ANSWER,
       password: TEST_PASSWORD,
+      // Registration needs an email or a phone (spec §4.2); tests about contacts override this.
+      phone: '+61 400 000 000',
       ...body,
     },
   });

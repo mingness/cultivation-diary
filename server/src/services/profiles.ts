@@ -1,6 +1,6 @@
 /**
  * Encrypted profile fields (docs/ARCHITECTURE.md §6.3). Each user has a profile DEK, wrapped by
- * PROFILE_KEYRING, which encrypts {familyName, givenName, address, photo} and the TOTP secret.
+ * PROFILE_KEYRING, which encrypts {familyName, givenName, address, phone, photo} and the TOTP secret.
  */
 import { Profile, personName } from '@diary/shared';
 import { openText, sealText } from '../domain/crypto/aead.js';
@@ -8,7 +8,13 @@ import { dekContext, fieldAad } from '../domain/crypto/contexts.js';
 import { generateDek, unwrapDek, wrapDek } from '../domain/crypto/dek.js';
 import type { Keyring } from '../domain/crypto/keyring.js';
 
-export const EMPTY_PROFILE: Profile = { familyName: '', givenName: '', address: '', photo: null };
+export const EMPTY_PROFILE: Profile = {
+  familyName: '',
+  givenName: '',
+  address: '',
+  phone: '',
+  photo: null,
+};
 
 export interface SealedProfile {
   readonly profileCt: Buffer;

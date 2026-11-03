@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { MeResponse } from '@diary/shared';
+import { isPhone, type MeResponse } from '@diary/shared';
 import { ApiError } from '../src/api/client.js';
 import { sessionFromMe } from '../src/api/session.js';
 import { parseAppearance } from '../src/lib/appearance.js';
@@ -45,7 +45,7 @@ describe('sessionFromMe', () => {
       fontSize: 18,
       theme: 'system',
       email: null,
-      profile: { familyName: '', givenName: '', address: '', photo: null },
+      profile: { familyName: '', givenName: '', address: '', phone: '', photo: null },
       totpEnabled,
       storageBytes: 0,
     },
@@ -63,17 +63,23 @@ describe('sessionFromMe', () => {
 describe('checkRegistration', () => {
   const valid = {
     username: 'chen.md',
-    familyName: '',
-    givenName: '',
-    address: '',
+    displayName: '',
     email: '',
+    phone: '+61 412 345 678',
     password: 'long-enough',
     confirm: 'long-enough',
     answer: '3',
   };
 
-  it('accepts a valid form with the optional fields empty', () => {
+  it('accepts a valid form with the optional fields empty, and either contact alone', () => {
     expect(checkRegistration(valid)).toEqual({});
+    expect(checkRegistration({ ...valid, phone: '', email: 'a@example.com' })).toEqual({});
+  });
+
+  it('needs an email or a phone, and says so at the phone field', () => {
+    expect(checkRegistration({ ...valid, phone: ' ', email: '' })).toEqual({
+      phone: 'register.contactRequired',
+    });
   });
 
   it('names each problem next to its field', () => {
@@ -83,18 +89,39 @@ describe('checkRegistration', () => {
         username: '.bad',
         confirm: 'different',
         email: 'not-an-email',
+        phone: 'call me',
         answer: '',
       }),
     ).toEqual({
       username: 'register.badUsername',
       confirm: 'register.mismatch',
       email: 'register.badEmail',
+      phone: 'register.badPhone',
       answer: 'auth.required',
     });
     // A too-short password is the problem to fix first; "different" would only confuse.
     expect(checkRegistration({ ...valid, password: 'short', confirm: 'other' })).toEqual({
       password: 'register.badPassword',
     });
+  });
+});
+
+describe('isPhone (spec §4.2)', () => {
+  it.each([
+    ['+61 412 345 678', true],
+    ['0412-345-678', true],
+    ['+852 9123 4567', true],
+    ['13812345678', true],
+    ['123456', true],
+    ['12345', false], // fewer than 6 digits
+    ['+1 234 567 890 123 456 789 01', false], // more than 20 digits
+    ['412 345 678 ext 2', false],
+    ['++61 412 345 678', false],
+    ['(07) 5555 1234', true],
+    ['+61 (7) 5555 1234', true],
+    ['412 345 678 ', false], // the schema trims first; the rule itself doesn't
+  ])('%s → %s', (value, expected) => {
+    expect(isPhone(value)).toBe(expected);
   });
 });
 

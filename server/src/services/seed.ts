@@ -30,6 +30,7 @@ const person = (familyName: string, givenName: string, address = ''): Profile =>
   familyName,
   givenName,
   address,
+  phone: '',
   photo: null,
 });
 

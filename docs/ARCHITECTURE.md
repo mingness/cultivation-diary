@@ -694,9 +694,15 @@ states. Each slice is one screen group, with Playwright e2e tests at 360 px and 
 20. **The COUNT_USER role:** enum migration (`ALTER TYPE … ADD VALUE`), the policy row (報數 only), every
     hand-written role list reviewed, the admin role filter, promotion allowed and demotion from the diary
     roles refused, seed accounts; the web shell's 報數 · 我的 tabs and landing. Tests: the policy row, every
-    diary, leader and translate route refused to a COUNT_USER, the role-change rules.
+    diary, leader and translate route refused to a COUNT_USER, the role-change rules. *(Done. The rule lives in
+    `canChangeRole` (`shared/src/roles.ts`), used by the server and the admin form. `documentView` also
+    requires `ReadOpenDiaries` before treating anyone as a reader. Remembered devices now last 30 days only
+    for leaders and admins; before, every role but NORMAL_USER got the shorter limit.)*
 21. **Registration creates a COUNT_USER:** display name, email and/or phone (at least one), the phone in the
-    encrypted profile, shown to admins and editable on the account page.
+    encrypted profile, shown to admins and editable on the account page. *(Done. `isPhone` and `hasContact`
+    in `shared/src/auth.ts` are the one rule for the form and the server; brackets are allowed, as in
+    "(07) 5555 1234". `PUT /api/me` refuses to leave a COUNT_USER with neither (400 `contact_required`).
+    Profiles saved before this read with an empty phone. The pending-reset rows show email and phone.)*
 22. **Two front doors:** `VITE_SITE` builds, the mantra palette and icons, nginx on :8082, Caddy's second
     block, `MANTRA_URL`, `npm run dev:mantra`, e2e for the mantra site (register → report → sign out, axe in
     both themes, 360 px and 22 px text) and for the diary site having no register link.

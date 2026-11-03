@@ -253,6 +253,10 @@ function UserRow({
         <span className={styles.actions}>
           {user.status === 'reset_pending' && <Chip tone="amber">{t('admin.resetPending')}</Chip>}
           {user.totpEnabled && <Chip tone="green">{t('admin.totpOn')}</Chip>}
+          {/* How to pass the new password on (spec §4.3). */}
+          {user.status === 'reset_pending' && (
+            <span>{[user.email, user.profile.phone].filter(Boolean).join(' · ')}</span>
+          )}
         </span>
       </td>
       <td className={tableStyles.num}>{formatBytes(user.storageBytes)}</td>

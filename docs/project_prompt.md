@@ -78,7 +78,7 @@ This is a private diary platform with a supervision workflow:
 ### 4.2 Registration (mantra site only, revised 2026-11-02)
 - Offered on the mantra site only; the diary site has no register link and directs mantra-only visitors to the mantra site.
 - Fields: username, optional display name (shown on the 報數 board instead of the username), email and/or phone (**at least one**, so a SYS_ADMIN can reach the person to reset a password), password entered twice and must match, CAPTCHA.
-- **No verification** of the email or phone (dozens of signups are expected; a wrong number only means the admin cannot reach them, never access to the account). Phone numbers are free text with a leading `+`, digits and spaces.
+- **No verification** of the email or phone (dozens of signups are expected; a wrong number only means the admin cannot reach them, never access to the account). Phone numbers are free text: an optional leading `+`, digits, spaces, hyphens and brackets, 6–20 digits.
 - Creates a **COUNT_USER**; on success → login page.
 - Registration can be switched off on the server (e.g. if bots appear); the register link then disappears.
 

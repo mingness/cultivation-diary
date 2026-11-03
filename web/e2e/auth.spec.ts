@@ -106,7 +106,7 @@ test.describe('administrators', () => {
 test.describe('one project only (the server allows few of these per hour)', () => {
   test.skip(({ lang, viewport }) => lang !== 'zh-Hant' || (viewport?.width ?? 0) >= 1024);
 
-  test('registering leads to sign-in with the username filled in, and the account works', async ({
+  test('registering makes a mantra-only account, leads to sign-in with the username filled in, and works', async ({
     page,
     t,
   }) => {
@@ -115,15 +115,16 @@ test.describe('one project only (the server allows few of these per hour)', () =
     await page.getByRole('link', { name: t('auth.toRegister') }).click();
 
     await page.getByLabel(t('auth.username')).fill(username);
-    await optionalField(page, t('register.familyName')).fill('測');
-    await optionalField(page, t('register.givenName')).fill('試');
+    await optionalField(page, t('register.displayName')).fill('測試');
     await page.getByLabel(t('auth.password'), { exact: true }).fill('long-enough-pass');
     await page.getByLabel(t('register.confirmPassword'), { exact: true }).fill('different-pass');
     await page.getByLabel(t('auth.captchaAnswer')).fill('3');
     await page.getByRole('button', { name: t('register.submit') }).click();
-    // The mismatch is caught before anything is sent (spec §4.2).
+    // Caught before anything is sent (spec §4.2): the mismatch, and no email or phone.
     await expect(page.getByText(t('register.mismatch'))).toBeVisible();
+    await expect(page.getByText(t('register.contactRequired'))).toBeVisible();
 
+    await page.getByLabel(t('register.phone'), { exact: true }).fill('(07) 5555 1234');
     await page.getByLabel(t('register.confirmPassword'), { exact: true }).fill('long-enough-pass');
     await page.getByRole('button', { name: t('register.submit') }).click();
 
@@ -133,8 +134,11 @@ test.describe('one project only (the server allows few of these per hour)', () =
     await page.getByLabel(t('auth.password'), { exact: true }).fill('long-enough-pass');
     await page.getByLabel(t('auth.captchaAnswer')).fill('3');
     await page.getByRole('button', { name: t('auth.login'), exact: true }).click();
+    // Mantra only: 報數 and 我的, and the display name stands in for the username.
+    await expect(page).toHaveURL(/\/count$/);
     await page.getByRole('link', { name: t('nav.me'), exact: true }).click();
     await expect(page.getByText('測試', { exact: true })).toBeVisible();
+    await expect(page.getByLabel(t('register.phone'))).toHaveValue('(07) 5555 1234');
   });
 
   test('forgot password confirms it was passed to the administrators', async ({ page, t }) => {

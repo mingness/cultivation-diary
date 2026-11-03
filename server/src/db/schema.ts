@@ -68,7 +68,7 @@ export const users = pgTable(
     totpPendingNonce: bytea('totp_pending_nonce'),
     fontSize: smallint('font_size').notNull().default(18),
     theme: themeEnum('theme').notNull().default('system'),
-    /** {familyName, givenName, address, photo} as encrypted JSON. */
+    /** {familyName, givenName, address, phone, photo} as encrypted JSON. */
     profileCt: bytea('profile_ct').notNull(),
     profileNonce: bytea('profile_nonce').notNull(),
     /** The user's profile DEK, wrapped by PROFILE_KEYRING. */

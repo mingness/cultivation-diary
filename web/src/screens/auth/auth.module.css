@@ -21,12 +21,6 @@
   min-height: var(--touch);
 }
 
-.names {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
-}
-
 .captchaRow {
   display: flex;
   flex-wrap: wrap;

@@ -7,7 +7,15 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { canChangeRole, Email, ErrorCode, Role, Username, type Profile } from '@diary/shared';
+import {
+  canChangeRole,
+  Email,
+  ErrorCode,
+  isPhone,
+  Role,
+  Username,
+  type Profile,
+} from '@diary/shared';
 import { ApiError } from '../../api/client.js';
 import {
   useAdminUser,
@@ -68,7 +76,13 @@ function UserForm({ user }: { user: AdminUser | null }) {
     username: user?.username ?? '',
     role: user?.role ?? 'NORMAL_USER',
     email: user?.email ?? '',
-    profile: user?.profile ?? { familyName: '', givenName: '', address: '', photo: null },
+    profile: user?.profile ?? {
+      familyName: '',
+      givenName: '',
+      address: '',
+      phone: '',
+      photo: null,
+    },
   });
   const [password, setPassword] = useState<PasswordChoice>(GENERATE);
   const [revealed, setRevealed] = useState<string | null>(null);
@@ -86,6 +100,7 @@ function UserForm({ user }: { user: AdminUser | null }) {
     setForm((f) => ({ ...f, profile: { ...f.profile, ...patch } }));
   const usernameBad = user === null && !Username.safeParse(form.username).success;
   const emailBad = form.email.trim() !== '' && !Email.safeParse(form.email.trim()).success;
+  const phoneBad = form.profile.phone.trim() !== '' && !isPhone(form.profile.phone.trim());
   const passwordMissing = user === null && passwordBody(password) === null;
 
   async function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
@@ -116,7 +131,7 @@ function UserForm({ user }: { user: AdminUser | null }) {
     event.preventDefault();
     setChecked(true);
     setProblem(null);
-    if (usernameBad || emailBad || passwordMissing) return;
+    if (usernameBad || emailBad || phoneBad || passwordMissing) return;
     const common = {
       role: form.role,
       email: form.email.trim() || null,
@@ -125,6 +140,7 @@ function UserForm({ user }: { user: AdminUser | null }) {
         familyName: form.profile.familyName.trim(),
         givenName: form.profile.givenName.trim(),
         address: form.profile.address.trim(),
+        phone: form.profile.phone.trim(),
       },
     };
     if (user === null) {
@@ -221,6 +237,15 @@ function UserForm({ user }: { user: AdminUser | null }) {
                 ? t('register.badEmail')
                 : null
           }
+        />
+        <TextField
+          label={t('register.phone')}
+          optional
+          type="tel"
+          maxLength={30}
+          value={form.profile.phone}
+          onChange={(e) => setProfile({ phone: e.target.value })}
+          error={checked && phoneBad ? t('register.badPhone') : null}
         />
         <div className={styles.names}>
           <TextField
