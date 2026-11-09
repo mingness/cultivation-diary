@@ -20,7 +20,7 @@ test('is its own installable app, with no choice of where to land and a way to r
   t,
 }) => {
   await page.goto('/login');
-  await expect(page).toHaveTitle('大悲咒共修報數');
+  await expect(page).toHaveTitle(t('app.titleMantra'));
   await expect(page.locator('html')).toHaveAttribute('data-site', 'mantra');
   await expect(page.getByText(t('app.titleMantra'), { exact: true })).toBeVisible();
   const manifest = await (await page.request.get('/manifest.webmanifest')).json();

@@ -10,7 +10,7 @@ domain=${1:-}
 mantra_domain=${2:-}
 if [ -z "$domain" ] || [ -z "$mantra_domain" ]; then
   echo "Usage: sh deploy/make-env.sh <diary domain> <mantra domain>" >&2
-  echo "   e.g. diary.gcdr.org.au mantra.gcdr.org.au, or diary-203-0-113-7.sslip.io mantra-203-0-113-7.sslip.io" >&2
+  echo "   e.g. diary.gcdr.org.au mantra.gcdr.org.au, or diary.203-0-113-7.sslip.io mantra.203-0-113-7.sslip.io" >&2
   exit 1
 fi
 
@@ -30,9 +30,9 @@ MANTRA_DOMAIN=$mantra_domain
 # The diary's sign-in page links here for people who only take part in 報數.
 MANTRA_URL=https://$mantra_domain
 LOG_LEVEL=info
-# Registering (on the mantra site; it only ever makes mantra-only accounts) is closed. Set to true to open it.
-# Diary accounts are always created by admins under 用戶.
-REGISTRATION_OPEN=false
+# Registering on the mantra site, which only ever makes mantra-only accounts (D30). Set to false to close it,
+# e.g. against spam signups. Diary accounts are always created by admins under 用戶.
+REGISTRATION_OPEN=true
 
 POSTGRES_PASSWORD=$(hex 16)
 # Losing either keyring loses the data it protects. Back them up separately from database backups.

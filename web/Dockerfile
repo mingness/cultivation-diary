@@ -1,7 +1,7 @@
 # The web app: built with Vite, served by nginx, which also forwards /api to the server (docs/ARCHITECTURE.md §4).
 # Two builds, two sites (§8.11): the diary on port 8080 and the mantra site on 8082.
 # Build context: the repository root (see compose.yaml).
-FROM node:22.23.3-alpine3.23 AS build
+FROM node:24.22.2-alpine3.23 AS build
 WORKDIR /app
 ENV LEFTHOOK=0
 COPY package.json package-lock.json tsconfig.base.json ./

@@ -145,7 +145,7 @@
     --border: #3a4a40;
     --primary: #bf956c;
     --on-primary: #1b231e;
-    --primary-soft: #2f3d34;
+    --primary-soft: #2a372e; /* 4.6:1 under --primary (the current desktop tab) */
     --blue: #bf956c;
     --blue-soft: #2a352e;
   }
@@ -160,7 +160,7 @@
   --border: #3a4a40;
   --primary: #bf956c;
   --on-primary: #1b231e;
-  --primary-soft: #2f3d34;
+  --primary-soft: #2a372e; /* 4.6:1 under --primary (the current desktop tab) */
   --blue: #bf956c;
   --blue-soft: #2a352e;
 }

@@ -10,10 +10,12 @@
   justify-content: space-between;
 }
 
+/* May wrap: "November 2026" at 22 px text is wider than a 360 px phone's filter panel. */
 .month {
+  min-width: 0;
   font-weight: 700;
   font-size: var(--text-lg);
-  white-space: nowrap;
+  text-align: center;
 }
 
 .grid {

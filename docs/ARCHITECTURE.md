@@ -43,7 +43,7 @@
 | Layer | Choice | Why |
 |---|---|---|
 | Language | **TypeScript (strict)**, server and web | §12.9 static types; one language across the repo |
-| Runtime | **Node.js 22 LTS**, pinned in `.nvmrc` | Built-in `crypto`: AES-GCM, HKDF, `randomInt`, `timingSafeEqual` |
+| Runtime | **Node.js 24 LTS**, pinned in `.nvmrc` | Built-in `crypto`: AES-GCM, HKDF, `randomInt`, `timingSafeEqual` |
 | HTTP | **Fastify** | Schema-validated routes, body limits, pino logging, request IDs |
 | Validation | **zod**, in `/shared` for server and web | One schema for server validation and client types |
 | DB | **PostgreSQL 16** (pinned tag) | Real DB in integration tests (§12.5) |
@@ -342,7 +342,8 @@ any submitted entry, their own included, and the review lists include their own 
 - **Closing registration:** `REGISTRATION_OPEN=false` (any environment, production included) makes
   `POST /api/auth/register` answer 403 `registration_closed` before reading the body, and
   `GET /api/auth/options` tells the sign-in screens to hide the register link. SYS_ADMINs still create
-  accounts. `deploy/make-env.sh` writes it closed; it opens when the mantra site goes live (D31).
+  accounts. `deploy/make-env.sh` writes it open, since registering only makes mantra-only accounts (D31);
+  closing it is the response to spam signups.
 - **Roles only move up:** `PATCH /api/admin/users/:id` refuses to change a NORMAL_USER or COURSE_LEADER into a
   COUNT_USER (409 `role_change_refused`), so no diary is ever left behind by an account that can't reach it.
   COUNT_USER → NORMAL_USER (or any other role) is allowed.
@@ -712,7 +713,7 @@ states. Each slice is one screen group, with Playwright e2e tests at 360 px and 
     mantra site has no 報數管理 link (that screen is the diary's). The diary build has no `/register`.
     `make-env.sh` now takes both hostnames. The e2e stack serves the mantra site on :8083; `mantra.spec.ts`
     covers it, and the registration test moved there.)*
-23. **Deploy docs:** the second DNS name and settings in DEPLOY-EC2.md; registration opened.
+23. **Deploy docs:** the second DNS name and settings in DEPLOY-EC2.md; registration opened. *(Done.)*
 
 ### Phase C: production
 

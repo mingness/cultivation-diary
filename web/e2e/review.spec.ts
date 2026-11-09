@@ -149,7 +149,7 @@ test('a shared entry has no notice in review, just its chip and a small 取消�
   expect((await ownerView(userPage, entry.id)).access).toBe('private');
 
   // The student sees why, and can't share it again until they've updated it.
-  await userPage.goto(`/diary/${entry.id}`);
+  await userPage.goto(`/diary/${entry.id}/edit`);
   await expect(userPage.getByText(t('share.unsharedByLeader'))).toBeVisible();
   await expect(userPage.getByRole('checkbox', { name: t('share.label') })).toBeDisabled();
 });
