@@ -1,5 +1,5 @@
 # Build context: the repository root (see compose.yaml).
-FROM node:24.22.2-alpine3.23 AS build
+FROM node:26.13.0-alpine3.23 AS build
 WORKDIR /app
 # Git hooks are for developers' machines, not image builds.
 ENV LEFTHOOK=0
@@ -12,7 +12,7 @@ COPY server server
 # Only what this image ships; the web app has its own image (web/Dockerfile).
 RUN npm run build -w shared && npm run build -w server && npm prune --omit=dev
 
-FROM node:24.22.2-alpine3.23
+FROM node:26.13.0-alpine3.23
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /app/package.json ./

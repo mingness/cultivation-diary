@@ -144,7 +144,7 @@ Keep this file up to date when commands, conventions or pitfalls change.
   Node (common with VS Code as a Flatpak, or nvm/fnm set up only in interactive shells). Create a git-ignored
   `lefthook-local.yml` containing `rc: ./.lefthook-node.sh`, and in that script put Node on PATH (for fnm:
   `eval "$(fnm env --shell bash)"`). Then run `npx lefthook install`, which bakes the rc line into the hook.
-- **Node version:** the system Node may be newer than `.nvmrc`. Use `fnm use` (or `fnm exec --using=24 …`).
+- **Node version:** the system Node may be newer than `.nvmrc`. Use `fnm use` (or `fnm exec --using=26 …`).
   The production image pins the same version.
 - **Empty journal:** `db/migrations/meta/_journal.json` exists even with no migrations, so `/readyz` can tell
   "never migrated" from "up to date". Don't delete it.
