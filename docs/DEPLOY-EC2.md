@@ -54,110 +54,73 @@ Caddy gets a certificate for each name on its first visit, so both must resolve 
 
 ## 3. Install Docker
 
-Pick one. **Rootless** (3b) is safer: the Docker daemon and every container run as the `ubuntu` user, so a
-container escape doesn't hand over root on the server. The **docker group** (3a) is quicker to set up, but
-anyone in that group is effectively root.
-
-### 3a. Docker with the docker group
+Ubuntu's own packages are enough:
 
 ```sh
 ssh -i <key.pem> ubuntu@<elastic-ip>
 sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2 git
 sudo usermod -aG docker ubuntu
+
+# Rotate container logs; by default they grow until the disk is full.
+echo '{ "log-driver": "local" }' | sudo tee /etc/docker/daemon.json
+sudo systemctl restart docker
+
 exit    # sign in again so the docker group applies
 ```
 
-### 3b. Rootless Docker
+The Docker daemon starts at boot, and `restart: unless-stopped` brings the app back up with it.
 
-Rootless mode comes from Docker's own packages (`docker-ce-rootless-extras`), not Ubuntu's `docker.io`.
-Sign in as `ubuntu` over SSH and stay that user throughout: rootless Docker needs a real login session, so
-don't switch to it with `sudo su`.
+**What this means for security.** The daemon runs as root, so keep these in mind:
 
-**Install the packages** (Docker's apt repository, then Docker plus what rootless mode needs):
+- **The docker group is as powerful as root.** On EC2 that adds nothing new for `ubuntu`, which already has
+  passwordless `sudo`. Don't add other users to the group, keep SSH limited to your own IP, and keep the key
+  safe.
+- **A container escape would give root on the server.** Little is exposed: only Caddy is reachable from
+  outside, and the API runs as the unprivileged `node` user inside its container. For stronger isolation,
+  use [rootless Docker](DEPLOY-EC2-ROOTLESS.md) instead of this step.
+- **Docker bypasses `ufw`.** It writes its own firewall rules for published ports, so a `ufw deny` won't
+  block them. The EC2 security group is the firewall that matters. Only Caddy publishes ports (80 and 443).
 
-```sh
-ssh -i <key.pem> ubuntu@<elastic-ip>
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
-https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
-  | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
-  docker-ce-rootless-extras uidmap dbus-user-session slirp4netns git
-```
+After the first sign-in (step 6), check that the server sees real visitor addresses (the per-IP sign-in
+limits depend on them): `docker compose -f deploy/compose.yaml logs server | grep remoteAddress | tail -n 3`
+should show your own public address, not one starting `172.`. An internal address usually means the request
+came in over IPv6, which Docker relays through a proxy that hides the real address. Give both names only
+`A` records, no `AAAA`.
 
-**Turn off the root daemon** the packages started; only the rootless one should run:
+### Switching a server from rootless Docker
 
-```sh
-sudo systemctl disable --now docker.service docker.socket
-sudo rm -f /var/run/docker.sock
-```
+If the server already runs the app under [rootless Docker](DEPLOY-EC2-ROOTLESS.md), move it over like this.
+Its images and volumes stay in the rootless daemon's storage, so the data comes across as a backup.
 
-**Prepare the system** (once, as root):
+1. **Back up**, with the rootless daemon still running: `cd ~/diary-app && sh deploy/backup.sh`. Copy the
+   new file in `deploy/backups/` and `deploy/.env` off the server (see [Backups](#backups)).
+2. **Remove the rootless daemon and its data** (as `ubuntu`):
 
-```sh
-# Ubuntu 24.04 blocks unprivileged user namespaces; allow them for rootlesskit only.
-sudo tee /etc/apparmor.d/usr.bin.rootlesskit >/dev/null <<'EOF'
-abi <abi/4.0>,
-include <tunables/global>
+   ```sh
+   docker compose -f deploy/compose.yaml down
+   dockerd-rootless-setuptool.sh uninstall
+   rootlesskit rm -rf ~/.local/share/docker          # its images, containers and volumes
+   rm -rf ~/.config/systemd/user/docker.service.d
+   sed -i '/DOCKER_HOST/d' ~/.bashrc && unset DOCKER_HOST
+   crontab -e                                        # delete the DOCKER_HOST= line
+   ```
 
-/usr/bin/rootlesskit flags=(unconfined) {
-  userns,
+3. **Undo the system changes and turn the root daemon back on.** Docker's packages (`docker-ce`) are
+   already installed and replace `docker.io`. Don't install `docker.io`: the two conflict.
 
-  include if exists <local/usr.bin.rootlesskit>
-}
-EOF
-sudo systemctl restart apparmor.service
+   ```sh
+   sudo rm -f /etc/sysctl.d/99-rootless-docker.conf /etc/apparmor.d/usr.bin.rootlesskit
+   sudo loginctl disable-linger ubuntu
+   sudo apt-get remove -y docker-ce-rootless-extras
+   sudo systemctl enable --now docker.service docker.socket
+   sudo usermod -aG docker ubuntu
+   echo '{ "log-driver": "local" }' | sudo tee /etc/docker/daemon.json
+   sudo reboot                                       # applies the group and the default port limit
+   ```
 
-# Caddy listens on 80 and 443, which normally only root may use.
-echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee /etc/sysctl.d/99-rootless-docker.conf
-sudo sysctl --system
-
-# Keep ubuntu's services (the Docker daemon) running after you sign out, and start them at boot.
-sudo loginctl enable-linger ubuntu
-```
-
-Lowering the port limit lets any user on the server listen on 80 and up. That's fine on a server that
-only runs this app; the alternative (`setcap` on `rootlesskit`) is undone by every package upgrade.
-
-**Set up the daemon** (as `ubuntu`, no `sudo`):
-
-```sh
-dockerd-rootless-setuptool.sh install
-
-# Pass each visitor's real address through to the containers. The default port forwarding replaces it
-# with an internal one, so every visitor would share one address and the per-IP sign-in limits would
-# lock everyone out together.
-mkdir -p ~/.config/systemd/user/docker.service.d
-cat > ~/.config/systemd/user/docker.service.d/override.conf <<'EOF'
-[Service]
-Environment="DOCKERD_ROOTLESS_ROOTLESSKIT_NET=slirp4netns"
-Environment="DOCKERD_ROOTLESS_ROOTLESSKIT_PORT_DRIVER=slirp4netns"
-EOF
-systemctl --user daemon-reload
-systemctl --user enable docker
-systemctl --user restart docker
-
-echo 'export DOCKER_HOST=unix:///run/user/$(id -u)/docker.sock' >> ~/.bashrc
-. ~/.bashrc
-docker info --format '{{.SecurityOptions}}'    # should include name=rootless
-```
-
-If `dockerd-rootless-setuptool.sh install` stops with a message about missing requirements, it prints
-the command that fixes them; run that and try again.
-
-Everything else in this guide is the same in rootless mode, with three differences:
-
-- Images, containers and volumes (the database included) live in `~/.local/share/docker`, not
-  `/var/lib/docker`.
-- Manage the daemon with `systemctl --user` (`status`, `restart`, `stop` docker), never `sudo systemctl`.
-- Cron doesn't read `~/.bashrc`, so the nightly backup line needs `DOCKER_HOST` (see [Backups](#backups)).
-
-After the first sign-in (step 6), check that the server sees real addresses:
-`docker compose -f deploy/compose.yaml logs server | grep remoteAddress | tail -n 3` should show your own
-public address, not one starting `10.0.2.` or `172.`. If it shows an internal one, the override above isn't
-in effect: check `systemctl --user cat docker`.
+4. **Start the app** (step 5), then **restore** the backup as in [Backups](#backups). Skip step 6: the
+   accounts come back with the data. Caddy asks for fresh certificates, because its old ones were in the
+   removed volumes.
 
 ## 4. Get the code and make the settings
 
@@ -236,13 +199,6 @@ To back up every night at 03:00 (server time), add this with `crontab -e`:
 
 ```
 0 3 * * * cd /home/ubuntu/diary-app && sh deploy/backup.sh >/dev/null 2>&1
-```
-
-With rootless Docker (3b), tell cron where the daemon is by adding this line above it (1000 is `ubuntu`'s
-user ID; check with `id -u`):
-
-```
-DOCKER_HOST=unix:///run/user/1000/docker.sock
 ```
 
 Backups on the server vanish with the server, so copy them off from your own computer:

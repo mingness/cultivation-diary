@@ -14,6 +14,16 @@ if [ -z "$domain" ] || [ -z "$mantra_domain" ]; then
   exit 1
 fi
 
+# Bare hostnames only: Caddy reads "name/" as "only the path /", so the page loads but its scripts don't.
+for name in "$domain" "$mantra_domain"; do
+  case "$name" in
+    */* | *:*)
+      echo "Give bare hostnames, without https:// or a trailing slash: got '$name'" >&2
+      exit 1
+      ;;
+  esac
+done
+
 target="$(dirname "$0")/.env"
 if [ -e "$target" ]; then
   echo "$target already exists; leaving it alone. New keys would make the existing data unreadable." >&2
