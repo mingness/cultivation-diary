@@ -1,8 +1,8 @@
 /**
- * Sign-in (FRONTEND.md §4.1, spec §4.1): username, password, CAPTCHA, where to land, and "remember this
- * device". A SYS_ADMIN then enters their authenticator code in a second step. The mantra site (D31) has no
- * choice of where to land and is the only one that offers registering; the diary points mantra-only visitors
- * there instead.
+ * Sign-in (FRONTEND.md §4.1, spec §4.1): username, password, CAPTCHA and "remember this device". A SYS_ADMIN
+ * then enters their authenticator code in a second step. Signing in lands on the site's home (`landingPath`).
+ * The mantra site (D31) is the only one that offers registering; the diary points mantra-only visitors there
+ * instead.
  */
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -14,10 +14,9 @@ import { ApiError, api, setCsrfToken } from '../../api/client.js';
 import { afterLogin, ANONYMOUS, SESSION_KEY, useSession } from '../../api/session.js';
 import { AuthLayout } from '../../components/AuthLayout.js';
 import { Button } from '../../components/Button.js';
-import { CheckboxRow, PasswordField, SegmentedControl, TextField } from '../../components/Field.js';
+import { CheckboxRow, PasswordField, TextField } from '../../components/Field.js';
 import { Notice } from '../../components/Notice.js';
 import { useI18n } from '../../i18n/index.js';
-import { rememberDestination, rememberedDestination, type Destination } from '../../lib/landing.js';
 import { SITE } from '../../site.js';
 import { CaptchaField, useCaptcha } from './Captcha.js';
 import styles from './auth.module.css';
@@ -42,7 +41,6 @@ function PasswordStep() {
   const [username, setUsername] = useState(registered ?? '');
   const [password, setPassword] = useState('');
   const [answer, setAnswer] = useState('');
-  const [destination, setDestination] = useState<Destination>(rememberedDestination);
   const [remember, setRemember] = useState(true);
   const [missing, setMissing] = useState<ReadonlySet<string>>(new Set());
   const { captcha, failed, refresh } = useCaptcha();
@@ -51,7 +49,6 @@ function PasswordStep() {
   const login = useMutation({
     mutationFn: (body: object) => api<LoginResponse>('POST', '/api/auth/login', body),
     onSuccess: async (response) => {
-      rememberDestination(destination);
       if (afterLogin(response) === 'totp') {
         queryClient.setQueryData(SESSION_KEY, { status: 'totp' });
       } else {
@@ -121,18 +118,6 @@ function PasswordStep() {
         error={required('captcha', t('auth.captchaAnswer'))}
         inputRef={answerRef}
       />
-      {SITE === 'diary' && (
-        <SegmentedControl<Destination>
-          legend={t('auth.destination')}
-          name="destination"
-          value={destination}
-          onChange={setDestination}
-          options={[
-            { value: 'diary', label: t('auth.destDiary') },
-            { value: 'count', label: t('auth.destCount') },
-          ]}
-        />
-      )}
       <CheckboxRow
         label={t('auth.remember')}
         hint={t('auth.rememberHint')}

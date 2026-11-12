@@ -34,9 +34,6 @@ export const en: Messages = {
   'auth.captchaAnswer': 'Answer to the sum',
   'auth.captchaLoading': 'Loading the verification image…',
   'auth.captchaFailed': 'Couldn’t load the verification image. Press “New one” to try again.',
-  'auth.destination': 'After signing in, go to',
-  'auth.destDiary': 'Diary',
-  'auth.destCount': 'Mantra',
   'auth.remember': 'Remember this device',
   'auth.rememberHint':
     'Stay signed in on this device for up to 90 days. Your password is not stored.',

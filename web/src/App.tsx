@@ -25,7 +25,7 @@ import { shortRef } from './components/Notice.js';
 import { EmptyState, ErrorState, LoadingState } from './components/States.js';
 import { useT } from './i18n/index.js';
 import { applyAppearance } from './lib/appearance.js';
-import { landingPath, rememberedDestination } from './lib/landing.js';
+import { landingPath } from './lib/landing.js';
 import { AccountScreen } from './screens/account/AccountScreen.js';
 import { EnrolScreen } from './screens/auth/EnrolScreen.js';
 import { ForgotPasswordScreen } from './screens/auth/ForgotPasswordScreen.js';
@@ -181,7 +181,7 @@ const adminRoutes: RouteObject[] = [
 function Home() {
   const { data } = useSession();
   if (data?.status !== 'ready') return null;
-  return <Navigate to={landingPath(data.me.role, rememberedDestination())} replace />;
+  return <Navigate to={landingPath(data.me.role)} replace />;
 }
 
 function NotFound() {

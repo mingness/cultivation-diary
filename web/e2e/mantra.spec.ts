@@ -15,17 +15,13 @@ import { stackAddresses } from './stack.js';
 
 test.use({ baseURL: stackAddresses().mantraURL });
 
-test('is its own installable app, with no choice of where to land and a way to register', async ({
-  page,
-  t,
-}) => {
+test('is its own installable app, with a way to register', async ({ page, t }) => {
   await page.goto('/login');
   await expect(page).toHaveTitle(t('app.titleMantra'));
   await expect(page.locator('html')).toHaveAttribute('data-site', 'mantra');
   await expect(page.getByText(t('app.titleMantra'), { exact: true })).toBeVisible();
   const manifest = await (await page.request.get('/manifest.webmanifest')).json();
   expect(manifest).toMatchObject({ name: '大悲咒共修報數', theme_color: '#29382F' });
-  await expect(page.getByRole('group', { name: t('auth.destination') })).toHaveCount(0);
   await expect(page.getByRole('link', { name: t('auth.toRegister') })).toBeVisible();
 });
 

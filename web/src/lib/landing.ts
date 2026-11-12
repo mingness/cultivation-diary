@@ -1,12 +1,9 @@
 /**
- * Where sign-in lands (spec §4.1): the 報數 page, or the role's diary home. The choice is remembered on the
- * device, and 報數 is the default. A COUNT_USER has no diary, so both choices land on 報數.
+ * Where sign-in lands (spec §4.1): on the diary site, the role's diary home; on the mantra site (D31), the
+ * 報數 page. A COUNT_USER has no diary, so they land on 報數 either way.
  */
 import type { Role } from '@diary/shared';
 import { SITE, type Site } from '../site.js';
-import { readPref, writePref } from './storage.js';
-
-export type Destination = 'diary' | 'count';
 
 const DIARY_HOME: Record<Role, string> = {
   COUNT_USER: '/count',
@@ -15,15 +12,7 @@ const DIARY_HOME: Record<Role, string> = {
   SYS_ADMIN: '/admin',
 };
 
-/** The mantra site (D31) has nothing but 報數 to land on. */
-export function landingPath(role: Role, destination: Destination, site: Site = SITE): string {
-  return destination === 'count' || site === 'mantra' ? '/count' : DIARY_HOME[role];
-}
-
-export function rememberedDestination(): Destination {
-  return readPref('destination') === 'diary' ? 'diary' : 'count';
-}
-
-export function rememberDestination(destination: Destination): void {
-  writePref('destination', destination);
+/** The home page for this role on this site. */
+export function landingPath(role: Role, site: Site = SITE): string {
+  return site === 'mantra' ? '/count' : DIARY_HOME[role];
 }

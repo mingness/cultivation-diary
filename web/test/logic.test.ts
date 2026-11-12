@@ -9,12 +9,12 @@ import { secretFromUri } from '../src/screens/auth/EnrolScreen.js';
 import { checkRegistration } from '../src/screens/auth/RegisterScreen.js';
 
 describe('landingPath (spec §4.1)', () => {
-  it('sends 報數 to the count page and 修行日記 to each role’s home', () => {
-    expect(landingPath('NORMAL_USER', 'count')).toBe('/count');
-    expect(landingPath('SYS_ADMIN', 'count')).toBe('/count');
+  it('sends each role to its diary home on the diary site, and everyone to 報數 on the mantra site', () => {
+    expect(landingPath('COUNT_USER', 'diary')).toBe('/count');
     expect(landingPath('NORMAL_USER', 'diary')).toBe('/diary');
     expect(landingPath('COURSE_LEADER', 'diary')).toBe('/review');
     expect(landingPath('SYS_ADMIN', 'diary')).toBe('/admin');
+    expect(landingPath('SYS_ADMIN', 'mantra')).toBe('/count');
   });
 });
 

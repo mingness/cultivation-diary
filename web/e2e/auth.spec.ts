@@ -20,11 +20,11 @@ test('signing in lands in the app, survives a reload, and signing out returns to
   await expect(page).toHaveURL(/\/login$/);
   await signIn(page, t, user);
 
-  // 報數 is the default destination (spec §4.1).
-  await expect(page.getByRole('heading', { name: t('count.title') })).toBeVisible();
+  // Signing in lands on the diary home (spec §4.1).
+  await expect(page.getByRole('heading', { name: t('diary.title') })).toBeVisible();
   await expect(page.getByRole('navigation', { name: t('nav.label') })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('heading', { name: t('count.title') })).toBeVisible();
+  await expect(page.getByRole('heading', { name: t('diary.title') })).toBeVisible();
 
   await page.getByRole('link', { name: t('nav.me'), exact: true }).click();
   await page.getByRole('button', { name: t('account.logout'), exact: true }).click();
@@ -71,8 +71,8 @@ test.describe('administrators', () => {
 
     await page.getByLabel(t('totp.code')).fill(codeFor(seedInfo().totpKeys.admin!));
     await page.getByRole('button', { name: t('totp.submit') }).click();
-    // In, on 報數: the default destination after signing in (spec §4.1).
-    await expect(page.getByRole('heading', { name: t('count.title') })).toBeVisible();
+    // In, on the management home (spec §4.1).
+    await expect(page.getByRole('heading', { name: t('attention.title') })).toBeVisible();
   });
 
   test('a new SYS_ADMIN must set up an authenticator before anything else', async ({

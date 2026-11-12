@@ -88,7 +88,7 @@ test('today’s entries show at once; a draft comment stays hidden until it is s
   t,
 }) => {
   const entry = await submittedEntry(userPage, 'Review');
-  // Leaders land on 報數 by default (spec §4.1); 批閱 opens on today's entries.
+  // 批閱 (a leader's home, spec §4.1) opens on today's entries.
   await page.goto('/review');
   const item = await inFeed(page, entry.title);
 
