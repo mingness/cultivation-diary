@@ -26,8 +26,6 @@ npm run e2e:down                  # remove the test stack and its data when you'
 ```
 
 Needs `.env` from `npm run dev:setup` (it reads `POSTGRES_PASSWORD` and relies on `CAPTCHA_FIXED=true`).
-From a sandboxed editor terminal without `docker` (AGENTS.md, known pitfalls), set the command:
-`DOCKER="flatpak-spawn --host docker" npm run test:e2e`.
 
 ## Limits
 

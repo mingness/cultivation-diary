@@ -116,8 +116,8 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
 
 ### 4.1 Login, register, forgot password (all)
 
-- **Login fields:** username, password (show/hide), CAPTCHA image + 更新 + answer, destination choice
-  (修行日記 / 報數, default 報數, remembered), "記住此裝置" (default on), 登入.
+- **Login fields:** username, password (show/hide), CAPTCHA image + 更新 + answer, "記住此裝置" (default
+  on), 登入. Signing in lands on the role's diary home (COUNT_USER: 報數).
 - **Errors** show inline above the button, and a failed CAPTCHA reloads the image.
 - **TOTP step:** if the account needs a second factor (SYS_ADMIN), a second step asks for the 6-digit code.
 - **Register (mantra site only, D30):** the same visual pattern, with username, display name (optional,
@@ -125,7 +125,7 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
   forget your password"), password twice and CAPTCHA.
 - **Diary site:** no register link; one line under the form points mantra-only visitors to the mantra site
   (`mantraUrl`).
-- **Mantra site:** no 修行日記 / 報數 choice; signing in lands on 報數.
+- **Mantra site:** signing in lands on 報數.
 - **Forgot password:** username, then the confirmation "已經提交給管理員".
 - **API:** `GET captcha → {id, svg}`; `POST login → {user, needsTotp?}`; `POST login/totp`; `POST register`;
   `POST forgot-password`.

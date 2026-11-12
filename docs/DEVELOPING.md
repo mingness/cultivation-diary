@@ -3,9 +3,6 @@
 Everyday tasks for running, resetting and trying out the app on your own machine. Setup and the full command
 list are in [README.md](../README.md) and [AGENTS.md](../AGENTS.md); this page covers the workflows.
 
-> **VS Code as a Flatpak:** its terminal can't see `docker`. Put `flatpak-spawn --host` in front of every
-> `docker …` command below, or use a normal terminal.
-
 ## Two ways to run it
 
 | | Dev servers (reload on save) | Whole stack in Docker |
@@ -136,8 +133,7 @@ npx playwright test -c web/playwright.config.ts pwa count   # only some e2e file
 
 **End-to-end tests** start their own stack (`cultivation-diary-e2e`, app on http://localhost:8081), reseed it on
 every run, and never touch your development data. It stays running between runs for speed; remove it with
-`npm run e2e:down`. From the Flatpak terminal:
-`DOCKER="flatpak-spawn --host docker" npm run test:e2e`. Details:
+`npm run e2e:down`. Details:
 [web/e2e/README.md](../web/e2e/README.md).
 
 **Functional tests** use up your machine's sign-in limit for a minute, so restart the server afterwards if

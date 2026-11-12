@@ -18,6 +18,7 @@ Keep this file up to date when commands, conventions or pitfalls change.
 | Run the mantra site with reload                        | `npm run dev:mantra` (http://localhost:5174; same API)                                                                 |
 | API explorer (try every endpoint in the browser)       | http://localhost:3000/docs (OpenAPI JSON at `/docs/json`)                                                              |
 | Run the whole stack in Docker                          | `docker compose up -d --wait --build` (diary on http://localhost:8080, mantra site on :8082, API on :3000)             |
+| Same, in one step (creates `.env` if missing)          | `./run.sh` (`--seed` adds sample data, wiping; `./run.sh down` stops it)                                               |
 | Everything CI checks                                   | `npm run check`                                                                                                        |
 | Format / lint / types                                  | `npm run format`, `npm run lint`, `npm run typecheck`                                                                  |
 | Unit tests (no database)                               | `npm run test:unit`                                                                                                    |
@@ -136,12 +137,8 @@ Keep this file up to date when commands, conventions or pitfalls change.
 
 ## Known pitfalls
 
-- **VS Code as a Flatpak** (this machine): the editor's terminal is sandboxed and can't see the `docker`
-  command. Use `flatpak-spawn --host docker compose …` from that terminal, or a normal system terminal. The
-  e2e tests start their stack themselves: run them with `DOCKER="flatpak-spawn --host docker"`. Ports
-  published by containers (5432 → 55432, 3000) are reachable from inside the sandbox.
 - **Git hooks can't find Node** (`npx`/`node: command not found` on commit): your git client's PATH lacks
-  Node (common with VS Code as a Flatpak, or nvm/fnm set up only in interactive shells). Create a git-ignored
+  Node (common when nvm/fnm is set up only in interactive shells). Create a git-ignored
   `lefthook-local.yml` containing `rc: ./.lefthook-node.sh`, and in that script put Node on PATH (for fnm:
   `eval "$(fnm env --shell bash)"`). Then run `npx lefthook install`, which bakes the rc line into the hook.
 - **Node version:** the system Node may be newer than `.nvmrc`. Use `fnm use` (or `fnm exec --using=26 …`).
@@ -151,7 +148,7 @@ Keep this file up to date when commands, conventions or pitfalls change.
 - **Dev-only audit warnings:** `npm audit` reports moderate issues in an old esbuild inside `drizzle-kit`
   (dev tool only, never shipped or served). CI fails only on production-dependency findings.
 - **Stale web image:** if the app at :8080 doesn't show a change, `docker compose up --build` may have kept
-  the old image (seen through `flatpak-spawn`). Run `docker compose build web && docker compose up -d web`
+  the old image. Run `docker compose build web && docker compose up -d web`
   and compare the `/assets/index-*.js` name in the page source.
 - **`.env` and gitleaks:** a local secret scan of the working tree flags `.env`. That's expected (it's
   git-ignored and holds throwaway keys); CI scans git history, which must stay clean.

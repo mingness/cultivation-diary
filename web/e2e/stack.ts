@@ -29,8 +29,7 @@ export function stackAddresses() {
 }
 
 /**
- * Runs `docker compose` on the test project. `DOCKER` overrides the command, e.g.
- * `DOCKER="flatpak-spawn --host docker"` from a sandboxed editor terminal (AGENTS.md, known pitfalls).
+ * Runs `docker compose` on the test project. `DOCKER` overrides the command (e.g. `DOCKER=podman`).
  */
 export function compose(...args: string[]): void {
   const [command = 'docker', ...prefix] = (process.env.DOCKER ?? 'docker').split(' ');

@@ -70,8 +70,8 @@ This is a private diary platform with a supervision workflow:
 ### 4.1 Login
 - Username + password + **human verification** (CAPTCHA). CAPTCHA failure refreshes the question automatically. SYS_ADMIN additionally enters a 6-digit authenticator code.
 - CAPTCHA = a distorted image of a simple **addition or subtraction** question (never ×/÷). Image styling: gradient background, ~200 random colored noise dots, per-character random rotation/skew/color, 5 Bézier interference curves, 15 faint decoy characters. A "更新" refresh button sits beside it. The answer must never be sent to the client in readable form.
-- On the diary site, a **radio choice 修行日記 / 报数 (default 报数)** decides where login lands: 报数 → counting page; 修行日記 → role home (COURSE_LEADER → leader home, SYS_ADMIN → management home, else user home). The last choice is remembered on the device. A COUNT_USER always lands on the counting page.
-- On the mantra site there is no choice: every login lands on the counting page. The two sites keep separate sessions; signing in to one does not sign in to the other.
+- On the diary site, login lands on the role home (COURSE_LEADER → leader home, SYS_ADMIN → management home, else user home); 报数 is one tab away. A COUNT_USER always lands on the counting page.
+- On the mantra site every login lands on the counting page. The two sites keep separate sessions; signing in to one does not sign in to the other.
 - A **"remember this device"** option keeps the user logged in on that device (browser or installed app) for up to 90 days of inactivity, without storing the password. Devices are listed on the account page and can be signed out individually.
 - Rate-limit login attempts per IP and per username.
 
