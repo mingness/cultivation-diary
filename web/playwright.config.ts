@@ -1,6 +1,6 @@
 /**
  * End-to-end tests (engineering standards §12.5): the built app against its own Docker stack, at a phone and
- * a desktop width, in each language. Local only. See e2e/README.md.
+ * a desktop width, in each language. Runs in CI and locally. See e2e/README.md.
  */
 import { defineConfig, devices } from '@playwright/test';
 import type { E2eOptions } from './e2e/fixtures.js';

@@ -34,13 +34,12 @@ rebuild. The end-to-end and functional tests rely on `CAPTCHA_FIXED=true`. The e
 
 Also, if the translation url, api-key, and models are not set in `.env` no problem, the translate button will simply not be live.
 
-## Previewing Vietnamese
+## Vietnamese
 
-Vietnamese has a full string table (`web/src/i18n/vi.ts`) but isn't in the language switch until a Vietnamese
-practitioner has reviewed it (ARCHITECTURE.md §8.10). To see it, open any page with `?lang=vi`, for example
-http://localhost:8080/login?lang=vi. That device then keeps VI in the switch, so you can compare with 中文 and
-switch back; other devices don't see it. To offer it to everyone after the review, add `'vi'` to
-`OFFERED_LANGS` in `web/src/i18n/messages.ts`.
+Vietnamese (`web/src/i18n/vi.ts`) is in the language switch, but its wording is a draft still waiting for a
+Vietnamese practitioner's review (ARCHITECTURE.md §8.10). A future language can ship hidden the same way
+Vietnamese first did: leave it out of `OFFERED_LANGS` in `web/src/i18n/messages.ts`, and open any page with
+`?lang=<code>` to preview it on that device (the switch then keeps it there).
 
 ## Sample data
 
@@ -116,8 +115,9 @@ account page (加到主畫面) shows these steps for the phone it's on.
 
 ## Tests
 
-There are four kinds. CI runs only the first two (plus format, lint, typecheck, the image build, the secret
-scan and the dependency audit); the other two are for you to run before merging a change they cover.
+There are four kinds. CI runs unit, integration and end-to-end tests (plus format, lint, typecheck, the image
+build, the secret scan and the dependency audit). Functional tests are for you to run before merging a change
+they cover; run end-to-end tests locally too before pushing a UI change.
 
 | Kind | What it checks | Needs | Command |
 | --- | --- | --- | --- |
@@ -129,7 +129,7 @@ scan and the dependency audit); the other two are for you to run before merging 
 Other useful commands:
 
 ```sh
-npm run check            # everything CI checks, in one go: run it before pushing
+npm run check            # CI's fast checks (format, lint, types, unit, integration): run before pushing
 npm test                 # unit and integration together
 npm run test:watch       # unit tests, re-run on save
 npm run test:coverage    # all tests, with an HTML report in coverage/

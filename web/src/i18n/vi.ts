@@ -1,8 +1,8 @@
 /**
  * Tiếng Việt strings. Must have exactly the keys of `zh-Hant.ts` (FRONTEND.md §7).
  *
- * DRAFT, waiting for review by a Vietnamese practitioner (ARCHITECTURE.md §8.10, D34): until then Vietnamese
- * isn't in `OFFERED_LANGS`, and is reachable only with `?lang=vi`. Terms chosen for the reviewer to confirm:
+ * DRAFT, waiting for review by a Vietnamese practitioner (ARCHITECTURE.md §8.10, D34). Offered in the switch
+ * ahead of that review (2026-11-14). Terms chosen for the reviewer to confirm:
  * 修行日記 Nhật ký tu tập · 大悲咒 Chú Đại Bi · a recitation biến · 報數 báo số · 批注 lời phê ·
  * course leader người hướng dẫn · student học viên · open diaries nhật ký chia sẻ · 批閱 duyệt bài.
  */

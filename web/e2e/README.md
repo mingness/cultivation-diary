@@ -1,6 +1,8 @@
 # End-to-end tests
 
-**Local only, not part of CI** (ARCHITECTURE §10): run them before merging a change with UI.
+**Part of CI** (the `e2e` job in `.github/workflows/ci.yml`, since 2026-11-14). Run them locally too before
+pushing a change with UI, since CI takes longer to tell you. On failure, CI keeps the Playwright report and
+traces as the `playwright-report` artifact.
 
 Playwright drives the built web app in a browser at 360 px and 1280 px, in each language (five projects; Vietnamese at 360 px only; see
 `../playwright.config.ts`). Each project signs in as its own seeded user.

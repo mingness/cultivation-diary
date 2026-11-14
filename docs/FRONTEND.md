@@ -107,8 +107,7 @@ phones (§2.2). The icon is 大悲 in off-white on the green.
 - The language switch (spec §10.1) sits top right on every screen and shows every offered language, the one in
   use highlighted (changed 2026-10-15: the content is mostly Chinese either way, so users need to see which is
   on). With three languages it reads 中文 · EN · VI, the full name as each button's tooltip, so it still fits at
-  360 px and 22 px text. Vietnamese (D34) waits for its review: until then `?lang=vi` opens it on that device
-  only, and the switch keeps VI there so a reviewer can compare and come back.
+  360 px and 22 px text. Vietnamese (D34) is offered ahead of its wording review (changed 2026-11-14).
 - Between 768 and 1024 px, the tab bar stays and the leader and admin screens use two panes instead of three.
 - Detail screens (editor, entry, comment) replace the tab bar with a back button. The back button and the
   browser/phone back always return to the list you came from, at the same month and scroll position.

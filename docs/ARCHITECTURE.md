@@ -680,9 +680,10 @@ follows §9, with a SHA-256 check and signer-match check before installing (§12
 returns error codes, not display strings. Both sites offer all three languages (D34); the default stays
 繁體中文 and the choice is remembered on the device.
 
-- **Vietnamese wording** is drafted with the code and reviewed by a Vietnamese practitioner before the
-  language appears in the switch (`OFFERED_LANGS` in `web/src/i18n/messages.ts`, so the table can ship
-  unoffered). Until then `?lang=vi` opens it on that device, and the switch keeps VI there (`langPreview`).
+- **Vietnamese wording** is drafted with the code and reviewed by a Vietnamese practitioner. It is offered in
+  the switch ahead of that review (changed 2026-11-14). A language can still ship unoffered (`OFFERED_LANGS`
+  in `web/src/i18n/messages.ts`); `?lang=` then opens it on that device, and the switch keeps it there
+  (`langPreview`).
   Buddhist terms follow Vietnamese Buddhist usage, not a literal rendering of the Chinese.
 - **The switch** shows three short labels (中文 · EN · VI, full names as tooltips) instead of two full names,
   so it still fits at 360 px and 22 px text.
@@ -718,10 +719,10 @@ cover just those files.
 ## 10. CI/CD and deploy (§12.8)
 
 - **`ci.yml`** runs on every push and PR: format → lint → typecheck → unit → integration (Postgres service) →
-  build the server and web images and smoke-test the stack → gitleaks → `npm audit`.
-- **Playwright e2e** runs locally, not in CI (decided 2026-10-15): against `docker compose`, in both
-  languages, at 360 px and 1280 px, including (from slice 17) PWA install and an offline shell check. Run it
-  before merging a change with UI. This departs from engineering standards §12.5/§12.8, which put it in CI.
+  build the server and web images and smoke-test the stack → Playwright e2e → gitleaks → `npm audit`.
+- **Playwright e2e** runs in CI (changed 2026-11-14; it was local only from 2026-10-15) and locally: against
+  its own `docker compose` stack, in every language, at 360 px and 1280 px, including PWA install and an
+  offline shell check. Real user flows in a browser are worth the CI time.
 - **`release.yml`** runs on `v*` tags. It pushes an immutably tagged server image (with the web build inside or
   alongside) to a registry.
 - **Deploy is written fresh.** It runs compose on the server with a TLS-terminating reverse proxy, and the
@@ -854,7 +855,7 @@ Vietnamese comes first: it is independent, and announcements are where translati
 most.
 
 24. **Vietnamese UI:** `vi.ts` (drafted), `Lang` and the three-way switch, `:lang(vi)` fonts, `OFFERED_LANGS`
-    keeping Vietnamese hidden until the review; the e2e `t` fixture and the 360 px / 22 px checks in
+    (Vietnamese hidden until the review at first, offered from 2026-11-14); the e2e `t` fixture and the 360 px / 22 px checks in
     Vietnamese. Both sites. *(Done 2026-11-13, waiting for the review. A fifth e2e project, `phone-vi`
     (student `linjy`, sharing `leader.lin`), runs every test in Vietnamese at 360 px; it found the admin
     filters overflowing, since a select is as wide as its longest option. The seed now opens a few 注意 flags,

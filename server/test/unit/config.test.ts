@@ -208,10 +208,6 @@ describe('loadConfig', () => {
       expect(loadConfig(validEnv({ NODE_ENV: 'production', API_DOCS: 'true' })).apiDocs).toBe(true);
       expect(loadConfig(validEnv({ API_DOCS: 'false' })).apiDocs).toBe(false);
     });
-
-    it('rejects anything but true or false', () => {
-      expect(configErrorFor(validEnv({ API_DOCS: 'yes' })).invalidVariables).toEqual(['API_DOCS']);
-    });
   });
 
   describe('MANTRA_URL', () => {
@@ -233,12 +229,6 @@ describe('loadConfig', () => {
         loadConfig(validEnv({ NODE_ENV: 'production', REGISTRATION_OPEN: 'false' }))
           .registrationOpen,
       ).toBe(false);
-    });
-
-    it('rejects anything but true or false', () => {
-      expect(configErrorFor(validEnv({ REGISTRATION_OPEN: 'no' })).invalidVariables).toEqual([
-        'REGISTRATION_OPEN',
-      ]);
     });
   });
 

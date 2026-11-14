@@ -12,10 +12,11 @@ export const LANGS = ['zh-Hant', 'en', 'vi'] as const;
 export type Lang = (typeof LANGS)[number];
 
 /**
- * The languages the switch offers. Vietnamese has a table but waits for its review (ARCHITECTURE.md §8.10,
- * D34); until then `?lang=vi` opens it for the reviewer, and the switch shows it only while it is in use.
+ * The languages the switch offers. A language with a table can be left out of this list while its wording
+ * waits for review; `?lang=` still opens it on that device (ARCHITECTURE.md §8.10). Vietnamese is offered
+ * ahead of its review (D34, changed 2026-11-14).
  */
-export const OFFERED_LANGS: readonly Lang[] = ['zh-Hant', 'en'];
+export const OFFERED_LANGS: readonly Lang[] = ['zh-Hant', 'en', 'vi'];
 
 /** The locale for dates and numbers in each language. */
 export const LOCALES: Record<Lang, string> = { 'zh-Hant': 'zh-Hant-TW', en: 'en-GB', vi: 'vi-VN' };

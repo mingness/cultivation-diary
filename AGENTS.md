@@ -19,14 +19,14 @@ Keep this file up to date when commands, conventions or pitfalls change.
 | API explorer (try every endpoint in the browser)       | http://localhost:3000/docs (OpenAPI JSON at `/docs/json`)                                                              |
 | Run the whole stack in Docker                          | `docker compose up -d --wait --build` (diary on http://localhost:8080, mantra site on :8082, API on :3000)             |
 | Same, in one step (creates `.env` if missing)          | `./run.sh` (`--seed` adds sample data, wiping; `./run.sh down` stops it)                                               |
-| Everything CI checks                                   | `npm run check`                                                                                                        |
+| CI's fast checks (no image build, e2e or scans)        | `npm run check`                                                                                                        |
 | Format / lint / types                                  | `npm run format`, `npm run lint`, `npm run typecheck`                                                                  |
 | Unit tests (no database)                               | `npm run test:unit`                                                                                                    |
 | Integration tests                                      | `npm run test:integration` (needs `npm run db:up`; each file gets a fresh database)                                    |
 | All tests / unit tests on save                         | `npm test`, `npm run test:watch`                                                                                       |
 | Coverage report (all tests; HTML in `coverage/`)       | `npm run test:coverage`                                                                                                |
 | Functional tests (live stack, real config; local only) | `npm run test:functional` after `docker compose restart server`; see `server/test/functional/README.md`                |
-| End-to-end tests (browser; local only)                 | `npm run test:e2e` (starts and reseeds its own stack on :8081; `npm run e2e:down` removes it); see `web/e2e/README.md` |
+| End-to-end tests (browser; also in CI)                 | `npm run test:e2e` (starts and reseeds its own stack on :8081; `npm run e2e:down` removes it); see `web/e2e/README.md` |
 | Sample users and entries (dev; wipes)                  | `npm run seed -- --reset` (every password is `password123`; admins' authenticator keys are printed)                    |
 | Current code for a seeded admin's authenticator key    | `npm run cli -w server -- totp-code <key>` (only needed with `SKIP_TOTP=false`; dev skips the code)                    |
 | First admin / recovery (production, in the container)  | `node server/dist/cli.js create-sysadmin <name>` · `set-password <name>` · `reset-totp <name>`                         |
@@ -59,15 +59,18 @@ Keep this file up to date when commands, conventions or pitfalls change.
   rate limits that only means something end to end), and e2e (the web app in a browser against the running
   stack).
 - **What CI runs:** format, lint, typecheck, unit and integration tests, an image build with a start-up check,
-  the secret scan and the dependency audit. Unit and integration tests are what keep `main` safe, so a
-  behaviour worth protecting gets one of those. Functional and e2e tests are for the developer: run them
-  locally before merging a change they cover (e2e for any UI change); they are never in CI.
+  e2e tests, the secret scan and the dependency audit. A behaviour worth protecting gets a unit, integration or
+  e2e test; run e2e locally before pushing any UI change too. Functional tests are for the developer: run
+  them locally before merging a change they cover; they are never in CI.
 - **Tests ship with the code.** A bug fix starts with a failing test. Integration tests cover every role,
   allowed and denied.
 - **What to test.** Unit tests pin exact input → output where the spec defines it (permission tables, 報數
   input, Beijing dates) and exercise the error paths that are hard to hit for real (tampered data, missing
   keys, bad config). Integration tests check that the pieces work together, not logic the unit tests already
-  prove. Before adding a test, name the bug only it would catch. Skip tests of Node or library behaviour,
+  prove. Tests drive real user actions and real data flows (the app on a real database, the browser against the
+  stack); a fake stands in only for an outside service (SMTP, translation) and is never what the test checks.
+  Real-impact tests beat coverage numbers. After updating tests, check that each one is still needed.
+  Before adding a test, name the bug only it would catch. Skip tests of Node or library behaviour,
   copies of the code's own tables, repeats of an exhaustive table's rows, and names that promise more than
   the test checks.
 - **Ask before:** adding a runtime dependency, changing encryption or key handling, changing the auth flow, or
@@ -114,8 +117,7 @@ Keep this file up to date when commands, conventions or pitfalls change.
   with a comment, and to `scripts/dev-setup.mjs` if it is a secret.
 - **Web app:** no UI text outside `web/src/i18n/` (the zh-Hant table defines the keys; a missing English or
   Vietnamese string or untranslated `ErrorCode` fails the type check). Vietnamese is drafted, not yet
-  reviewed: add new strings to `vi.ts` too, mark them for the reviewer, and leave `OFFERED_LANGS` alone until
-  the review is done (`?lang=vi` previews it). Every API call goes through `api()` in
+  reviewed, but offered in the switch: add new strings to `vi.ts` too and mark them for the reviewer. Every API call goes through `api()` in
   `web/src/api/client.ts` inside TanStack Query; screens show `ApiError` codes with `tError` and the request
   ID. Styles are CSS modules using the tokens in `web/src/styles/tokens.css`, sized in rem. A new screen gets
   an axe check in both themes in `web/e2e/` and works at 360 px and 22 px text.
