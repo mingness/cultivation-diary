@@ -9,9 +9,11 @@
 ## 1. Goals and non-goals
 
 **Goals**
-- A private, bilingual (繁體中文 default / English) diary platform, 修行日記, with supervision: users write
-  encrypted diaries; course leaders read *submitted* entries and comment; authors choose to share an entry
-  with their class, and any leader can stop sharing it (D29).
+- A private diary platform, 修行日記, in 繁體中文 (default), English and Tiếng Việt (D34), with supervision:
+  users write encrypted diaries; course leaders read *submitted* entries and comment; authors choose to share
+  an entry with their class, and any leader can stop sharing it (D29).
+- Course announcements (公告) from leaders, written or recorded and transcribed, that the class reads, hears
+  and replies to in one visible thread (D32, D33, §8.12–§8.13).
 - A collective daily-count activity (报数) with a 10,000,000 goal and a nightly auto-submit (§7), also open to
   the wider community on its own site with self-registered, mantra-only accounts (D30, D31, §8.11).
 - Installable on phones as a web app (manifest + service worker), with an Android wrapper only as a fallback.
@@ -151,6 +153,31 @@ comments                                  -- at most one per (document, leader)
   seen_by_owner_at NULL                   -- set when the owner opens the entry; drives the "new comment" marker
   UNIQUE (document_id, author_id)
 
+announcements                             -- D32; the whole class (one class for now), never the mantra site
+  id, author_id FK users SET NULL         -- a deleted leader's announcements stay, as "former leader" (like D18)
+  title (plaintext, like documents.title)
+  body_ct, body_nonce                     -- sanitised like an entry; sealed with the announcement's DEK
+  state ENUM(draft, published), published_at NULL, edited_at NULL, pinned BOOL DEFAULT false
+  dek_wrapped, key_version                -- wrapped by DIARY_KEYRING (D32)
+  created_at, updated_at
+  INDEX (state, pinned, published_at)
+
+announcement_audio                        -- D33; at most one recording per announcement, replaced by re-recording
+  announcement_id PK FK CASCADE
+  audio_ct, audio_nonce                   -- bytea, sealed with the announcement's DEK, AAD announcement:{id}:audio
+  mime ENUM(audio/webm, audio/mp4)        -- from the file's magic bytes, never the request header
+  duration_ms, bytes, created_at
+
+announcement_replies                      -- one visible thread per announcement (D32)
+  id, announcement_id FK CASCADE, author_id FK users CASCADE   -- deleting a user deletes their replies, like their entries
+  body_ct, body_nonce                     -- plain text, sealed with the announcement's DEK, AAD reply:{id}
+  created_at, edited_at NULL
+  INDEX (announcement_id, created_at)
+
+announcement_reads                        -- the unread badge, "new replies" and the leaders' "seen by N" count
+  announcement_id FK CASCADE, user_id FK CASCADE, last_read_at
+  PRIMARY KEY (announcement_id, user_id)
+
 count_entries
   id, user_id FK CASCADE, daily_count INT CHECK (1..1080), count_date DATE, submitted_at, auto BOOL
   INDEX (user_id, count_date)             -- count_date is today or up to 5 days earlier, checked by the server
@@ -159,12 +186,12 @@ count_settings
   user_id PK, auto_submit BOOL, saved_count INT CHECK (0..1080), updated_at
 
 daily_usage                               -- counters for the daily caps and warning levels (D21, D28); survive deletes, so an admin delete refunds nothing
-  user_id FK CASCADE, day DATE, kind ENUM(create, submit, update, comment), n INT   -- comment: warn only, no cap
+  user_id FK CASCADE, day DATE, kind ENUM(create, submit, update, comment, announce, reply), n INT   -- comment: warn only, no cap
   PRIMARY KEY (user_id, day, kind)        -- checked and incremented in the same transaction as the write
 
 activity_events                           -- metadata only, never content; kept 90 days; never shown to the user it describes
   id, user_id FK SET NULL, username       -- username kept so events survive the user's deletion
-  kind                                    -- entry_created/submitted/updated, count_entry, limit_reached, elevated_activity,
+  kind                                    -- entry_created/submitted/updated, count_entry, announcement_published, announcement_reply, limit_reached, elevated_activity,
                                           -- login, login_failed, new_device, password_changed
   detail JSONB NULL                       -- e.g. {limit: "submit"}; no content, titles or profile fields
   created_at
@@ -299,7 +326,14 @@ bodies are ignored.
 | `GET /api/admin/count/users`, `PUT /:u/auto`, `DELETE /:u/entries?from=&to=`, `GET /job-runs`, `POST /run-now` | – | ❌ | ❌ | ❌ | ✅ |
 | `GET /api/admin/attention?status=`, `/attention/status`, `POST /api/admin/attention/:id/handled`; `GET /api/admin/activity?userId=&kind=&from=&to=`, `/activity/summary?sort=` | – | ❌ | ❌ | ❌ | ✅ metadata only |
 | `POST /api/admin/users/:id/sign-out-all`, `/lock` | – | ❌ | ❌ | ❌ | ✅ (lock: not yourself, never the last usable SYS_ADMIN) |
-| `POST /api/translate` (`{documentId}` or `{commentId}`, direction) | – | ❌ | readable only, rate-limited | same | ❌ |
+| `POST /api/translate` (`{documentId}`, `{commentId}`, `{announcementId}` or `{replyId}`, `target`) | – | ❌ | readable only, rate-limited | same | ❌ |
+| `GET /api/announcements?page=` (pinned first, then newest; unread and new-reply flags), `GET /:id` (marks read) | – | ❌ | published | published + own drafts; `seenBy` count | metadata only (admin list) |
+| `POST /api/announcements`, `PUT /:id` (`{title, body, state, pinned}`) | – | ❌ | ❌ | ✅ own; daily limit | ❌ |
+| `DELETE /api/announcements/:id` | – | ❌ | ❌ | ✅ any (moderation) | ✅ metadata only |
+| `PUT /api/announcements/:id/audio` (raw `audio/webm` or `audio/mp4` body), `DELETE /:id/audio` | – | ❌ | ❌ | ✅ own | ❌ |
+| `GET /api/announcements/:id/audio` | – | ❌ | published | published + own drafts | ❌ |
+| `POST /api/announcements/:id/transcribe` (`{language: en \| zh}`) | – | ❌ | ❌ | ✅ own, rate-limited | ❌ |
+| `POST /api/announcements/:id/replies`; `PUT`/`DELETE /api/announcement-replies/:id` | – | ❌ | published; edit/delete own | same; delete any | ❌ |
 | `POST /internal/count/auto-run` | Bearer `CRON_SECRET`, internal network only | | | | |
 | `GET /healthz`, `/readyz` | ✅ | | | | |
 
@@ -470,6 +504,13 @@ sends that text to a third-party provider.
   `TRANSLATE_LIMITS`; reaching the cap doesn't flag the account (it's cost control, not a misuse signal).
 - The prompt asks for Traditional Chinese, keeps Buddhist terms and paragraph breaks, and treats the text as
   text, never as instructions.
+- **Targets (D34, replaces `direction`):** the request names a `target` of `zh-Hant`, `en` or `vi`, and the
+  model works out the source language itself. The app offers one button, "translate into the language I'm
+  using". The prompt per target keeps Buddhist terms in that language's usual form (for Vietnamese, the
+  Hán-Việt terms Vietnamese Buddhists use). The server accepts the old `direction` field for one release, so
+  an installed app that hasn't reloaded yet keeps working.
+- Announcements and replies (§8.12) are translatable like entries and comments: any reader of the announcement
+  may translate it.
 
 ### 8.7 Installable web app (primary mobile path)
 
@@ -510,6 +551,85 @@ diary.
   COUNT_USERs, for cleaning up after spam signups.
 - **Development:** `npm run dev:mantra` serves the mantra build on :5174; compose publishes the mantra site on
   :8082.
+
+### 8.12 Course announcements (D32)
+
+A leader posts to the whole class; diary members read, listen and reply in one thread everyone in the class
+can see. Mantra-only accounts and the mantra site have no announcements.
+
+- **Writing:** the announcement editor is the diary editor (same Tiptap schema and sanitiser, so the
+  allowlist stays one list) with the entry's per-entry limits: 2 photos and 5,000 visible characters. A draft
+  is visible only to its author; 發布 publishes it to the class. The author may edit a published announcement
+  (it shows 已編輯 with the time); any leader may delete one, and a SYS_ADMIN may delete one from the metadata
+  list (for a departed leader's or a mistaken post). A leader may pin announcements; pinned ones come first.
+- **Replies:** plain text (no formatting, no photos), up to 1,000 visible characters, in time order under the
+  announcement, each labelled with its author's name. Everyone who can read the announcement sees every reply
+  (D32). Authors edit or delete their own replies; any leader may delete a reply.
+- **Limits (D21, D28):** per day, 10 announcements published per leader and 30 replies per user, counted in
+  `daily_usage` (`announce`, `reply`); warning levels at about half. The reply length cap is what keeps
+  leaders' reading load bounded, since leaders read every reply. Values in `shared/src/limits.ts` and
+  `shared/src/warning-levels.ts`.
+- **Unread:** `announcement_reads.last_read_at` drives an unread badge (published announcements never opened,
+  or with replies newer than the reader's last visit) and a "new" mark on those replies. Leaders see how many
+  of the class have opened an announcement ("已讀 14/20"), not who: reading an announcement isn't something to
+  be checked up on (in the spirit of D14).
+- **Encryption:** bodies, replies and recordings are sealed with a per-announcement DEK wrapped by
+  `DIARY_KEYRING`, so the service lives in `server/src/services/diary/announcements/` and the keyring lint rule
+  stays as it is. The "no plaintext for SYS_ADMIN" test covers the new GET endpoints automatically. Titles are
+  plaintext, like entry titles.
+- **Activity:** `announcement_published` and `announcement_reply` events (metadata only), for the activity
+  summary and the warning levels. Reading isn't recorded in the read audit; that log is for leaders reading
+  diaries.
+- **One screen with 開放日記:** announcements and shared entries live in one tab, 課堂 / "Class" / "Lớp học",
+  which replaces the 開放日記 tab. It is the existing month feed with a type filter (全部 · 公告 · 開放日記) beside
+  the day and author filters; pinned announcements sit above the feed. Cards show their type, so an
+  announcement (leader's name, 🔊 if recorded, reply count) doesn't read as an entry. Tabs stay within five:
+  NORMAL_USER 日記 · 課堂 · 報數 · 我的; COURSE_LEADER 批閱 · 課堂 · 日記 · 報數 · 我的. The tab's badge counts
+  unread announcements only (shared entries have no unread state for readers).
+  - The API stays two lists: `GET /api/announcements?month=` matches `GET /api/documents/open?month=`, and the
+    screen merges the two by date (announcement `published_at`, entry `diary_date`). A combined endpoint would
+    mix two read rules in one query for no gain.
+- **Polling:** the badge refetches every minute while the app is visible, like the old requests badge. No
+  push notifications (D27: web push is blocked on Android in mainland China).
+
+### 8.13 Voice recordings and transcription (D33)
+
+A leader can record the announcement instead of typing it. The recording is kept and the class can play it;
+the transcript becomes the announcement's text, which the leader corrects before publishing.
+
+- **Recording:** in the browser with `MediaRecorder`, at a modest bitrate (`audioBitsPerSecond: 32000`, which
+  browsers treat as a hint). Chrome and Android produce WebM/Opus; iOS Safari produces MP4/AAC. Both are kept
+  as recorded: transcoding would need ffmpeg on the server (a new dependency), so we first check on real
+  phones (with D10) that each plays the other's format, and decide on transcoding only if one doesn't.
+- **Caps:** 10 minutes and 8 MB per recording (`shared/src/limits.ts`), shown as a countdown while
+  recording; the server refuses larger bodies (413) and checks the magic bytes (WebM `1A45DFA3`, MP4 `ftyp`).
+  One recording per announcement; recording again replaces it after a confirm.
+- **Upload:** `PUT /api/announcements/:id/audio` takes the raw `audio/*` body (a Fastify content-type parser
+  with a per-route body limit; no multipart dependency). Uploading and transcribing are separate calls, so a
+  failed or slow transcription never loses the recording, and the leader can retry or type instead.
+- **Playback:** the app fetches the audio through `api()` as a blob and plays it from an object URL. That
+  keeps the session cookie and error handling in one place and avoids Safari's need for byte-range responses
+  on a direct `<audio src>`. Responses are `Cache-Control: no-store`, and the service worker never caches
+  `/api/` (§8.7), so recordings don't stay on devices. Recordings also count towards the author's storage.
+- **Transcription:** `POST /api/announcements/:id/transcribe` with `{language: en | zh}`. The leader picks
+  the language before recording (English or 中文; the default follows the interface language). The server
+  decrypts the stored recording and sends it to `ctx.transcriber`, set up like the translator:
+  `TRANSCRIBE_API_URL`, `TRANSCRIBE_API_KEY`, `TRANSCRIBE_MODEL` (all three or none), an OpenAI-compatible
+  `/audio/transcriptions` endpoint called with Node's `fetch` and `FormData` (no new dependency), a 60-second
+  timeout, faked in tests (`FakeTranscriber`). Without it, `features.transcription` is false: recording and
+  playback still work, and the transcribe button is greyed out.
+  - A glossary of Buddhist terms goes in the provider's `prompt` field, which improves their accuracy.
+  - **Chinese comes back in Simplified characters** from most speech models. The transcript is converted to
+    Traditional before it reaches the editor; how (an OpenCC library, a runtime dependency to approve, or a
+    pass through the translator) is open until the provider is chosen.
+  - The result is inserted into the draft at the cursor (or replaces an empty body); nothing is published
+    automatically.
+  - Capped at 20 transcriptions per leader per hour (`TRANSCRIBE_LIMITS`; cost control, doesn't flag).
+    Failures answer 504 `transcription_timeout`, 502 `transcription_failed` or 503
+    `transcription_unavailable`; the audio, the transcript and the provider's error body are never logged.
+- **Privacy:** PRIVACY.md must say that recordings are stored encrypted, played to the class, and sent to the
+  transcription provider when the leader asks for a transcript. Choosing the provider is open, like the
+  translation provider's (check what it keeps, and that it is reachable from Hong Kong).
 
 ### 8.8 Android fallback (only if D10 says so)
 
@@ -556,8 +676,20 @@ follows §9, with a SHA-256 check and signer-match check before installing (§12
 
 ### 8.10 i18n
 
-`web/src/i18n/{zh-Hant,en}.ts` share a typed key set, so a missing key fails the type check. The server
-returns error codes, not display strings.
+`web/src/i18n/{zh-Hant,en,vi}.ts` share a typed key set, so a missing key fails the type check. The server
+returns error codes, not display strings. Both sites offer all three languages (D34); the default stays
+繁體中文 and the choice is remembered on the device.
+
+- **Vietnamese wording** is drafted with the code and reviewed by a Vietnamese practitioner before the
+  language appears in the switch (`OFFERED_LANGS` in `web/src/i18n/`, so the table can ship unoffered).
+  Buddhist terms follow Vietnamese Buddhist usage, not a literal rendering of the Chinese.
+- **The switch** shows three short labels (繁 · EN · VI) instead of two full names, so it still fits at 360 px
+  and 22 px text.
+- **Fonts:** `:root:lang(vi)` uses the Latin stack (like `:lang(en)`), because CJK fonts' Latin glyphs handle
+  stacked diacritics (ệ, ở) poorly. Vietnamese text read in the Chinese interface still falls back to the CJK
+  font's Latin glyphs; check it on real phones and, if it reads badly, put a Latin font first in the zh stack
+  too. Vietnamese strings run longer than English, so each screen's 360 px check runs in Vietnamese as well.
+- **Alert email** stays 繁體中文 then English: it goes to SYS_ADMINs only.
 
 The one exception is alert email, which the server writes itself. Its text lives in
 `server/src/i18n/{zh-Hant,en}.ts`, with the same typed-key pattern: one subject and body per attention rule, plus
@@ -715,6 +847,31 @@ states. Each slice is one screen group, with Playwright e2e tests at 360 px and 
     covers it, and the registration test moved there.)*
 23. **Deploy docs:** the second DNS name and settings in DEPLOY-EC2.md; registration opened. *(Done.)*
 
+### Phase E: announcements, recordings and Vietnamese (D32–D34, agreed 2026-11-13)
+
+Vietnamese comes first: it is independent, and announcements are where translation into Vietnamese matters
+most.
+
+24. **Vietnamese UI:** `vi.ts` (drafted), `Lang` and the three-way switch, `:lang(vi)` fonts, `OFFERED_LANGS`
+    keeping Vietnamese hidden until the review; the e2e `t` fixture and the 360 px / 22 px checks in
+    Vietnamese. Both sites.
+25. **Translation targets:** `target` replaces `direction` (old field accepted for one release), the prompt
+    per target, one translate button. Tests: each target's prompt, the old field still answered.
+26. **Spec and docs:** announcements in project_prompt.md and FRONTEND.md (the 課堂 screen replacing 開放日記,
+    and the new tab bars).
+27. **Announcements API:** schema and migration, service under `services/diary/announcements/`, routes,
+    replies, reads and unread counts, limits and warning levels, activity events, SYS_ADMIN metadata list and
+    delete, seed announcements with replies. Integration tests for every role, allowed and denied, including
+    COUNT_USER refused on every route.
+28. **Announcements screens:** 開放日記 becomes 課堂 with the type filter and announcement cards, the unread
+    badge, the read view with the thread and reply box, the leader's
+    editor (no recording yet), translate on announcements and replies; e2e and axe in both themes.
+29. **Recordings:** audio upload, storage and playback (API and screens), caps and magic-byte checks;
+    playback across iPhone and Android checked on real phones (transcoding decided here).
+30. **Transcription:** `ctx.transcriber`, config and `.env.example`, the Traditional-character conversion,
+    rate limit, the transcribe button; PRIVACY.md wording. Then Vietnamese goes into the switch once the
+    review is done.
+
 ### Phase C: production
 
 18. **Ops:** deploy to Hong Kong with TLS, backup/restore, key rotation, RUNBOOK, SECURITY.md, PRIVACY.md,
@@ -762,4 +919,7 @@ Each slice ships with tests, both languages where it has UI, permission tests pe
 | D29 | Who decides sharing | **Agreed** (2026-10-19, to reduce leaders' work): the author shares, with no approval. Any leader can unshare; the author can share again only after an 更新 that changes the entry. Levels `private` / `course` / `everyone`; only `course` is offered while there is one class. Migration 0009 turned `open` and `wait_for_open` into `course` |
 | D30 | Who can sign up | **Agreed** (2026-11-02): the diary stays curated (accounts created by SYS_ADMINs after an invitation outside the app). Self-registration creates a **COUNT_USER**, who reaches 報數 and the account page only. Email and/or phone required (at least one), not verified; an optional display name. Promotion COUNT_USER → NORMAL_USER is allowed; diary members are never made COUNT_USERs. SMS or email verification, and auth frameworks with phone plugins, rejected for now: a paid SMS provider (and sender registration for mainland China) and a rewrite of working auth, for dozens of signups |
 | D31 | One app or two | **Agreed** (2026-11-02): two sites, `diary.gcdr.org.au` and `mantra.gcdr.org.au`, on one server, database and account system; two builds of the one web app (`VITE_SITE`), each its own installable app; sessions per site. The mantra palette follows gcdr.org.au. §8.11 |
+| D32 | Course announcements | **Agreed** (2026-11-13): leaders post to the whole class (one class for now); diary members read and reply; announcements share one screen (課堂) with 開放日記, told apart by a filter; COUNT_USERs and the mantra site have none. Replies form **one thread everyone in the class sees** (rejected: replies only to leaders, or a per-announcement choice). Bodies, replies and recordings encrypted with a per-announcement DEK under `DIARY_KEYRING`, in `services/diary/`. §8.12 |
+| D33 | Recording announcements | **Agreed** (2026-11-13): a leader may record an announcement in English or Chinese; the recording is **kept and the class can play it**; a speech-to-text provider transcribes it into the draft, which the leader corrects before publishing. Open: the provider, and how Simplified output becomes Traditional. §8.13 |
+| D34 | Vietnamese | **Agreed** (2026-11-13): a third interface language on both sites, reviewed by a Vietnamese practitioner before it is offered; translation gains Vietnamese as a target. Alert email unchanged. §8.10, §8.6 |
 | F1–F6 | Frontend decisions | **Agreed**: see FRONTEND.md §11 |
