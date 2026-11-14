@@ -1,7 +1,7 @@
 # 修行日記 · Cultivation Diary
 
-A private, bilingual (繁體中文 / English) diary platform with supervision by course leaders, plus a shared
-daily-count (報數) activity. Diaries are encrypted at rest; account administrators never see their content.
+A private diary platform in 繁體中文, English and (once reviewed) Tiếng Việt, with supervision by course
+leaders, plus a shared daily-count (報數) activity. Diaries are encrypted at rest; account administrators never see their content.
 
 - What it does: [docs/project_prompt.md](docs/project_prompt.md)
 - How it's built: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), screens in [docs/FRONTEND.md](docs/FRONTEND.md)

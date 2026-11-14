@@ -72,7 +72,9 @@ test.describe('administrators', () => {
     await page.getByLabel(t('totp.code')).fill(codeFor(seedInfo().totpKeys.admin!));
     await page.getByRole('button', { name: t('totp.submit') }).click();
     // In, on the management home (spec §4.1).
-    await expect(page.getByRole('heading', { name: t('attention.title') })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: t('attention.title'), exact: true }),
+    ).toBeVisible();
   });
 
   test('a new SYS_ADMIN must set up an authenticator before anything else', async ({

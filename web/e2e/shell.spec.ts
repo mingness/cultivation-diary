@@ -9,8 +9,12 @@ test('the language switch shows the language in use, switches every string and i
   t,
   lang,
 }) => {
-  const names = { 'zh-Hant': '中文', en: 'English' } as const;
-  const other = lang === 'en' ? 'zh-Hant' : 'en';
+  // Three buttons (Vietnamese in use) shorten the Latin names.
+  const names =
+    lang === 'vi'
+      ? ({ 'zh-Hant': '中文', en: 'EN', vi: 'VI' } as const)
+      : ({ 'zh-Hant': '中文', en: 'English', vi: 'Tiếng Việt' } as const);
+  const other = lang === 'zh-Hant' ? 'en' : 'zh-Hant';
   await page.goto('/login');
   await expect(page.locator('html')).toHaveAttribute('lang', lang);
   const languages = page.getByRole('group', { name: t('lang.label') });
@@ -24,6 +28,30 @@ test('the language switch shows the language in use, switches every string and i
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('lang', other);
   await expect(page.getByRole('button', { name: t('auth.login'), exact: true })).toHaveCount(0);
+});
+
+test('?lang=vi previews Vietnamese, and the switch keeps it on that device only', async ({
+  page,
+  browser,
+  lang,
+}) => {
+  test.skip(lang !== 'zh-Hant', 'one project is enough; each load costs a CAPTCHA');
+  await page.goto('/login?lang=vi');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
+  const languages = page.getByRole('group');
+  await expect(languages.getByRole('button', { name: 'VI' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await languages.getByRole('button', { name: '中文' }).click();
+  await page.reload();
+  await expect(page.getByRole('group').getByRole('button', { name: 'VI' })).toBeVisible();
+
+  // Another device, without the preview, isn't offered Vietnamese.
+  const other = await browser.newPage();
+  await other.goto('/login');
+  await expect(other.getByRole('group').getByRole('button')).toHaveText(['中文', 'English']);
+  await other.close();
 });
 
 // One page load per screen: the server allows 60 CAPTCHAs a minute per address, and every public screen
@@ -85,11 +113,11 @@ test('unknown addresses show "not found" inside the app', async ({ userPage, t }
   await expect(userPage.getByRole('navigation', { name: t('nav.label') })).toBeVisible();
 });
 
-test('English text uses Latin fonts first, so its punctuation isn’t full-width', async ({
+test('English and Vietnamese text use Latin fonts first, so punctuation isn’t full-width', async ({
   page,
   lang,
 }) => {
-  test.skip(lang !== 'en', 'Chinese keeps its full-width punctuation');
+  test.skip(lang === 'zh-Hant', 'Chinese keeps its full-width punctuation');
   await page.goto('/login');
   // The apostrophe's width relative to the text size, in the interface font and the diary font.
   const widths = await page.evaluate(() =>

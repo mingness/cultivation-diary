@@ -7,7 +7,7 @@
 > **Revised 2026-10-19:** sharing is the author's choice, with no leader approval; leaders may stop sharing an entry (D29).
 > **Revised 2026-11-02:** 報數 opens to the public on its own site, with self-registered mantra-only accounts (COUNT_USER);
 > the diary stays curated, with no self-registration (D30, D31).
-> App title: **修行日記** (English: **Cultivation Diary**) · Languages: 繁體中文 (default) / English, switchable everywhere.
+> App title: **修行日記** (English: **Cultivation Diary**) · Languages: 繁體中文 (default) / English / Tiếng Việt (added 2026-11-13, offered once its wording is reviewed), switchable everywhere.
 
 ---
 
@@ -260,10 +260,8 @@ REPORTED_TODAY今日報告: <today> (entries紀錄: <n>)
 
 ## 8. Translation Feature
 
-- Below diary content and below comments: two small buttons at the right, low-key so they don't compete with the text (changed 2026-10-15; they were in the submit-button style) —
-  - **翻译**: translate the text from English to 繁體中文 (expert level)
-  - **Translate**: translate from 繁體中文 to English (expert level)
-- The result is displayed as **plain text below the buttons — never inside a text box**; a new click replaces it; buttons disable while translating.
+- Below diary content and below comments: one small button at the right, low-key so it doesn't compete with the text (changed 2026-10-15; it was in the submit-button style). It translates the text, whatever language it is in, into the language the reader is using: **翻譯成中文** (繁體中文), **Translate into English**, **Dịch sang tiếng Việt** (expert level). Changed 2026-11-13 with Vietnamese; before, two buttons translated English → 繁體中文 and back.
+- The result is displayed as **plain text below the button — never inside a text box**; a new click replaces it; the button disables while translating.
 - Powered by an OpenAI-compatible chat API (base URL, key, model kept in server-side config/env — **never hardcoded or committed**). Optional: without it, the buttons say translation is unavailable. Capped at 60 translations per user per hour, for cost. Server translates, times out gracefully (504 on timeout), requires login, and only translates text the requesting user is allowed to read. The privacy notice states that translated text is sent to an external provider.
 
 ## 9. Installing on Phones
@@ -290,13 +288,13 @@ Build this only if testing on the users' actual phones shows the installable web
 
 ## 10. UX Conventions (accumulated user requirements)
 
-1. Single right-top **language switch** on every page, showing both languages with the one in use highlighted (changed 2026-10-15: it used to show only the *other* language's name); default 繁體中文.
-2. Button 更新 matches the **submit** button style; 翻譯 / Translate are small and set to the right (changed 2026-10-15).
+1. Single right-top **language switch** on every page, showing every offered language with the one in use highlighted (changed 2026-10-15: it used to show only the *other* language's name); default 繁體中文.
+2. Button 更新 matches the **submit** button style; the translate button is small and set to the right (changed 2026-10-15).
 3. All rows/tables show values plainly; no key-name labels except the `Comment:` label.
 4. Editing always resumes saved content; drafts auto-save; nothing is lost on navigation.
 5. Invalid numeric input is trimmed and reported to the user, never silently accepted.
 6. Notifications are toasts; polling and notifications must not disturb editing.
-7. Bilingual UI throughout; new strings go through the translation table.
+7. The UI is in every language throughout; new strings go through the translation tables.
 8. Secrets (API keys) live in configuration, never in client code or the repository.
 9. Every page works on a 360 px-wide phone screen; phones are the primary device for users, while leaders and SYS_ADMINs mostly use a computer.
 10. Light and dark themes; neutral, warm default palette (the mantra site: forest green and gold, after gcdr.org.au). Navigation stays simple: few top-level destinations, large touch targets, clear labels with icons.

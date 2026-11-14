@@ -129,7 +129,7 @@ export function EntryArticle({
       <div className={styles.body}>
         {shown.body ? <RichContent html={shown.body} /> : t('entry.empty')}
       </div>
-      <TranslateBlock target={{ documentId: entry.id }} />
+      <TranslateBlock source={{ documentId: entry.id }} />
       {ownView && (
         <ShareToggle
           documentId={ownView.id}

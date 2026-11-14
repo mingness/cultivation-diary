@@ -38,8 +38,8 @@ type Who = Pick<Signin, 'cookie' | 'csrf'>;
 
 const call = (who: Who | null, method: 'POST' | 'PUT' | 'GET', url: string, payload?: object) =>
   t.app.inject({ method, url, headers: who ? as(who) : {}, ...(payload ? { payload } : {}) });
-const translate = (who: Who | null, target: object, direction = 'zh_to_en') =>
-  call(who, 'POST', '/api/translate', { ...target, direction });
+const translate = (who: Who | null, source: object, into: object = { target: 'en' }) =>
+  call(who, 'POST', '/api/translate', { ...source, ...into });
 const code = (res: { json: () => unknown }) => ErrorBody.parse(res.json()).code;
 /** The text the provider received for this request, or null when it wasn't called. */
 async function sent(who: Who | null, target: object): Promise<string | null> {
@@ -135,9 +135,21 @@ describe('failures and limits', () => {
     } finally {
       fake.failWith = null;
     }
-    expect((await translate(owner, { documentId: docId }, 'en_to_zh')).json()).toEqual({
-      text: '[en_to_zh] 草稿',
+    expect((await translate(owner, { documentId: docId }, { target: 'vi' })).json()).toEqual({
+      text: '[vi] 草稿',
     });
+  });
+
+  // An installed app that hasn't reloaded since D34 still sends `direction`; it must keep working.
+  it('still accepts the old direction field, as the matching target', async () => {
+    const res = await translate(owner, { documentId: docId }, { direction: 'en_to_zh' });
+    expect(res.json()).toEqual({ text: '[zh-Hant] 草稿' });
+    const both = await translate(
+      owner,
+      { documentId: docId },
+      { target: 'en', direction: 'zh_to_en' },
+    );
+    expect(both.statusCode).toBe(400);
   });
 
   it(`allows ${TRANSLATE_LIMITS.perUserPerHour} per user per hour, then 429; others are unaffected`, async () => {
@@ -182,7 +194,7 @@ describe('without a provider configured', () => {
         method: 'POST',
         url: '/api/translate',
         headers: as(who),
-        payload: { documentId: crypto.randomUUID(), direction: 'zh_to_en' },
+        payload: { documentId: crypto.randomUUID(), target: 'en' },
       });
       expect(ErrorBody.parse(res.json()).code).toBe('translation_unavailable');
       // The app greys out the translate buttons from this.

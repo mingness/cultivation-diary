@@ -19,6 +19,9 @@
 
 .filters > * {
   flex: 0 1 auto;
+  /* Shrink below the content: a select is as wide as its longest option (long in Vietnamese at 22 px). */
+  min-width: 0;
+  max-width: 100%;
 }
 
 .grow {
@@ -26,6 +29,7 @@
 }
 
 .select {
+  max-width: 100%;
   min-height: var(--touch);
   padding: 0 var(--space-3);
   background: var(--surface);

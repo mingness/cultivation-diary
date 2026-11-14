@@ -1,12 +1,19 @@
 /**
  * Shared test setup: each project's language and seeded user, the app's own string table (so tests read
- * the words a user sees in either language), and sign-in helpers.
+ * the words a user sees in any language), and sign-in helpers.
  */
 import AxeBuilder from '@axe-core/playwright';
 import { existsSync, readFileSync } from 'node:fs';
 import { test as base, expect, type Browser, type Page } from '@playwright/test';
 import { en } from '../src/i18n/en.js';
-import { format, type Lang, type MessageKey, type Vars } from '../src/i18n/messages.js';
+import {
+  format,
+  type Lang,
+  type MessageKey,
+  type Messages,
+  type Vars,
+} from '../src/i18n/messages.js';
+import { vi } from '../src/i18n/vi.js';
 import { zhHant } from '../src/i18n/zh-Hant.js';
 
 export { expect };
@@ -61,7 +68,8 @@ export const test = base.extend<E2eOptions & Fixtures>({
   },
 
   t: async ({ lang }, use) => {
-    const messages = lang === 'en' ? en : zhHant;
+    const tables: Record<Lang, Messages> = { 'zh-Hant': zhHant, en, vi };
+    const messages = tables[lang];
     await use((key, vars) => format(messages, key, vars));
   },
 

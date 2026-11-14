@@ -76,11 +76,13 @@
 }
 
 /*
- * English: Latin system fonts first. A Chinese font's Latin set draws curly quotes and apostrophes full-width
- * (right in Chinese, odd in "couldn’t"); Chinese characters still fall through to the Chinese fonts.
+ * English and Vietnamese: Latin system fonts first. A Chinese font's Latin set draws curly quotes and apostrophes
+ * full-width (right in Chinese, odd in "couldn’t") and stacks Vietnamese diacritics poorly; Chinese characters
+ * still fall through to the Chinese fonts.
  * Diary text follows the interface language, since an entry's own language isn't known.
  */
-:root:lang(en) {
+:root:lang(en),
+:root:lang(vi) {
   --font-ui:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Arial,
     'Liberation Sans', 'DejaVu Sans', var(--font-cjk-sans), sans-serif;

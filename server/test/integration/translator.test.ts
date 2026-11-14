@@ -45,26 +45,27 @@ const failure = (promise: Promise<unknown>) =>
   );
 
 describe('OpenAI-compatible translator', () => {
-  it('posts the text with the key, model and direction, and returns the trimmed answer', async () => {
+  it('posts the text with the key, model and target, and returns the trimmed answer', async () => {
     let seen: { url?: string | undefined; auth?: string | undefined; body?: unknown } = {};
     handler = (req, body, res) => {
       seen = { url: req.url, auth: req.headers.authorization, body: JSON.parse(body) };
       reply(200, { choices: [{ message: { content: '  今天很好。\n' } }] })(req, body, res);
     };
-    expect(await translator().translate('Today was good.', 'en_to_zh')).toBe('今天很好。');
+    expect(await translator().translate('Today was good.', 'zh-Hant')).toBe('今天很好。');
     expect(seen).toEqual({
       url: '/v1/chat/completions',
       auth: 'Bearer sk-test',
       body: expect.objectContaining({
         model: 'test-model',
         messages: [
-          { role: 'system', content: systemPrompt('en_to_zh') },
+          { role: 'system', content: systemPrompt('zh-Hant') },
           { role: 'user', content: 'Today was good.' },
         ],
       }),
     });
-    expect(systemPrompt('en_to_zh')).toContain('Traditional Chinese');
-    expect(systemPrompt('zh_to_en')).toMatch(/from Chinese to English/);
+    expect(systemPrompt('zh-Hant')).toContain('into Traditional Chinese');
+    expect(systemPrompt('en')).toContain('into English');
+    expect(systemPrompt('vi')).toMatch(/into Vietnamese.*Hán-Việt/);
   });
 
   it.each([
@@ -80,13 +81,13 @@ describe('OpenAI-compatible translator', () => {
     ],
   ])('fails cleanly on %s', async (_name, h) => {
     handler = h;
-    expect(await failure(translator().translate('x', 'zh_to_en'))).toBe('failed');
+    expect(await failure(translator().translate('x', 'en'))).toBe('failed');
   });
 
   it('gives up after the timeout', async () => {
     handler = () => {
       // Never answers.
     };
-    expect(await failure(translator(100).translate('x', 'zh_to_en'))).toBe('timeout');
+    expect(await failure(translator(100).translate('x', 'en'))).toBe('timeout');
   });
 });

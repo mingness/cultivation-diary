@@ -12,7 +12,7 @@ import type {
   MyDocumentList,
   OpenDocumentList,
   OwnDocument,
-  TranslateDirection,
+  TranslateTarget,
   TranslateResponse,
 } from '@diary/shared';
 import { api } from './client.js';
@@ -113,7 +113,7 @@ export function useAccessChange(id: string) {
 export function useTranslate() {
   return useMutation({
     mutationFn: (
-      body: ({ documentId: string } | { commentId: string }) & { direction: TranslateDirection },
+      body: ({ documentId: string } | { commentId: string }) & { target: TranslateTarget },
     ) => api<z.infer<typeof TranslateResponse>>('POST', '/api/translate', body),
   });
 }

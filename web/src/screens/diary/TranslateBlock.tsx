@@ -1,10 +1,10 @@
 /**
- * 翻譯 / Translate (spec §8): two small buttons at the right, with the result as plain text below them, never
- * in a text box; a new click replaces it. Greyed out (the reason in their tooltip) when the server has no
- * translation provider; a note beside every pair would repeat down a whole feed.
+ * 翻譯 / Translate (spec §8): one small button at the right that translates into the language the reader is
+ * using (D34; the server works out the source language), with the result as plain text below it, never in a
+ * text box; a new click replaces it. Greyed out (the reason in its tooltip) when the server has no
+ * translation provider; a note beside every button would repeat down a whole feed.
  */
 import { useState } from 'react';
-import type { TranslateDirection } from '@diary/shared';
 import { ApiError } from '../../api/client.js';
 import { useTranslate } from '../../api/diary.js';
 import { useSession } from '../../api/session.js';
@@ -14,19 +14,19 @@ import { useI18n } from '../../i18n/index.js';
 import styles from './TranslateBlock.module.css';
 
 export function TranslateBlock({
-  target,
+  source,
 }: {
-  target: { documentId: string } | { commentId: string };
+  source: { documentId: string } | { commentId: string };
 }) {
-  const { t, tError } = useI18n();
+  const { t, tError, lang } = useI18n();
   const { data: session } = useSession();
   const available = session?.status === 'ready' && session.features.translation;
   const translate = useTranslate();
   const [result, setResult] = useState<string | null>(null);
 
-  function run(direction: TranslateDirection) {
+  function run() {
     setResult(null);
-    translate.mutate({ ...target, direction }, { onSuccess: ({ text }) => setResult(text) });
+    translate.mutate({ ...source, target: lang }, { onSuccess: ({ text }) => setResult(text) });
   }
 
   const error = translate.error instanceof ApiError ? translate.error : null;
@@ -36,22 +36,11 @@ export function TranslateBlock({
         <Button
           small
           variant="quiet"
-          lang="zh-Hant"
           title={available ? undefined : t('translate.off')}
           disabled={!available || translate.isPending}
-          onClick={() => run('en_to_zh')}
+          onClick={run}
         >
-          {t('translate.toZh')}
-        </Button>
-        <Button
-          small
-          variant="quiet"
-          lang="en"
-          title={available ? undefined : t('translate.off')}
-          disabled={!available || translate.isPending}
-          onClick={() => run('zh_to_en')}
-        >
-          {t('translate.toEn')}
+          {t('translate.button')}
         </Button>
       </div>
       <div aria-live="polite">

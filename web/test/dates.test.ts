@@ -37,14 +37,17 @@ describe('parseMonth', () => {
 });
 
 describe('formatting (FRONTEND.md §7)', () => {
-  it('writes diary dates as 10月14日 週三 / Wed 14 Oct, whatever the device’s time zone', () => {
+  it('writes diary dates as 10月14日 週三 / Wed 14 Oct / Thứ 4, 14 thg 10, whatever the device’s time zone', () => {
     expect(formatDiaryDate('2026-10-14', 'zh-Hant')).toBe('10月14日 週三');
     expect(formatDiaryDate('2026-10-14', 'en')).toBe('Wed 14 Oct');
+    expect(formatDiaryDate('2026-10-14', 'vi')).toBe('Thứ 4, 14 thg 10');
   });
 
   it('writes months and 24-hour times', () => {
     expect(formatMonth('2026-10', 'zh-Hant')).toBe('2026 年 10 月');
     expect(formatMonth('2026-10', 'en')).toBe('October 2026');
+    // A heading: Intl writes "tháng 10 năm 2026".
+    expect(formatMonth('2026-10', 'vi')).toBe('Tháng 10 năm 2026');
     const iso = new Date(2026, 9, 14, 7, 5).toISOString();
     expect(formatTime(iso, 'zh-Hant')).toBe('07:05');
     expect(formatDateTime(iso, 'zh-Hant')).toBe('10月14日 07:05');
@@ -56,5 +59,6 @@ describe('formatBeijingDateTime', () => {
   it('shows Beijing time whatever the device’s zone (02:00 Beijing is 18:00 UTC the day before)', () => {
     expect(formatBeijingDateTime('2026-10-14T18:00:00.000Z', 'zh-Hant')).toBe('10月15日 02:00');
     expect(formatBeijingDateTime('2026-10-14T18:00:00.000Z', 'en')).toBe('15 Oct, 02:00');
+    expect(formatBeijingDateTime('2026-10-14T18:00:00.000Z', 'vi')).toBe('15 thg 10, 02:00');
   });
 });

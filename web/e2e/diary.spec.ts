@@ -284,7 +284,7 @@ test('開放日記 shows the month’s open entries in full, one after another',
   await expect(
     articles
       .first()
-      .getByRole('button', { name: t('translate.toEn') })
+      .getByRole('button', { name: t('translate.button') })
       .first(),
   ).toBeVisible();
   await expect(page.getByText(t('reading.end'))).toBeAttached();

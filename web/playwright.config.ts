@@ -1,6 +1,6 @@
 /**
  * End-to-end tests (engineering standards §12.5): the built app against its own Docker stack, at a phone and
- * a desktop width, in both languages. Local only. See e2e/README.md.
+ * a desktop width, in each language. Local only. See e2e/README.md.
  */
 import { defineConfig, devices } from '@playwright/test';
 import type { E2eOptions } from './e2e/fixtures.js';
@@ -21,7 +21,7 @@ export default defineConfig<E2eOptions>({
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: { baseURL, trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   // Each project signs in as its own seeded user, so projects running side by side never share settings.
-  // Leaders are shared by two projects, so leader tests work on entries their own test just created.
+  // Leaders are shared by two or three projects, so leader tests work on entries their own test just created.
   projects: [
     { name: 'phone-zh', use: { ...phone, lang: 'zh-Hant', user: 'chenmd', leader: 'leader.lin' } },
     { name: 'phone-en', use: { ...phone, lang: 'en', user: 'zhangsf', leader: 'leader.huang' } },
@@ -30,5 +30,7 @@ export default defineConfig<E2eOptions>({
       use: { ...desktop, lang: 'zh-Hant', user: 'wangdt', leader: 'leader.lin' },
     },
     { name: 'desktop-en', use: { ...desktop, lang: 'en', user: 'wuml', leader: 'leader.huang' } },
+    // Vietnamese runs longest, so it gets the narrow screen (D34).
+    { name: 'phone-vi', use: { ...phone, lang: 'vi', user: 'linjy', leader: 'leader.lin' } },
   ],
 });

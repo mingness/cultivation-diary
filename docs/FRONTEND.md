@@ -104,8 +104,11 @@ phones (§2.2). The icon is 大悲 in off-white on the green.
   same two tabs, and use the diary site for the rest.
 - The tab bar replaces the spec's My Diary / Open Diary toggle and its scattered header buttons (§6.2, §7.4).
   "Go Diary" from the count page is simply the 日記 tab.
-- The language switch (spec §10.1) sits top right on every screen and shows both languages, the one in use
-  highlighted (changed 2026-10-15: the content is mostly Chinese either way, so users need to see which is on).
+- The language switch (spec §10.1) sits top right on every screen and shows every offered language, the one in
+  use highlighted (changed 2026-10-15: the content is mostly Chinese either way, so users need to see which is
+  on). With three languages it reads 中文 · EN · VI, the full name as each button's tooltip, so it still fits at
+  360 px and 22 px text. Vietnamese (D34) waits for its review: until then `?lang=vi` opens it on that device
+  only, and the switch keeps VI there so a reviewer can compare and come back.
 - Between 768 and 1024 px, the tab bar stays and the leader and admin screens use two panes instead of three.
 - Detail screens (editor, entry, comment) replace the tab bar with a back button. The back button and the
   browser/phone back always return to the list you came from, at the same month and scroll position.
@@ -173,7 +176,7 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
 
 - **Read-only:** title, a meta row of values only (date, author for non-owners, access chip, comment count),
   then the body.
-- **Translation:** 翻譯 and Translate as small buttons at the right (low-key, 2026-10-15), with the result shown as plain text below them. When the server
+- **Translation:** one small button at the right (low-key, 2026-10-15) that translates into the interface language (翻譯成中文 / Translate into English / Dịch sang tiếng Việt; D34, 2026-11-13), with the result shown as plain text below it. When the server
   has no translation provider (`GET /api/me` → `features.translation: false`), the buttons are greyed out.
 - **Comments:** the `Comment:` label, then one card per submitted comment (leader name, date, text, its own
   translate buttons).
@@ -309,9 +312,11 @@ snapshot at 360 px and 1280 px.
 - English UI name: **Cultivation Diary** for 修行日記 (agreed). 報數 counts **Great Compassion Mantra** recitations:
   its tab is 大悲咒 / "Mantra" and the page 大悲咒共修報數 / "Great Compassion Mantra recitation" (2026-10-15); 批注 is
   "comment", 導師 is "course leader" ("Leader …" before a name), and 學員 is "student".
-- Every string lives in `web/src/i18n/{zh-Hant,en}.ts` (alert emails, written by the server, use
+- Every string lives in `web/src/i18n/{zh-Hant,en,vi}.ts` (alert emails, written by the server, use
   `server/src/i18n/`; ARCHITECTURE §8.10). Dates use `Intl.DateTimeFormat` with the active locale
-  (10月14日 週三 / Wed 14 Oct).
+  (10月14日 週三 / Wed 14 Oct / Thứ 4, 14 thg 10).
+- Vietnamese (draft, for review): 修行日記 Nhật ký tu tập; 大悲咒 Chú Đại Bi, a recitation one *biến*; 批注
+  *lời phê*; course leader *người hướng dẫn*; student *học viên*; 開放日記 *Nhật ký chia sẻ*; 批閱 *Duyệt bài*.
 
 ## 8. Accessibility checklist
 

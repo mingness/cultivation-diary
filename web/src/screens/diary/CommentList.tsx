@@ -33,7 +33,7 @@ export function CommentList({ comments }: { comments: readonly Comment[] }) {
               )}
             </div>
             <RichContent html={comment.body} />
-            <TranslateBlock target={{ commentId: comment.id }} />
+            <TranslateBlock source={{ commentId: comment.id }} />
           </li>
         ))}
       </ul>

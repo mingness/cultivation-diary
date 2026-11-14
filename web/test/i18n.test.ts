@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { en } from '../src/i18n/en.js';
-import { errorKey, format, type MessageKey } from '../src/i18n/messages.js';
+import { errorKey, format, switchOptions, type MessageKey } from '../src/i18n/messages.js';
+import { vi } from '../src/i18n/vi.js';
 import { zhHant } from '../src/i18n/zh-Hant.js';
 
 const placeholders = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
@@ -8,10 +9,23 @@ const placeholders = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map((m) 
 describe('string tables', () => {
   // The type check guarantees the same keys; this catches a translation that drops or renames a placeholder,
   // which would show "{id}" to the user in one language only.
-  it('use the same placeholders in both languages', () => {
+  it('use the same placeholders in every language', () => {
     for (const key of Object.keys(zhHant) as MessageKey[]) {
       expect(placeholders(en[key]), key).toEqual(placeholders(zhHant[key]));
+      expect(placeholders(vi[key]), key).toEqual(placeholders(zhHant[key]));
     }
+  });
+});
+
+describe('switchOptions', () => {
+  // A language waiting for review must not appear for everyone, yet a reviewer previewing it must be able to
+  // switch away to compare and come back.
+  it('offers the offered languages, plus the one in use and the previewed one', () => {
+    const offered = ['zh-Hant', 'en'] as const;
+    expect(switchOptions('en', null, offered)).toEqual(['zh-Hant', 'en']);
+    expect(switchOptions('vi', null, offered)).toEqual(['zh-Hant', 'en', 'vi']);
+    expect(switchOptions('en', 'vi', offered)).toEqual(['zh-Hant', 'en', 'vi']);
+    expect(switchOptions('vi', 'vi', [...offered, 'vi'])).toEqual(['zh-Hant', 'en', 'vi']);
   });
 });
 

@@ -2,7 +2,7 @@
  * Dates as the app shows them. Diary dates and months are Beijing calendar dates (spec §5.1), so "today" and
  * "this month" are computed in Asia/Shanghai whatever the device's time zone.
  */
-import type { Lang } from '../i18n/messages.js';
+import { LOCALES as LOCALE, type Lang } from '../i18n/messages.js';
 
 const BEIJING = 'Asia/Shanghai';
 
@@ -34,8 +34,6 @@ export function parseMonth(value: string | null): string | null {
   return value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value) ? value : null;
 }
 
-const LOCALE: Record<Lang, string> = { 'zh-Hant': 'zh-Hant-TW', en: 'en-GB' };
-
 // A calendar date has no time zone: format it at UTC midnight so no zone can move it to another day.
 function utcDate(date: string): Date {
   return new Date(`${date}T00:00:00Z`);
@@ -51,11 +49,11 @@ function parts(d: Date, timeZone: string, lang: Lang) {
   };
 }
 
-/** "10月14日 週三" / "Wed 14 Oct" (FRONTEND.md §7). */
+/** "10月14日 週三" / "Wed 14 Oct" / "Thứ 4, 14 thg 10" (FRONTEND.md §7). */
 export function formatDiaryDate(date: string, lang: Lang): string {
   const d = utcDate(date);
-  if (lang === 'en') {
-    return new Intl.DateTimeFormat(LOCALE.en, {
+  if (lang !== 'zh-Hant') {
+    return new Intl.DateTimeFormat(LOCALE[lang], {
       timeZone: 'UTC',
       weekday: 'short',
       day: 'numeric',
@@ -70,17 +68,18 @@ export function formatDiaryDate(date: string, lang: Lang): string {
   return `${month}月${day}日 ${weekday}`;
 }
 
-/** "2026 年 10 月" / "October 2026". */
+/** "2026 年 10 月" / "October 2026" / "Tháng 10 năm 2026" (a heading, so capitalised). */
 export function formatMonth(month: string, lang: Lang): string {
   if (lang === 'zh-Hant') {
     const [year, mon] = month.split('-').map(Number);
     return `${year} 年 ${mon} 月`;
   }
-  return new Intl.DateTimeFormat(LOCALE.en, {
+  const text = new Intl.DateTimeFormat(LOCALE[lang], {
     timeZone: 'UTC',
     month: 'long',
     year: 'numeric',
   }).format(utcDate(`${month}-01`));
+  return text.charAt(0).toLocaleUpperCase(LOCALE[lang]) + text.slice(1);
 }
 
 const CLOCK: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' };
@@ -90,13 +89,15 @@ export function formatTime(iso: string, lang: Lang): string {
   return new Intl.DateTimeFormat(LOCALE[lang], CLOCK).format(new Date(iso));
 }
 
-/** "10月14日 10:42" / "14 Oct, 10:42" for an instant, in the device's time zone. */
+/** "10月14日 10:42" / "14 Oct, 10:42" / "10:42 14 thg 10" for an instant, in the device's time zone. */
 export function formatDateTime(iso: string, lang: Lang): string {
   const d = new Date(iso);
-  if (lang === 'en') {
-    return new Intl.DateTimeFormat(LOCALE.en, { month: 'short', day: 'numeric', ...CLOCK }).format(
-      d,
-    );
+  if (lang !== 'zh-Hant') {
+    return new Intl.DateTimeFormat(LOCALE[lang], {
+      month: 'short',
+      day: 'numeric',
+      ...CLOCK,
+    }).format(d);
   }
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const { month, day } = parts(d, zone, lang);
@@ -119,7 +120,7 @@ export function monthGrid(month: string): (string | null)[][] {
   return weeks;
 }
 
-/** Weekday headers from Sunday: 日 一 二 … / Sun Mon Tue … (spec §6.3: Chinese weekday headers). */
+/** Weekday headers from Sunday: 日 一 二 … / Sun Mon Tue … / CN T2 T3 … (spec §6.3: Chinese weekday headers). */
 export function weekdayNames(lang: Lang): string[] {
   // 2023-01-01 was a Sunday.
   return Array.from({ length: 7 }, (_, i) =>
@@ -134,8 +135,8 @@ export function weekdayNames(lang: Lang): string[] {
 export function formatBeijingDateTime(iso: string, lang: Lang): string {
   const d = new Date(iso);
   const time = new Intl.DateTimeFormat(LOCALE[lang], { timeZone: BEIJING, ...CLOCK }).format(d);
-  if (lang === 'en') {
-    const day = new Intl.DateTimeFormat(LOCALE.en, {
+  if (lang !== 'zh-Hant') {
+    const day = new Intl.DateTimeFormat(LOCALE[lang], {
       timeZone: BEIJING,
       month: 'short',
       day: 'numeric',

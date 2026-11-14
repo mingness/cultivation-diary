@@ -41,7 +41,7 @@ Keep this file up to date when commands, conventions or pitfalls change.
   `routes/`. Pure logic lives in `server/src/domain/` (crypto, authz, diary, count) with no HTTP or DB code;
   rules shared with the web app (e.g. 報數 input) live in `shared/src/`.
 - `web/`: the React app (Vite). `src/api/` (the one fetch wrapper and the session), `src/i18n/` (every UI
-  string, both languages), `src/components/` (shared UI), `src/screens/` (one folder per screen group),
+  string, every language: zh-Hant, en, vi), `src/components/` (shared UI), `src/screens/` (one folder per screen group),
   `src/lib/` (pure helpers), `src/styles/` (tokens). Unit tests in `web/test/`, Playwright in `web/e2e/`.
   `web/Dockerfile` builds it into nginx, which serves it and forwards `/api` to the server. It is built twice
   (ARCHITECTURE.md §8.11): the diary, and with `--mode mantra` the mantra site (`dist-mantra/`, icons in
@@ -112,8 +112,10 @@ Keep this file up to date when commands, conventions or pitfalls change.
   several rounds; over HTTP the first request usually finishes first and hides the race.
 - **Config:** only through `loadConfig` in `server/src/config.ts`. Add every new variable to `.env.example`
   with a comment, and to `scripts/dev-setup.mjs` if it is a secret.
-- **Web app:** no UI text outside `web/src/i18n/` (the zh-Hant table defines the keys; a missing English
-  string or untranslated `ErrorCode` fails the type check). Every API call goes through `api()` in
+- **Web app:** no UI text outside `web/src/i18n/` (the zh-Hant table defines the keys; a missing English or
+  Vietnamese string or untranslated `ErrorCode` fails the type check). Vietnamese is drafted, not yet
+  reviewed: add new strings to `vi.ts` too, mark them for the reviewer, and leave `OFFERED_LANGS` alone until
+  the review is done (`?lang=vi` previews it). Every API call goes through `api()` in
   `web/src/api/client.ts` inside TanStack Query; screens show `ApiError` codes with `tError` and the request
   ID. Styles are CSS modules using the tokens in `web/src/styles/tokens.css`, sized in rem. A new screen gets
   an axe check in both themes in `web/e2e/` and works at 360 px and 22 px text.
@@ -126,9 +128,9 @@ Keep this file up to date when commands, conventions or pitfalls change.
   the new-version banner waits while any editor reports unsaved changes.
 - **Service worker:** it caches the built app files only. Never add runtime caching of `/api/` (diary content
   must not sit in the device's cache); `web/e2e/pwa.spec.ts` checks the cache.
-- **E2E tests** read strings from the app's own tables via the `t` fixture, so one test covers both
-  languages. Each project has a seeded user (`userPage`) and a course leader (`leaderPage`); two projects
-  share each leader, so a leader test works on an entry its own student just created through the API. All
+- **E2E tests** read strings from the app's own tables via the `t` fixture, so one test covers every
+  language. Each project has a seeded user (`userPage`) and a course leader (`leaderPage`); two or three
+  projects share each leader, so a leader test works on an entry its own student just created through the API. All
   projects share one SYS_ADMIN session (`adminPage`, `admin2`), signed in once with its authenticator code: a
   code can't be used twice, so admin tests never sign in through the form (only `auth.spec` does, as `admin`). The stack's per-IP limits are real: sign in through the saved sessions (`userPage`) rather than
   the form where the form isn't the point, and run register/forgot-password/admin flows in one project.

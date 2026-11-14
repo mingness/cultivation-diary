@@ -681,10 +681,11 @@ returns error codes, not display strings. Both sites offer all three languages (
 繁體中文 and the choice is remembered on the device.
 
 - **Vietnamese wording** is drafted with the code and reviewed by a Vietnamese practitioner before the
-  language appears in the switch (`OFFERED_LANGS` in `web/src/i18n/`, so the table can ship unoffered).
+  language appears in the switch (`OFFERED_LANGS` in `web/src/i18n/messages.ts`, so the table can ship
+  unoffered). Until then `?lang=vi` opens it on that device, and the switch keeps VI there (`langPreview`).
   Buddhist terms follow Vietnamese Buddhist usage, not a literal rendering of the Chinese.
-- **The switch** shows three short labels (繁 · EN · VI) instead of two full names, so it still fits at 360 px
-  and 22 px text.
+- **The switch** shows three short labels (中文 · EN · VI, full names as tooltips) instead of two full names,
+  so it still fits at 360 px and 22 px text.
 - **Fonts:** `:root:lang(vi)` uses the Latin stack (like `:lang(en)`), because CJK fonts' Latin glyphs handle
   stacked diacritics (ệ, ở) poorly. Vietnamese text read in the Chinese interface still falls back to the CJK
   font's Latin glyphs; check it on real phones and, if it reads badly, put a Latin font first in the zh stack
@@ -854,9 +855,13 @@ most.
 
 24. **Vietnamese UI:** `vi.ts` (drafted), `Lang` and the three-way switch, `:lang(vi)` fonts, `OFFERED_LANGS`
     keeping Vietnamese hidden until the review; the e2e `t` fixture and the 360 px / 22 px checks in
-    Vietnamese. Both sites.
+    Vietnamese. Both sites. *(Done 2026-11-13, waiting for the review. A fifth e2e project, `phone-vi`
+    (student `linjy`, sharing `leader.lin`), runs every test in Vietnamese at 360 px; it found the admin
+    filters overflowing, since a select is as wide as its longest option. The seed now opens a few 注意 flags,
+    because each project's 注意 test handles one and five projects outran the flags other tests raise.)*
 25. **Translation targets:** `target` replaces `direction` (old field accepted for one release), the prompt
-    per target, one translate button. Tests: each target's prompt, the old field still answered.
+    per target, one translate button. Tests: each target's prompt, the old field still answered. *(Done
+    2026-11-13. Remove `direction` from `shared/src/translate.ts` in the release after this one.)*
 26. **Spec and docs:** announcements in project_prompt.md and FRONTEND.md (the 課堂 screen replacing 開放日記,
     and the new tab bars).
 27. **Announcements API:** schema and migration, service under `services/diary/announcements/`, routes,

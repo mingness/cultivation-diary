@@ -25,13 +25,14 @@ import { Notice } from '../../components/Notice.js';
 import { ErrorState, LoadingState } from '../../components/States.js';
 import { useToast } from '../../components/Toast.js';
 import { useI18n, type Lang } from '../../i18n/index.js';
+import { LOCALES } from '../../i18n/messages.js';
 import { formatDateTime, formatDiaryDate } from '../../lib/dates.js';
 import { useMediaQuery } from '../../lib/media.js';
 import { dateState, noticeKeys } from './countRules.js';
 import { SITE } from '../../site.js';
 import styles from './CountScreen.module.css';
 
-const number = (n: number, lang: Lang) => n.toLocaleString(lang === 'en' ? 'en-GB' : 'zh-Hant-TW');
+const number = (n: number, lang: Lang) => n.toLocaleString(LOCALES[lang]);
 
 export function CountScreen() {
   const { t } = useI18n();

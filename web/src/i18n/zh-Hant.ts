@@ -144,8 +144,7 @@ export const zhHant = {
   'entry.leader': '{name}導師',
   'entry.formerLeader': '前導師',
 
-  'translate.toZh': '翻譯',
-  'translate.toEn': 'Translate',
+  'translate.button': '翻譯成中文',
   'translate.working': '翻譯中…',
   'translate.result': '譯文',
   'translate.off': '這個伺服器沒有啟用翻譯。',

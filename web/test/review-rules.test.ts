@@ -69,6 +69,7 @@ describe('weekdayNames (spec §6.3: Chinese weekday headers)', () => {
   it('starts on Sunday', () => {
     expect(weekdayNames('zh-Hant')).toEqual(['日', '一', '二', '三', '四', '五', '六']);
     expect(weekdayNames('en')[0]).toBe('Sun');
+    expect(weekdayNames('vi')).toEqual(['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']);
   });
 });
 

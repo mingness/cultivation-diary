@@ -147,8 +147,7 @@ export const en: Messages = {
   'entry.leader': 'Leader {name}',
   'entry.formerLeader': 'Former leader',
 
-  'translate.toZh': '翻譯',
-  'translate.toEn': 'Translate',
+  'translate.button': 'Translate into English',
   'translate.working': 'Translating…',
   'translate.result': 'Translation',
   'translate.off': 'Translation isn’t switched on for this server.',

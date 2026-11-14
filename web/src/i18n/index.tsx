@@ -9,19 +9,36 @@ import { en } from './en.js';
 import {
   errorKey,
   format,
+  parseLang,
   type Lang,
   type MessageKey,
   type Messages,
   type Vars,
 } from './messages.js';
+import { vi } from './vi.js';
 import { zhHant } from './zh-Hant.js';
 
 export type { Lang, MessageKey } from './messages.js';
 
-const TABLES: Record<Lang, Messages> = { 'zh-Hant': zhHant, en };
+/** The language this device opened with `?lang=`, kept in the switch even when it isn't offered. */
+export function previewLang(): Lang | null {
+  return parseLang(readPref('langPreview'));
+}
 
+const TABLES: Record<Lang, Messages> = { 'zh-Hant': zhHant, en, vi };
+
+/**
+ * `?lang=` in the address (remembered from then on, so a reviewer can preview a language that isn't offered
+ * yet), else the device's saved choice, else 繁體中文.
+ */
 export function initialLang(): Lang {
-  return readPref('lang') === 'en' ? 'en' : 'zh-Hant';
+  const fromAddress = parseLang(new URLSearchParams(window.location.search).get('lang'));
+  if (fromAddress) {
+    writePref('lang', fromAddress);
+    writePref('langPreview', fromAddress);
+    return fromAddress;
+  }
+  return parseLang(readPref('lang')) ?? 'zh-Hant';
 }
 
 interface I18n {

@@ -10,6 +10,8 @@ import type { Access, Profile, Role } from '@diary/shared';
 import type { AppContext } from '../context.js';
 import { users } from '../db/schema.js';
 import { generateTotpSecret } from '../domain/auth/totp.js';
+import type { AlertRule } from '../domain/limits/attention.js';
+import { raiseAlert } from './activity.js';
 import { AdminToolError, enableTotp } from './admin-tools.js';
 import { saveMyComment } from './diary/comments.js';
 import { createDocument, saveDraft, submitDocument } from './diary/documents.js';
@@ -192,6 +194,17 @@ export interface SeedResult {
  * Loads development users and entries. Refuses in production, and refuses a database that already has users
  * unless `reset` is set (which deletes everything first).
  */
+/** Open Attention flags: at least one per e2e project, since each handles one (web/e2e/admin.spec.ts). */
+const SEED_ALERTS: readonly (readonly [string, AlertRule])[] = [
+  ['chenmd', 'elevated_activity'],
+  ['zhangsf', 'login_failures'],
+  ['wangdt', 'new_devices'],
+  ['wuml', 'limit_reached'],
+  ['linjy', 'elevated_activity'],
+  ['lijg', 'login_failures'],
+  ['chenmh', 'new_devices'],
+];
+
 export async function seed(ctx: AppContext, options: { reset: boolean }): Promise<SeedResult> {
   if (ctx.config.env === 'production') {
     throw new AdminToolError('Refusing to seed a production database.');
@@ -276,6 +289,12 @@ export async function seed(ctx: AppContext, options: { reset: boolean }): Promis
       await submitCount({ ...ctx, clock: () => at }, user.id, { count });
     }
     await updateCountSettings(ctx, user.id, { autoSubmit });
+  }
+  // Open flags, so 注意 has something to handle in development and every e2e project finds one.
+  for (const [username, rule] of SEED_ALERTS) {
+    const user = created.get(username);
+    if (!user) throw new Error(`seed alert for unknown user ${username}`);
+    await raiseAlert(ctx, user, rule);
   }
   return { users: result, entries: SEED_ENTRIES.length };
 }

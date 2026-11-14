@@ -2,7 +2,7 @@
 
 **Local only, not part of CI** (ARCHITECTURE §10): run them before merging a change with UI.
 
-Playwright drives the built web app in a browser at 360 px and 1280 px, in both languages (four projects; see
+Playwright drives the built web app in a browser at 360 px and 1280 px, in each language (five projects; Vietnamese at 360 px only; see
 `../playwright.config.ts`). Each project signs in as its own seeded user.
 
 ## Their own stack

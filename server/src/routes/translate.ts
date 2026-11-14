@@ -4,7 +4,13 @@
  */
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { ErrorCode, TRANSLATE_LIMITS, TranslateRequest, TranslateResponse } from '@diary/shared';
+import {
+  ErrorCode,
+  TRANSLATE_LIMITS,
+  TranslateRequest,
+  TranslateResponse,
+  translateTarget,
+} from '@diary/shared';
 import type { AppContext } from '../context.js';
 import { Capability } from '../domain/authz/policy.js';
 import { FailureThrottle } from '../domain/auth/throttle.js';
@@ -29,7 +35,8 @@ export function translateRoutes(app: FastifyInstance, ctx: AppContext): void {
       schema: {
         tags: ['translate'],
         summary:
-          '翻譯 (en_to_zh) or Translate (zh_to_en) an entry or a comment I may read. Plain text back; 504 after ' +
+          'Translate an entry or a comment I may read into `target` (zh-Hant, en or vi; the source language is ' +
+          'detected). `direction` is the old field, accepted for one release. Plain text back; 504 after ' +
           `10 seconds; at most ${TRANSLATE_LIMITS.perUserPerHour} per hour.`,
         body: TranslateRequest,
         response: { 200: TranslateResponse },
@@ -55,15 +62,17 @@ export function translateRoutes(app: FastifyInstance, ctx: AppContext): void {
         });
       }
 
+      const target = translateTarget(body);
       perUser.recordFailure(actor.id);
       const started = Date.now();
       try {
-        const translated = await translator.translate(text, body.direction);
+        const translated = await translator.translate(text, target);
         // Sizes and timing only: never the text.
         request.log.info(
           {
             event: 'translated',
-            direction: body.direction,
+            target,
+            legacy: 'direction' in body,
             chars: text.length,
             ms: Date.now() - started,
           },

@@ -34,6 +34,14 @@ rebuild. The end-to-end and functional tests rely on `CAPTCHA_FIXED=true`. The e
 
 Also, if the translation url, api-key, and models are not set in `.env` no problem, the translate button will simply not be live.
 
+## Previewing Vietnamese
+
+Vietnamese has a full string table (`web/src/i18n/vi.ts`) but isn't in the language switch until a Vietnamese
+practitioner has reviewed it (ARCHITECTURE.md §8.10). To see it, open any page with `?lang=vi`, for example
+http://localhost:8080/login?lang=vi. That device then keeps VI in the switch, so you can compare with 中文 and
+switch back; other devices don't see it. To offer it to everyone after the review, add `'vi'` to
+`OFFERED_LANGS` in `web/src/i18n/messages.ts`.
+
 ## Sample data
 
 ```sh
@@ -116,7 +124,7 @@ scan and the dependency audit); the other two are for you to run before merging 
 | Unit | Pure logic with exact inputs and outputs: permissions, 報數 input, Beijing dates, crypto, the web app's rules | nothing | `npm run test:unit` |
 | Integration | The API on a fresh database with a controllable clock: every role, allowed and denied | `npm run db:up` | `npm run test:integration` |
 | Functional | The running Docker stack over real HTTP with its real settings, e.g. per-IP rate limits | the stack, freshly restarted | `docker compose restart server`, then `npm run test:functional` |
-| End-to-end | The web app in a real browser (Chromium): 360 px and 1280 px, both languages, axe accessibility checks | Docker; Chromium once via `npx playwright install chromium` | `npm run test:e2e` |
+| End-to-end | The web app in a real browser (Chromium): 360 px and 1280 px, every language, axe accessibility checks | Docker; Chromium once via `npx playwright install chromium` | `npm run test:e2e` |
 
 Other useful commands:
 
