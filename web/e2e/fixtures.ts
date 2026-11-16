@@ -44,7 +44,7 @@ export function seedInfo(): { totpKeys: Record<string, string> } {
   return JSON.parse(readFileSync(file, 'utf8')) as { totpKeys: Record<string, string> };
 }
 
-interface Fixtures {
+export interface Fixtures {
   t: (key: MessageKey, vars?: Vars) => string;
   /** A page already signed in as the project's user. */
   userPage: Page;

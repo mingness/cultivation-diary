@@ -156,7 +156,7 @@ comments                                  -- at most one per (document, leader)
 document_audio                            -- D35; voice notes on a COURSE_LEADER's own entry, at most 6 per entry
   id, document_id FK CASCADE
   audio_ct, audio_nonce                   -- bytea, sealed with the entry's DEK, AAD document:{id}:audio:{audioId}
-  mime ENUM(audio/mp4, audio/webm)        -- from the file's magic bytes, never the request header
+  mime ENUM(audio/mpeg)                   -- from the file's magic bytes, never the request header
   duration_ms (1..120000), bytes, created_at
   pending ENUM(add, remove) NULL          -- NULL = part of the submitted entry; add/remove wait for 提交/更新
   INDEX (document_id, created_at)
@@ -173,7 +173,7 @@ announcements                             -- D32; the whole class (one class for
 announcement_audio                        -- D33; at most one recording per announcement, replaced by re-recording
   announcement_id PK FK CASCADE
   audio_ct, audio_nonce                   -- bytea, sealed with the announcement's DEK, AAD announcement:{id}:audio
-  mime ENUM(audio/webm, audio/mp4)        -- from the file's magic bytes, never the request header
+  mime ENUM(audio/mpeg)                   -- as document_audio (§8.14: MP3 everywhere)
   duration_ms, bytes, created_at
 
 announcement_replies                      -- one visible thread per announcement (D32)
@@ -325,7 +325,7 @@ bodies are ignored.
 | `GET /api/leader/calendar?month=` → submitted-entry count per day | – | ❌ | ❌ | ✅ | ❌ |
 | `GET /api/leader/users?month=` → names + entries this month | – | ❌ | ❌ | ✅ | ❌ |
 | `PUT /api/documents/:id/comments/mine` (`{body, state}`) | – | ❌ | ❌ | ✅ submitted, own included | ❌ |
-| `POST /api/documents/:id/audio?durationMs=` (raw `audio/mp4` or `audio/webm` body), `DELETE /:id/audio/:audioId` (D35) | – | ❌ | ❌ (delete: own, if once a leader) | own; daily limit | ❌ |
+| `POST /api/documents/:id/audio?durationMs=` (raw `audio/mpeg` body), `DELETE /:id/audio/:audioId` (D35) | – | ❌ | ❌ (delete: own, if once a leader) | own; daily limit | ❌ |
 | `GET /api/documents/:id/audio/:audioId` (D35) | – | ❌ | per §7.1, submitted notes | per §7.1, submitted notes; own: all | ❌ |
 | `GET /api/admin/users?q=&role=&status=&page=&size=`; `GET /api/admin/users/:id` | – | ❌ | ❌ | ❌ | ✅ incl. decrypted profiles |
 | `POST /api/admin/users`; `PATCH /api/admin/users/:id` (role, email, profile; never username) | – | ❌ | ❌ | ❌ | ✅ not demoting the last SYS_ADMIN; never a diary member to COUNT_USER |
@@ -340,7 +340,7 @@ bodies are ignored.
 | `GET /api/announcements?page=` (pinned first, then newest; unread and new-reply flags), `GET /:id` (marks read) | – | ❌ | published | published + own drafts; `seenBy` count | metadata only (admin list) |
 | `POST /api/announcements`, `PUT /:id` (`{title, body, state, pinned}`) | – | ❌ | ❌ | ✅ own; daily limit | ❌ |
 | `DELETE /api/announcements/:id` | – | ❌ | ❌ | ✅ any (moderation) | ✅ metadata only |
-| `PUT /api/announcements/:id/audio` (raw `audio/webm` or `audio/mp4` body), `DELETE /:id/audio` | – | ❌ | ❌ | ✅ own | ❌ |
+| `PUT /api/announcements/:id/audio` (raw `audio/mpeg` body), `DELETE /:id/audio` | – | ❌ | ❌ | ✅ own | ❌ |
 | `GET /api/announcements/:id/audio` | – | ❌ | published | published + own drafts | ❌ |
 | `POST /api/announcements/:id/transcribe` (`{language: en \| zh}`) | – | ❌ | ❌ | ✅ own, rate-limited | ❌ |
 | `POST /api/announcements/:id/replies`; `PUT`/`DELETE /api/announcement-replies/:id` | – | ❌ | published; edit/delete own | same; delete any | ❌ |
@@ -653,14 +653,23 @@ aside for now; when they return they should reuse this recorder and player.
   warning level 20). These are boundaries against a hijacked account, not a limit on how much a leader says,
   so they sit well above honest use. Re-recording counts as an upload; the daily cap is what bounds storage,
   since there is still no quota (D25). Notes count towards `storageBytes`.
-- **Recording:** `MediaRecorder` in the browser, at `audioBitsPerSecond: 32000` (a hint). It prefers
-  `audio/mp4` (Chrome, Android and iOS Safari all record it now) and falls back to `audio/webm` (Firefox).
-  MP4/AAC plays on every phone, and Chrome's WebM recordings carry no duration, which breaks players' time
-  and seeking. No server transcoding (no ffmpeg). A countdown from 2:00 stops the recording at the limit;
-  the leader listens back, then keeps it, records again or discards it. Playback across iPhone and Android
-  is checked on real phones (with D10).
+- **Recording (MP3 everywhere, changed 2026-11-16):** browsers' own `MediaRecorder` formats differ (Safari
+  MP4/AAC, Chrome MP4 with AAC or Opus, Firefox and some Androids WebM), and not every phone plays every one.
+  So the app records through Web Audio (an `AudioWorklet`, `web/src/screens/diary/pcm-worklet.js`) and
+  encodes MP3 itself with LAME (`@breezystack/lamejs`, LGPL-3.0, named with its source on 我的), mono at
+  48 kbps (about 6 KB a second, 720 KB for two minutes). The encoder loads only when a recording starts, so
+  students and the mantra site never download it. iPhones start audio only from a tap, so the 錄音 tap creates
+  the audio context (`unlockAudio`). The length is counted from the samples. The microphone's first second is discarded ("麥克風準
+  備中…") and the start fades in over 20 ms: a headset measured on 2026-11-16 sent about a second of
+  full-scale clicks while it started up; the countdown starts after that. No server transcoding (no
+  ffmpeg: decoding untrusted media on the server is a risk we don't need). A countdown from 2:00 stops the
+  recording at the limit; the leader listens back, then keeps it, records again or discards it. Playback
+  plays a downloaded copy from memory (`media-src blob:` in the CSP), since Safari won't play straight from a
+  server that doesn't answer byte-range requests. Recording and playback on iPhone and Android are checked on
+  real phones (with D10).
 - **Server checks:** a per-route body limit refuses anything over `audioBytes` (413 `payload_too_large`); the magic
-  bytes decide the type (MP4 `ftyp` at offset 4, WebM `1A45DFA3`), otherwise 400. The duration comes from the
+  bytes decide the type, and only MP3 is accepted (an `ID3` tag, or an MPEG Layer III frame header), otherwise
+  400. The duration comes from the
   client (reading it from the file would need a parser), so it is checked to be 1..120000; the byte cap is
   the real guard. Only a COURSE_LEADER uploads, and only to their own entry (403 otherwise; 404 for someone
   else's entry). A leader made a NORMAL_USER keeps their notes and may still remove them.
@@ -941,7 +950,8 @@ Built before Phase E, which is set aside for now.
     migration 0011, `services/diary/audio.ts` and `audio-pending.ts`, `server/test/integration/voice-notes.test.ts`.)*
 32. **Voice notes screens:** the recorder in the editor (leaders only), the player in the read view and
     feeds, unsaved-recording guard, spec/FRONTEND text; e2e with Chromium's fake microphone and axe in both
-    themes. Then real-phone playback checks (iPhone ↔ Android).
+    themes. Then real-phone playback checks (iPhone ↔ Android). *(Built 2026-11-15: `VoiceNotes.tsx`,
+    `VoiceRecorder.tsx`, `AudioPlayer.tsx`, `web/e2e/voice.spec.ts`; the real-phone checks are still to do.)*
 
 ### Phase C: production
 
@@ -993,5 +1003,5 @@ Each slice ships with tests, both languages where it has UI, permission tests pe
 | D32 | Course announcements | **Agreed** (2026-11-13): leaders post to the whole class (one class for now); diary members read and reply; announcements share one screen (課堂) with 開放日記, told apart by a filter; COUNT_USERs and the mantra site have none. Replies form **one thread everyone in the class sees** (rejected: replies only to leaders, or a per-announcement choice). Bodies, replies and recordings encrypted with a per-announcement DEK under `DIARY_KEYRING`, in `services/diary/`. §8.12 |
 | D33 | Recording announcements | **Agreed** (2026-11-13): a leader may record an announcement in English or Chinese; the recording is **kept and the class can play it**; a speech-to-text provider transcribes it into the draft, which the leader corrects before publishing. Open: the provider, and how Simplified output becomes Traditional. §8.13 |
 | D34 | Vietnamese | **Agreed** (2026-11-13): a third interface language on both sites, reviewed by a Vietnamese practitioner before it is offered; translation gains Vietnamese as a target. Alert email unchanged. §8.10, §8.6 |
-| D35 | Voice notes on leaders' entries | **Agreed** (2026-11-15): a COURSE_LEADER may add up to 6 voice notes, 2 minutes each, to their own entries; students can't. A note is part of the entry: it goes out with 提交/更新 and is heard by whoever may read the entry, so the class hears it once the entry is shared. No labels or transcription (deaf and translation gap accepted). Comments and announcements get none for now. §8.14 |
+| D35 | Voice notes on leaders' entries | **Agreed** (2026-11-15): a COURSE_LEADER may add up to 6 voice notes, 2 minutes each, to their own entries; students can't. A note is part of the entry: it goes out with 提交/更新 and is heard by whoever may read the entry, so the class hears it once the entry is shared. Recorded as MP3 in every browser (2026-11-16). No labels or transcription (deaf and translation gap accepted). Comments and announcements get none for now. §8.14 |
 | F1–F6 | Frontend decisions | **Agreed**: see FRONTEND.md §11 |

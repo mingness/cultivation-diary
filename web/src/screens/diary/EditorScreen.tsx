@@ -20,6 +20,7 @@ import {
   type Access,
 } from '@diary/shared';
 import { ApiError, NETWORK_ERROR } from '../../api/client.js';
+import { useSession } from '../../api/session.js';
 import {
   saveEntry,
   storeOwnDocument,
@@ -36,13 +37,14 @@ import { Notice } from '../../components/Notice.js';
 import { EmptyState, ErrorState, LoadingState } from '../../components/States.js';
 import { useToast } from '../../components/Toast.js';
 import { useI18n } from '../../i18n/index.js';
-import { useReportUnsaved } from '../../lib/unsaved.js';
+import { useAnyUnsaved, useReportUnsaved } from '../../lib/unsaved.js';
 import { beijingDate, formatDiaryDate, formatTime } from '../../lib/dates.js';
 import { readToolbarState, Toolbar, usePhotoInsert, type EditorMessage } from './editorParts.js';
 import { HistorySheet } from './HistorySheet.js';
 import { counterTone, editorButtons } from './rules.js';
 import { contentExtensions, countImages } from './schema.js';
 import { ShareToggle } from './ShareToggle.js';
+import { EditorVoiceNotes } from './VoiceNotes.js';
 import contentStyles from './content.module.css';
 import styles from './EditorScreen.module.css';
 
@@ -164,26 +166,36 @@ function EntryEditor({ initial }: { initial: OwnerEntry | null }) {
   const access = live?.view === 'owner' ? live.access : server.access;
   // A new entry can't have been unshared; otherwise the server's answer decides (a refusal explains itself).
   const unsharedByLeader = live?.view === 'owner' && live.unsharedByLeader;
+  // Voice notes (D35) are saved as they're kept, so the cached entry is their truth; pending ones need 更新.
+  const notes = live?.view === 'owner' ? live.audio : (initial?.audio ?? []);
+  const pendingAudio = notes.some((n) => n.pending !== null);
+  const { data: session } = useSession();
+  const canRecord = session?.status === 'ready' && session.me.role === 'COURSE_LEADER';
 
   const dirty = (view?.bodyChanged ?? false) || title !== savedTitle;
   useReportUnsaved(dirty);
+  // A recording not yet kept or discarded (the recorder reports it) also holds the user here.
+  const anyUnsaved = useAnyUnsaved();
   const chars = view?.chars ?? 0;
   const saving = status.kind === 'saving';
   const buttons = editorButtons({
     dirty,
     busy: saving,
     submittedOnce: server.submittedOnce,
-    pendingDraft: server.pendingDraft,
+    pendingDraft: server.pendingDraft || pendingAudio,
     chars,
   });
 
-  /** Saves a draft or submits; on success the editor's contents become the saved baseline. */
+  /**
+   * Saves a draft or submits; on success the editor's contents become the saved baseline. Returns the
+   * entry's ID, or null if nothing was saved.
+   */
   async function persist(
     kind: 'draft' | 'submit',
     options: { leaving?: boolean } = {},
-  ): Promise<boolean> {
+  ): Promise<string | null> {
     {
-      if (!editor || busy.current) return false;
+      if (!editor || busy.current) return null;
       busy.current = true;
       const doc = editor.state.doc;
       const sentTitle = title;
@@ -224,12 +236,12 @@ function EntryEditor({ initial }: { initial: OwnerEntry | null }) {
         if (kind === 'submit') {
           toast.show(t(server.submittedOnce ? 'editor.updated' : 'editor.submitted'));
         }
-        return true;
+        return saved.id;
       } catch (error) {
         const apiError = error instanceof ApiError ? error : null;
         setStatus({ kind: apiError?.code === NETWORK_ERROR ? 'offline' : 'failed' });
         setMessage(messageFor(apiError));
-        return false;
+        return null;
       } finally {
         busy.current = false;
       }
@@ -291,7 +303,7 @@ function EntryEditor({ initial }: { initial: OwnerEntry | null }) {
   // Leaving with unsaved changes asks first. The address change after a new entry's first save is not leaving.
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      dirty &&
+      (dirty || anyUnsaved) &&
       currentLocation.pathname !== nextLocation.pathname &&
       nextLocation.pathname !== ownAddress.current,
   );
@@ -349,6 +361,13 @@ function EntryEditor({ initial }: { initial: OwnerEntry | null }) {
           </span>
         </div>
       )}
+
+      <EditorVoiceNotes
+        documentId={server.id}
+        notes={notes}
+        canRecord={canRecord}
+        ensureEntry={() => (server.id ? Promise.resolve(server.id) : persist('draft'))}
+      />
 
       <ShareToggle
         documentId={server.id}

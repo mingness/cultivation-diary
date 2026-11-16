@@ -141,6 +141,10 @@ Keep this file up to date when commands, conventions or pitfalls change.
 
 ## Known pitfalls
 
+- **Small files become `data:` URLs:** Vite inlines assets under 4 KB, and the Content-Security-Policy
+  (`web/nginx/security-headers.conf`) refuses `data:` scripts. A script the browser loads by URL (the
+  voice-note audio worklet) is imported with `?url&no-inline`.
+
 - **Git hooks can't find Node** (`npx`/`node: command not found` on commit): your git client's PATH lacks
   Node (common when nvm/fnm is set up only in interactive shells). Create a git-ignored
   `lefthook-local.yml` containing `rc: ./.lefthook-node.sh`, and in that script put Node on PATH (for fnm:

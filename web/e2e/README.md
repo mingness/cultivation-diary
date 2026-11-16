@@ -29,6 +29,9 @@ npm run e2e:down                  # remove the test stack and its data when you'
 
 Needs `.env` from `npm run dev:setup` (it reads `POSTGRES_PASSWORD` and relies on `CAPTCHA_FIXED=true`).
 
+Chromium starts with a fake microphone (a steady tone, allowed without a prompt; `launchOptions` in
+`../playwright.config.ts`), so `voice.spec.ts` records real voice notes (MP3, as in every browser).
+
 ## Limits
 
 The server's per-IP limits are real: 60 CAPTCHAs and 20 sign-ins a minute, 10 registrations and 5

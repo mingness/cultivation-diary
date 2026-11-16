@@ -1,4 +1,4 @@
-CREATE TYPE "public"."audio_mime" AS ENUM('audio/mp4', 'audio/webm');--> statement-breakpoint
+CREATE TYPE "public"."audio_mime" AS ENUM('audio/mpeg');--> statement-breakpoint
 CREATE TYPE "public"."audio_pending" AS ENUM('add', 'remove');--> statement-breakpoint
 ALTER TYPE "public"."usage_kind" ADD VALUE 'audio';--> statement-breakpoint
 CREATE TABLE "document_audio" (

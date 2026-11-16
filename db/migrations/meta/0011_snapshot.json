@@ -1,5 +1,5 @@
 {
-  "id": "08e440c5-8d8c-44e1-8db4-23bdc0d0ee9f",
+  "id": "55720b19-41f4-47c5-aa21-f8451a296f2d",
   "prevId": "3a0fb09e-0295-49ed-9719-74d1250f91eb",
   "version": "7",
   "dialect": "postgresql",
@@ -1726,8 +1726,7 @@
       "name": "audio_mime",
       "schema": "public",
       "values": [
-        "audio/mp4",
-        "audio/webm"
+        "audio/mpeg"
       ]
     },
     "public.audio_pending": {

@@ -218,7 +218,7 @@ export function documentRoutes(app: FastifyInstance, ctx: AppContext): void {
         tags: TAG,
         summary:
           'Leaders: add a voice note to my own entry (D35). The body is the recording itself, sent as ' +
-          'audio/mp4 or audio/webm (at most 1.5 MB); durationMs is its length (at most 2 minutes). It is ' +
+          'audio/mpeg, an MP3 (at most 1.5 MB); durationMs is its length (at most 2 minutes). It is ' +
           'heard by others only after the next 提交/更新. Limits: 6 notes per entry, 40 uploads per day.',
         params: DocumentIdParams,
         querystring: AudioUploadQuery,
@@ -243,10 +243,10 @@ export function documentRoutes(app: FastifyInstance, ctx: AppContext): void {
       schema: {
         tags: TAG,
         summary:
-          'Play a voice note (D35): the recording, as audio/mp4 or audio/webm. The owner may play any of ' +
+          'Play a voice note (D35): the recording, as audio/mpeg (MP3). The owner may play any of ' +
           "their notes; anyone else who may read the entry, only the submitted entry's. Never cached.",
         params: AudioIdParams,
-        response: { 200: z.any().describe('The recording (audio/mp4 or audio/webm)') },
+        response: { 200: z.any().describe('The recording (audio/mpeg)') },
       },
     },
     async (request, reply) => {

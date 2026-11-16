@@ -24,8 +24,8 @@ export const DocumentIdParams = z.object({ id: z.uuid() });
  */
 export const DocumentState = z.enum(['draft', 'submitted', 'submitted_with_draft']);
 
-/** The formats a voice note may be stored in (D35): what MediaRecorder produces on phones and desktops. */
-export const AudioMime = z.enum(['audio/mp4', 'audio/webm']);
+/** The format voice notes are stored in (D35): MP3, which the app records in every browser and every phone plays. */
+export const AudioMime = z.enum(['audio/mpeg']);
 export type AudioMime = z.infer<typeof AudioMime>;
 
 /** A voice note on a leader's entry (D35), as readers and other leaders get it: part of the submitted entry. */

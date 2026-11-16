@@ -66,10 +66,25 @@ function fallbackCode(status: number): string {
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-/** Calls the API and returns the parsed JSON body; throws ApiError on any failure. */
+/**
+ * Calls the API and returns the parsed JSON body; throws ApiError on any failure. A Blob body (a voice note)
+ * is sent as it is, with its own type; anything else as JSON.
+ */
 export async function api<T>(method: Method, path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = { accept: 'application/json' };
-  if (body !== undefined) headers['content-type'] = 'application/json';
+  const response = await send(method, path, body, 'application/json');
+  return (await response.json()) as T;
+}
+
+/** Fetches a file the API serves (a voice note) as a Blob; throws ApiError on any failure. */
+export async function apiBlob(path: string): Promise<Blob> {
+  const response = await send('GET', path, undefined, '*/*');
+  return response.blob();
+}
+
+async function send(method: Method, path: string, body: unknown, accept: string) {
+  const headers: Record<string, string> = { accept };
+  const raw = body instanceof Blob;
+  if (body !== undefined) headers['content-type'] = raw ? body.type : 'application/json';
   if (method !== 'GET' && csrfToken) headers[CSRF_HEADER] = csrfToken;
 
   let response: Response;
@@ -78,11 +93,11 @@ export async function api<T>(method: Method, path: string, body?: unknown): Prom
       method,
       headers,
       credentials: 'same-origin',
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      ...(body !== undefined ? { body: raw ? body : JSON.stringify(body) } : {}),
     });
   } catch {
     throw new ApiError(0, NETWORK_ERROR, null);
   }
   if (!response.ok) throw await errorFromResponse(response);
-  return (await response.json()) as T;
+  return response;
 }
