@@ -123,6 +123,7 @@ course leader reads → writes comment draft (invisible) → submits comment (vi
 - **No cursor-jump-to-start bug** is acceptable in the comment editor — the initial text must load without moving the caret.
 - After submitting, content must survive re-entry exactly as saved.
 - All rich text is sanitized on the server against an allowlist of the editor's own tags and attributes, before storing and before display.
+- **Voice notes (course leaders' own entries only, added 2026-11-15):** a course leader may record up to 6 voice notes, at most 2 minutes each, on their own entry. A note is part of the entry: it is saved with the draft and goes out with 提交/更新, so it reaches exactly the readers the entry does (other leaders once submitted, the class once shared). Readers see a small player under the body. Students cannot record. No transcript.
 
 ### 5.3 Sharing flow (revised 2026-10-19)
 ```
@@ -163,6 +164,7 @@ The daily caps are set high enough that an honest user, even one catching up on 
 | Updates (更新) of submitted entries | 50 per user per day | A hidden backstop: stops a hijacked account pushing every real version out of the 3-version history |
 | Photos | 2 per entry | Applies to drafts and submissions. The image button is disabled after the second photo, with a short note. Encourages choosing the best photos |
 | Body length | 5,000 characters per entry | Visible text after sanitising, not HTML. Framed as care for the leader who reads it, e.g. "日記以精簡為佳，方便導師細讀" / "A focused entry is easier for your leader to read closely" (final wording reviewed by a native speaker). A counter appears from 80% |
+| Voice notes | 6 per entry, 2 minutes each | Course leaders' own entries only. A boundary against misuse, not a limit on leaders' teaching. Recording stops itself at 2:00. Re-recording counts toward a hidden cap of 40 uploads per day (warning at 20) |
 
 - "Day" is the Beijing calendar date; daily limits reset at midnight Beijing time.
 - **Nothing is ever lost at a limit.** A draft over 5,000 characters still saves; only 提交/更新 is blocked until it is shortened. When a daily limit is reached, the message says which limit and when it resets, and the text in the editor stays.

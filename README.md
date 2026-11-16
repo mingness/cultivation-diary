@@ -35,7 +35,7 @@ curl localhost:3000/readyz
 npm run dev:web        # the web app on http://localhost:5173 (forwards /api to :3000)
 ```
 
-Then open http://localhost:5173 and sign in as `chenmd` (a normal user), `leader.lin` (a leader) or `admin`;
+Then open http://localhost:5173 and sign in as `student.full` (a normal user), `leader.voice` (a leader) or `admin.main`;
 with the dev defaults the CAPTCHA answer is always 3 (`CAPTCHA_FIXED`) and admins need no authenticator code
 (`SKIP_TOTP`). http://localhost:3000/docs lets you
 browse and try every API endpoint (development and staging only).

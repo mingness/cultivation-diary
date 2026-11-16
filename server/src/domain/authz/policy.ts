@@ -113,6 +113,8 @@ export const DocumentAction = {
   /** Take a shared entry back to private. */
   Unshare: 'unshare',
   Delete: 'delete',
+  /** Add a voice note (D35): leaders only, on their own entries. Removing one is `Edit`. */
+  RecordAudio: 'record_audio',
 } as const;
 export type DocumentAction = (typeof DocumentAction)[keyof typeof DocumentAction];
 
@@ -134,6 +136,9 @@ export function canOnDocument(actor: Actor, action: DocumentAction, doc: Documen
       return isOwner || asLeader;
     case DocumentAction.Comment:
       return asLeader;
+    case DocumentAction.RecordAudio:
+      // Students can't record (D35); a leader made a NORMAL_USER keeps their notes and may remove them (Edit).
+      return isOwner && actor.role === 'COURSE_LEADER';
     case DocumentAction.Delete:
       // The spec gives deleting entries to SYS_ADMIN (§6.5), which needs no access to content.
       return actor.role === 'SYS_ADMIN';

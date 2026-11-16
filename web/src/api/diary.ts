@@ -68,13 +68,21 @@ export function useVersions(id: string, enabled: boolean) {
   });
 }
 
-/** Folds a write's answer into the cached owner view (comments and the rest stay as they were). */
+/**
+ * Folds a write's answer into the cached owner view (comments and the rest stay as they were). A submitted
+ * entry with nothing pending has had its voice-note changes applied (D35), so the cached notes follow suit.
+ */
 export function storeOwnDocument(queryClient: QueryClient, document: OwnDocument): void {
-  queryClient.setQueryData<EntryView>(diaryKeys.entry(document.id), (old) =>
-    old?.view === 'owner'
-      ? { ...old, ...document }
-      : { ...document, view: 'owner', comments: [], myComment: null },
-  );
+  queryClient.setQueryData<EntryView>(diaryKeys.entry(document.id), (old) => {
+    if (old?.view !== 'owner') {
+      return { ...document, view: 'owner', comments: [], myComment: null, audio: [] };
+    }
+    const audio =
+      document.state === 'submitted'
+        ? old.audio.filter((a) => a.pending !== 'remove').map((a) => ({ ...a, pending: null }))
+        : old.audio;
+    return { ...old, ...document, audio };
+  });
   void queryClient.invalidateQueries({ queryKey: ['documents', 'mine'] });
   void queryClient.invalidateQueries({ queryKey: diaryKeys.versions(document.id) });
 }

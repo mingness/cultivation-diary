@@ -133,8 +133,8 @@ Keep this file up to date when commands, conventions or pitfalls change.
 - **E2E tests** read strings from the app's own tables via the `t` fixture, so one test covers every
   language. Each project has a seeded user (`userPage`) and a course leader (`leaderPage`); two or three
   projects share each leader, so a leader test works on an entry its own student just created through the API. All
-  projects share one SYS_ADMIN session (`adminPage`, `admin2`), signed in once with its authenticator code: a
-  code can't be used twice, so admin tests never sign in through the form (only `auth.spec` does, as `admin`). The stack's per-IP limits are real: sign in through the saved sessions (`userPage`) rather than
+  projects share one SYS_ADMIN session (`adminPage`, `admin.backup`), signed in once with its authenticator code: a
+  code can't be used twice, so admin tests never sign in through the form (only `auth.spec` does, as `admin.main`). The stack's per-IP limits are real: sign in through the saved sessions (`userPage`) rather than
   the form where the form isn't the point, and run register/forgot-password/admin flows in one project.
 - **Comments** explain why, not what. Public functions get a doc comment.
 - **Commits:** Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `test:`).
@@ -147,6 +147,13 @@ Keep this file up to date when commands, conventions or pitfalls change.
   `eval "$(fnm env --shell bash)"`). Then run `npx lefthook install`, which bakes the rc line into the hook.
 - **Node version:** the system Node may be newer than `.nvmrc`. Use `fnm use` (or `fnm exec --using=26 …`).
   The production image pins the same version.
+- **Migrations on two branches:** Drizzle runs every migration whose journal `when` is later than the newest
+  one the database has applied; the number in the file name means nothing to it. When two branches each add a
+  migration, the branch merged second must delete its own (SQL file, snapshot, journal entry) and run
+  `npm run db:generate -w server` again on top of the other, so it gets the next number and a newer `when`.
+  Renumbering by hand keeps the old `when`, and databases that already ran the other branch's migration then
+  skip it silently (fresh test databases don't, so tests won't notice). A dev database that ran the other
+  branch's migration has one too many for `/readyz`: wipe it (`docker compose down -v`) and reseed.
 - **Empty journal:** `db/migrations/meta/_journal.json` exists even with no migrations, so `/readyz` can tell
   "never migrated" from "up to date". Don't delete it.
 - **Dev-only audit warnings:** `npm audit` reports moderate issues in an old esbuild inside `drizzle-kit`

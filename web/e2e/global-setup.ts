@@ -34,7 +34,7 @@ function reseed(databaseUrl: string): Record<string, string> {
     encoding: 'utf8',
     env: { ...process.env, DATABASE_URL: databaseUrl, NODE_ENV: 'development' },
   });
-  // Lines look like "  SYS_ADMIN     admin           authenticator key: ABC…"
+  // Lines look like "  SYS_ADMIN     admin.main          authenticator key: ABC…  <note>"
   const keys: Record<string, string> = {};
   for (const match of output.matchAll(/^\s*SYS_ADMIN\s+(\S+)\s+authenticator key: (\S+)/gm)) {
     keys[match[1]!] = match[2]!;
@@ -43,10 +43,10 @@ function reseed(databaseUrl: string): Record<string, string> {
   return keys;
 }
 
-/** The SYS_ADMIN every project's admin tests share (see auth.spec: `admin` is kept for the sign-in form). */
-export const SESSION_ADMIN = 'admin2';
+/** The SYS_ADMIN every project's admin tests share (auth.spec signs `admin.main` in through the form). */
+export const SESSION_ADMIN = 'admin.backup';
 /** The mantra-only account (COUNT_USER) every project shares. */
-export const SESSION_MANTRA = 'mantra.amy';
+export const SESSION_MANTRA = 'mantra.named';
 
 async function saveSession(baseURL: string, username: string, totpKey?: string): Promise<void> {
   const context = await request.newContext({ baseURL });

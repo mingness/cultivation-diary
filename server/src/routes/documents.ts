@@ -5,8 +5,14 @@
  */
 import type { FastifyBaseLogger, FastifyInstance, FastifyRequest } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
+import { z } from 'zod';
 import {
   AccessChangeRequest,
+  AudioIdParams,
+  AudioUploadQuery,
+  ENTRY_LIMITS,
+  OkResponse,
+  OwnAudioNote,
   AccessChangeResponse,
   CreateDocumentRequest,
   DocumentIdParams,
@@ -25,6 +31,7 @@ import type { AppContext } from '../context.js';
 import { Capability } from '../domain/authz/policy.js';
 import { authOf, requireCapability } from '../plugins/auth.js';
 import { recordActivity, safely, type ActivitySubject } from '../services/activity.js';
+import { addAudio, playAudio, removeAudio } from '../services/diary/audio.js';
 import { saveMyComment } from '../services/diary/comments.js';
 import {
   createDocument,
@@ -81,6 +88,14 @@ async function tracked<T extends Pick<Written, 'activity' | 'elevated'>>(
 export function documentRoutes(app: FastifyInstance, ctx: AppContext): void {
   const routes = app.withTypeProvider<ZodTypeProvider>();
   const writer = requireCapability(Capability.WriteDiary);
+
+  // Voice notes arrive as the raw recording (D35), so no multipart dependency. Any `audio/*` body is read
+  // into a Buffer up to the note's size cap; its real type is decided from its bytes, not this header.
+  app.addContentTypeParser(
+    /^audio\//,
+    { parseAs: 'buffer', bodyLimit: ENTRY_LIMITS.audioBytes },
+    (_request, body, done) => done(null, body),
+  );
 
   routes.get(
     '/api/documents/mine',
@@ -191,6 +206,77 @@ export function documentRoutes(app: FastifyInstance, ctx: AppContext): void {
         submitDocument(ctx, user.id, request.params.id, request.body),
       );
       return document;
+    },
+  );
+
+  routes.post(
+    '/api/documents/:id/audio',
+    {
+      onRequest: writer,
+      bodyLimit: ENTRY_LIMITS.audioBytes,
+      schema: {
+        tags: TAG,
+        summary:
+          'Leaders: add a voice note to my own entry (D35). The body is the recording itself, sent as ' +
+          'audio/mp4 or audio/webm (at most 1.5 MB); durationMs is its length (at most 2 minutes). It is ' +
+          'heard by others only after the next 提交/更新. Limits: 6 notes per entry, 40 uploads per day.',
+        params: DocumentIdParams,
+        querystring: AudioUploadQuery,
+        response: { 201: OwnAudioNote },
+      },
+    },
+    async (request, reply) => {
+      const { actor, user } = authOf(request);
+      // Anything but an audio body becomes an empty file, refused after the permission check.
+      const file = Buffer.isBuffer(request.body) ? request.body : Buffer.alloc(0);
+      const { note } = await tracked(ctx, request.log, user, () =>
+        addAudio(ctx, actor, request.params.id, file, request.query.durationMs),
+      );
+      return reply.code(201).send(note);
+    },
+  );
+
+  routes.get(
+    '/api/documents/:id/audio/:audioId',
+    {
+      onRequest: writer,
+      schema: {
+        tags: TAG,
+        summary:
+          'Play a voice note (D35): the recording, as audio/mp4 or audio/webm. The owner may play any of ' +
+          "their notes; anyone else who may read the entry, only the submitted entry's. Never cached.",
+        params: AudioIdParams,
+        response: { 200: z.any().describe('The recording (audio/mp4 or audio/webm)') },
+      },
+    },
+    async (request, reply) => {
+      const { mime, file } = await playAudio(
+        ctx,
+        authOf(request).actor,
+        request.params.id,
+        request.params.audioId,
+      );
+      // A Buffer is sent as it is, without the JSON serialiser.
+      return reply.type(mime).header('cache-control', 'no-store').send(file);
+    },
+  );
+
+  routes.delete(
+    '/api/documents/:id/audio/:audioId',
+    {
+      onRequest: writer,
+      schema: {
+        tags: TAG,
+        summary:
+          'Remove a voice note from my entry (D35). One never submitted is deleted at once; a submitted one ' +
+          'is still heard by others until the next 提交/更新.',
+        params: AudioIdParams,
+        response: { 200: OkResponse },
+      },
+    },
+    async (request) => {
+      await removeAudio(ctx, authOf(request).actor, request.params.id, request.params.audioId);
+      return { ok: true as const };
     },
   );
 

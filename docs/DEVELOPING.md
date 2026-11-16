@@ -49,13 +49,27 @@ npm run seed -- --reset    # wipes all data, then creates the sample users and e
 
 Every password is `password123`. With the development defaults, every CAPTCHA answer is **3**.
 
-| Username | Role | Notes |
+Usernames say what each account is for, `<role>.<situation>`, and together they cover every state a screen can
+show (the seed command prints the same list; `server/src/services/seed.ts` has the details).
+
+| Username | Role | What it shows |
 | --- | --- | --- |
-| `admin`, `admin2` | SYS_ADMIN | Authenticator keys are printed by the seed command |
-| `leader.lin`, `leader.huang` | COURSE_LEADER | Each leads some of the users below |
-| `chenmd`, `zhangsf`, `wangdt`, `wuml`, `linjy`, `lijg` | NORMAL_USER | Sample diary entries, some shared |
-| `chenmh` | NORMAL_USER | Waiting for a password reset: can't sign in until an admin sets one |
-| `mantra.amy`, `mantra.ben` | COUNT_USER | Mantra only (報數 and 我的); `mantra.amy` has the display name 妙音 |
+| `admin.main` | SYS_ADMIN | Signs in through the form in e2e. Authenticator keys are printed by the seed command |
+| `admin.backup` | SYS_ADMIN | The e2e tests' shared admin session; sees the other admin's alerts |
+| `leader.voice` | COURSE_LEADER | Own entries with voice notes: shared, pending add/remove, a draft with a note; comments |
+| `leader.reviewer` | COURSE_LEADER | No diary of their own (empty state); comments and unshares |
+| `student.full` | NORMAL_USER | Every entry state: draft, shared, unshared by a leader, 4 updates (history keeps the newest 3), 2 photos, a long entry (length counter), a draft too long to submit, new, seen and draft comments, a former leader's comment |
+| `student.shared` | NORMAL_USER | Shares entries with the class |
+| `student.commented` | NORMAL_USER | A private entry with a submitted and a draft comment |
+| `student.daily` | NORMAL_USER | Reports 1080 every day; one shared entry |
+| `student.new` | NORMAL_USER | No entries yet (empty diary); one count |
+| `student.exleader` | NORMAL_USER | A former leader: their shared entry keeps its voice note (D35) |
+| `student.locked` | NORMAL_USER | Waiting for a password reset: can't sign in until an admin sets one |
+| `mantra.named` | COUNT_USER | Mantra only (報數 and 我的); display name 妙音 |
+| `mantra.noname` | COUNT_USER | Mantra only; no display name, so the username shows |
+
+`leader.departed` is created, comments, and is deleted again, so `student.full`'s 放生 shows a comment from a
+former leader. Voice notes are a 6-second tone from `server/seed-assets/` (one MP4, one WebM, so both play).
 
 To start from an empty database instead: `docker compose down -v` (deletes the database volume), then
 `docker compose up -d --wait --build`. With no users at all, create the first admin as in production (see
@@ -70,13 +84,13 @@ flow:
    needed; the setting is read at start-up). For the dev server, restart `npm run dev`.
 2. Choose how to get codes:
    - **Your own phone:** clear the seeded key with
-     `docker compose exec server node server/dist/cli.js reset-totp admin`, sign in as `admin`, and scan
+     `docker compose exec server node server/dist/cli.js reset-totp admin.main`, sign in as `admin.main`, and scan
      the QR code the app shows.
    - **No phone:** keep the seeded key and get the current code with
      `npm run cli -w server -- totp-code <key printed by the seed>`.
 3. **Change the authenticator:** go to 我的 → 更換驗證器, enter the password and a code from the current app,
    scan the new QR code, and enter a code from the new app. Other devices are signed out, and the other
-   admins see 換了驗證器 under 注意 (sign in as `admin2` to check).
+   admins see 換了驗證器 under 注意 (sign in as `admin.backup` to check).
 4. When you're done, set `SKIP_TOTP=true` again and restart the server.
 
 Re-seeding gives the admins new random keys, so repeat step 2 afterwards. The server refuses to start with

@@ -5,7 +5,7 @@
 import { and, count, desc, eq, sql, type SQL } from 'drizzle-orm';
 import { ErrorCode } from '@diary/shared';
 import type { AppContext } from '../context.js';
-import { documents, users } from '../db/schema.js';
+import { documentAudio, documents, users } from '../db/schema.js';
 import { HttpError } from '../http-errors.js';
 
 export async function searchDocumentMetadata(
@@ -29,7 +29,11 @@ export async function searchDocumentMetadata(
       ownerId: documents.ownerId,
       ownerUsername: users.username,
       firstSubmittedAt: documents.firstSubmittedAt,
-      hasDraft: sql<boolean>`${documents.draftCt} IS NOT NULL`,
+      // Pending voice-note changes (D35) count as a draft; only the pending flag is read, never audio.
+      hasDraft: sql<boolean>`${documents.draftCt} IS NOT NULL OR EXISTS (
+        SELECT 1 FROM ${documentAudio}
+        WHERE ${documentAudio.documentId} = ${documents.id} AND ${documentAudio.pending} IS NOT NULL
+      )`,
       access: documents.access,
       createdAt: documents.createdAt,
       updatedAt: documents.updatedAt,

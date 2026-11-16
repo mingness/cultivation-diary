@@ -1,6 +1,7 @@
 /** The command-line tool's operations: first admin, recovery, and the development seed. */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
+import { MAX_VERSIONS } from '@diary/shared';
 import { users } from '../../src/db/schema.js';
 import { currentTotpCode, generateTotpSecret } from '../../src/domain/auth/totp.js';
 import {
@@ -110,18 +111,25 @@ describe('seed', () => {
   it('loads every role, admins with authenticators, and one locked account', async () => {
     const result = await seed(t.ctx, { reset: true });
     const [{ n } = { n: 0 }] = await t.ctx.db.select({ n: sql<number>`count(*)::int` }).from(users);
-    expect(n).toBe(SEED_USERS.length);
+    // One leader is deleted after commenting.
+    expect(n).toBe(SEED_USERS.length - 1);
+    expect(result.voiceNotes).toBe(true);
     expect(result.users.filter((u) => u.role === 'SYS_ADMIN').every((u) => u.totpSecret)).toBe(
       true,
     );
-    expect(result.users.filter((u) => u.role === 'COURSE_LEADER')).toHaveLength(2);
 
-    expect((await login(t.app, 'chenmd', SEED_PASSWORD)).res.json().status).toBe('ok');
-    expect((await login(t.app, 'leader.lin', SEED_PASSWORD)).res.json().user.role).toBe(
+    expect((await login(t.app, 'student.full', SEED_PASSWORD)).res.json().status).toBe('ok');
+    expect((await login(t.app, 'leader.voice', SEED_PASSWORD)).res.json().user.role).toBe(
       'COURSE_LEADER',
     );
-    expect((await login(t.app, 'chenmh', SEED_PASSWORD)).res.statusCode).toBe(401);
-    expect((await login(t.app, 'admin', SEED_PASSWORD)).res.json().status).toBe('totp_required');
+    expect((await login(t.app, 'student.exleader', SEED_PASSWORD)).res.json().user.role).toBe(
+      'NORMAL_USER',
+    );
+    expect((await login(t.app, 'student.locked', SEED_PASSWORD)).res.statusCode).toBe(401);
+    expect((await login(t.app, 'leader.departed', SEED_PASSWORD)).res.statusCode).toBe(401);
+    expect((await login(t.app, 'admin.main', SEED_PASSWORD)).res.json().status).toBe(
+      'totp_required',
+    );
   });
 });
 
@@ -143,22 +151,30 @@ describe('seed entries (spec §11)', () => {
           (r) => (state === null || r.state === state) && (access === null || r.access === access),
         )
         .reduce((sum, r) => sum + r.n, 0);
-    expect(count(null, 'course')).toBe(3);
+    expect(count(null, 'course')).toBeGreaterThanOrEqual(3);
     const { rows: unshared } = await t.testDb.database.pool.query<{ n: number }>(
       'SELECT count(*)::int AS n FROM documents WHERE unshared_by_leader_at IS NOT NULL',
     );
     expect(unshared[0]!.n).toBe(1);
     expect(count('draft', null)).toBeGreaterThanOrEqual(1);
     expect(count('submitted_with_draft', null)).toBeGreaterThanOrEqual(1);
+    // An entry with more updates than history keeps (spec §5.2).
     const { rows: versions } = await t.testDb.database.pool.query<{ n: number }>(
-      'SELECT count(*)::int AS n FROM document_versions',
+      'SELECT max(c)::int AS n FROM (SELECT count(*) AS c FROM document_versions GROUP BY document_id) v',
     );
-    expect(versions[0]!.n).toBeGreaterThanOrEqual(2);
+    expect(versions[0]!.n).toBe(MAX_VERSIONS);
     // Leaders may keep a diary too (D19).
     const { rows: leaderEntries } = await t.testDb.database.pool.query<{ n: number }>(
       `SELECT count(*)::int AS n FROM documents d JOIN users u ON u.id = d.owner_id WHERE u.role = 'COURSE_LEADER'`,
     );
     expect(leaderEntries[0]!.n).toBeGreaterThanOrEqual(1);
+    // Voice notes (D35) in every state, and one kept by a leader who is now a NORMAL_USER.
+    const { rows: notes } = await t.testDb.database.pool.query<{ pending: string; role: string }>(
+      `SELECT coalesce(a.pending::text, 'submitted') AS pending, u.role::text AS role
+         FROM document_audio a JOIN documents d ON d.id = a.document_id JOIN users u ON u.id = d.owner_id`,
+    );
+    expect(new Set(notes.map((r) => r.pending))).toEqual(new Set(['submitted', 'add', 'remove']));
+    expect(notes.some((r) => r.role === 'NORMAL_USER')).toBe(true);
     const { rows: dump } = await t.testDb.database.pool.query<{ text: string }>(
       "SELECT string_agg(row_to_json(d)::text, '') AS text FROM documents d",
     );
@@ -170,6 +186,11 @@ describe('seed entries (spec §11)', () => {
       draft: 2,
       submitted: 2,
     });
+    // A deleted leader's submitted comment stays, without an author (D18).
+    const { rows: former } = await t.testDb.database.pool.query<{ n: number }>(
+      "SELECT count(*)::int AS n FROM comments WHERE author_id IS NULL AND state = 'submitted'",
+    );
+    expect(former[0]!.n).toBe(1);
     // Titles are plaintext by design (spec §3); bodies never are. 計數器 appears only in a seeded body.
     expect(dump[0]!.text).not.toContain('計數器');
   });

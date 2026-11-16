@@ -15,6 +15,7 @@ export const fieldAad = {
   documentVersion: (documentId: string, versionNo: number) =>
     `document:${documentId}:version:${versionNo}`,
   comment: (documentId: string, commentId: string) => `document:${documentId}:comment:${commentId}`,
+  documentAudio: (documentId: string, audioId: string) => `document:${documentId}:audio:${audioId}`,
   profile: (userId: string) => `profile:${userId}:fields`,
   totpSecret: (userId: string) => `profile:${userId}:totp`,
   totpPending: (userId: string) => `profile:${userId}:totp-pending`,

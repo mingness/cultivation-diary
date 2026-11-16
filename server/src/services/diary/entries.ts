@@ -21,6 +21,7 @@ import { openText } from '../../domain/crypto/aead.js';
 import { fieldAad } from '../../domain/crypto/contexts.js';
 import { forbidden } from '../../http-errors.js';
 import { peopleByIds } from '../people.js';
+import { ownAudioNotes, submittedAudioNotes } from './audio.js';
 import { myComment, submittedComments } from './comments.js';
 import { notFound, toOwnDocument, type DocumentRow } from './documents.js';
 import { documentKey } from './keys.js';
@@ -76,9 +77,14 @@ export async function readEntry(ctx: AppContext, reader: Reader, id: string): Pr
           ),
         );
     }
+    const audio = await ownAudioNotes(ctx, id);
     return {
       view: 'owner',
-      ...toOwnDocument(ctx, row),
+      ...toOwnDocument(
+        ctx,
+        row,
+        audio.some((a) => a.pending !== null),
+      ),
       comments: shown.map(({ id: commentId, authorName, submittedAt, body, seenByOwnerAt }) => ({
         id: commentId,
         authorName,
@@ -87,6 +93,7 @@ export async function readEntry(ctx: AppContext, reader: Reader, id: string): Pr
         isNew: seenByOwnerAt === null,
       })),
       myComment: isLeader ? await myComment(ctx, id, dek, reader.id) : null,
+      audio,
     };
   }
 
@@ -105,6 +112,7 @@ export async function readEntry(ctx: AppContext, reader: Reader, id: string): Pr
       fieldAad.documentContent(id),
     ),
     submittedAt: row.lastSubmittedAt.toISOString(),
+    audio: await submittedAudioNotes(ctx, id),
   };
   const shownComments = (
     await submittedComments(ctx, id, dek, view === 'leader' ? reader.id : undefined)

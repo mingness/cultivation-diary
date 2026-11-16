@@ -3,7 +3,7 @@
  * there is no quota. Computed on request; cache it only if it proves slow.
  *
  * That is the encrypted profile (including the photo) and authenticator secret, plus the user's entries:
- * submitted content, drafts, history versions, and comments on their entries.
+ * submitted content, drafts, history versions, comments on their entries, and voice notes (D35).
  */
 import { inArray, sql } from 'drizzle-orm';
 import type { AppContext } from '../context.js';
@@ -27,6 +27,9 @@ export async function storageBytesByUser(
                     WHERE d.owner_id = users.id), 0)
         + coalesce((SELECT sum(octet_length(c.body_ct))
                     FROM comments c JOIN documents d ON d.id = c.document_id
+                    WHERE d.owner_id = users.id), 0)
+        + coalesce((SELECT sum(octet_length(a.audio_ct))
+                    FROM document_audio a JOIN documents d ON d.id = a.document_id
                     WHERE d.owner_id = users.id), 0)
       )::bigint`.mapWith(Number),
     })

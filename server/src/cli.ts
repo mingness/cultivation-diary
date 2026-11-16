@@ -124,11 +124,14 @@ async function main(argv: string[]): Promise<void> {
         say(
           `Seeded ${result.users.length} users and ${result.entries} diary entries. Every password is: ${SEED_PASSWORD}\n`,
         );
+        // e2e global setup reads the SYS_ADMIN lines: role, username, then "authenticator key: <key>".
         for (const u of result.users) {
-          const extra = u.totpSecret ? `  authenticator key: ${u.totpSecret}` : '';
-          const locked = u.resetPending ? '  (locked: waiting for password reset)' : '';
-          say(`  ${u.role.padEnd(13)} ${u.username.padEnd(14)}${extra}${locked}`);
+          const key = u.totpSecret ? `  authenticator key: ${u.totpSecret}` : '';
+          const gone = u.deleted ? ' (deleted)' : '';
+          say(`  ${u.role.padEnd(13)} ${u.username.padEnd(18)}${key}  ${u.note}${gone}`);
         }
+        if (!result.voiceNotes)
+          say('\n(server/seed-assets/ not found: entries have no voice notes)');
         say('\nFor an admin login, add the key to an authenticator app, or run:');
         say('  npm run cli -w server -- totp-code <key>');
         break;
