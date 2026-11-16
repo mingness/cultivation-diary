@@ -236,7 +236,7 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
 - **Stats:** one progress card leads. The all-time total is the largest number on the page; under it, a thick
   progress bar; under that, the goal (10,000,000) and the percentage completed side by side, in large type. Below it, a slim "reported today"
   row (sum + number of entries). There is no separate goal tile (agreed).
-- **Input card:** 今日報數 with a numeric keypad, a date choice (今天 by default, or one of the previous 5 days,
+- **Input card:** 今日報數 with a numeric keypad, a date choice (今天 by default, or one of the previous 4 days,
   shown as short weekday chips), 提交, and the 自動報數 checkbox with "每天北京時間凌晨 2:00". After 20 reports for
   the chosen date, 提交 is disabled with the reason. Reporting again for a date replaces that day's number
   (say so next to 提交 when the chosen date already has one).

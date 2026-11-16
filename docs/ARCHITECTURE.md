@@ -189,7 +189,7 @@ announcement_reads                        -- the unread badge, "new replies" and
 
 count_entries
   id, user_id FK CASCADE, daily_count INT CHECK (1..1080), count_date DATE, submitted_at, auto BOOL
-  INDEX (user_id, count_date)             -- count_date is today or up to 5 days earlier, checked by the server
+  INDEX (user_id, count_date)             -- count_date is today or up to 4 days earlier, checked by the server
 
 count_settings
   user_id PK, auto_submit BOOL, saved_count INT CHECK (0..1080), updated_at
@@ -494,7 +494,7 @@ traditional characters throughout (F5); no offline writing in v1 (F6).
 - App-wide: one shared total (agreed).
 - `normaliseDailyCount` in `shared/src/count.ts` trims non-digits and clamps to 1–1080, returning notices. The same function runs in
   the client (UX) and the server (enforcement), and DB CHECKs are the backstop.
-- **Count date (D23):** today or up to 5 days earlier (Asia/Shanghai), from `countDateChoices` in
+- **Count date (D23):** today or up to 4 days earlier (Asia/Shanghai), from `countDateChoices` in
   `shared/src/count.ts` (the summary returns the allowed dates for the chips); never in the future. Manual entries are limited to 20 per user per `count_date` (the auto entry is exempt), so backdating
   can't multiply the limit; the 5th warns (`COUNT_WARNING`).
 - **A report replaces the day's number:** every total uses each user's latest report per `count_date`
@@ -1036,7 +1036,7 @@ Each slice ships with tests, both languages where it has UI, permission tests pe
 | D20 | API explorer for checking the backend by hand | **Agreed**: `@fastify/swagger` + `@fastify/swagger-ui` + `fastify-type-provider-zod` (OpenAPI from the zod schemas; assets bundled, no CDN). On by default outside production, off in production; staging sets `API_DOCS=true` |
 | D21 | Usage limits against a hijacked account | **Agreed**: per user per day 20 creates, 20 first submissions, 50 updates; per entry 2 photos and 5,000 characters (framed as care for the reading leader); 20 manual count reports per count date (a report replaces that date's number, so this only limits traffic; changed 2026-10-15). §8.3, §8.5 |
 | D22 | Entry dates and the submit button | **Agreed**: date = creation date, set by the server; several entries per date; no backdating. 提交 for the first submit, then 更新 |
-| D23 | Backdating counts | **Agreed**: up to 5 days back; the count limit applies per count date |
+| D23 | Backdating counts | **Agreed**: up to 4 days back (5 date chips, so they fit one row; was 5 back until 2026-11-16); the count limit applies per count date |
 | D24 | Deleting entries | **Agreed**: SYS_ADMIN only, immediate. No user delete or trash until asked for |
 | D25 | Storage quota | **Agreed: none**. Daily limits and image caps bound storage; usage is shown to the user and to SYS_ADMINs |
 | D26 | Spotting odd behaviour | **Agreed**: metadata-only activity log (90 days), Attention list with simple rules, sign-out-all, lock, delete counts by date range. §8.9 |

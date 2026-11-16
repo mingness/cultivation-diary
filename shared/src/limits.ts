@@ -54,7 +54,7 @@ export const COUNT_LIMITS = {
   /** Manual reports per user per count date; the nightly auto entry doesn't count toward it. */
   manualPerCountDate: 20,
   /** A count may be reported for today or up to this many days earlier (Beijing dates); never the future. */
-  backdateDays: 5,
+  backdateDays: 4,
 } as const;
 
 /**

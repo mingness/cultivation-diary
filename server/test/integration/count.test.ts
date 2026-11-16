@@ -75,12 +75,12 @@ const autoRun = (secret?: string) =>
 const TODAY = '2026-10-14';
 
 describe('reporting a count (spec §7.2)', () => {
-  it('defaults to today, accepts the 5 days before, and refuses older or future dates', async () => {
+  it('defaults to today, accepts the 4 days before, and refuses older or future dates', async () => {
     const u = await counter();
     const res = await report(u, 108);
     expect(res.json()).toMatchObject({ count: 108, countDate: TODAY, auto: false });
-    expect((await report(u, 1, '2026-10-09')).statusCode).toBe(201);
-    expect(code(await report(u, 1, '2026-10-08')).code).toBe('validation_failed');
+    expect((await report(u, 1, '2026-10-10')).statusCode).toBe(201);
+    expect(code(await report(u, 1, '2026-10-09')).code).toBe('validation_failed');
     expect(code(await report(u, 1, '2026-10-15')).code).toBe('validation_failed');
     expect((await report(u, 1081)).statusCode).toBe(400);
   });
@@ -166,7 +166,6 @@ describe('the progress card and latest table (spec §7.1)', () => {
       '2026-10-12',
       '2026-10-11',
       '2026-10-10',
-      '2026-10-09',
     ]);
   });
 
@@ -183,7 +182,6 @@ describe('the progress card and latest table (spec §7.1)', () => {
       { countDate: '2026-10-12', count: null, manualReports: 0 },
       { countDate: '2026-10-11', count: null, manualReports: 0 },
       { countDate: '2026-10-10', count: null, manualReports: 0 },
-      { countDate: '2026-10-09', count: null, manualReports: 0 },
     ]);
   });
 

@@ -420,7 +420,7 @@ export const countEntries = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     dailyCount: integer('daily_count').notNull(),
-    /** The Beijing date the count is for: today or up to 5 days earlier (D23). */
+    /** The Beijing date the count is for: today or up to 4 days earlier (D23). */
     countDate: date('count_date', { mode: 'string' }).notNull(),
     submittedAt: timestamptz('submitted_at').notNull(),
     /** Made by the 02:00 job rather than the user. */
