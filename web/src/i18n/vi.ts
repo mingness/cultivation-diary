@@ -107,6 +107,8 @@ export const vi: Messages = {
   'account.size18': 'Lớn',
   'account.size20': 'Rất lớn',
   'account.size22': 'Lớn nhất',
+  // For the reviewer (D35).
+  'account.credits': 'Ghi âm được mã hoá bằng bộ mã hoá LAME MP3 (giấy phép LGPL-3.0). Mã nguồn:',
   'account.preview': 'Hôm nay tôi ngồi thiền một giờ, tâm rất an tĩnh.',
   'account.previewLabel': 'Xem trước',
   'account.theme': 'Chủ đề',
@@ -212,6 +214,41 @@ export const vi: Messages = {
   'editor.submitted': 'Đã gửi. Người hướng dẫn giờ đã đọc được bài này.',
   'editor.updated': 'Đã cập nhật. Người hướng dẫn giờ thấy bản mới.',
 
+  // Voice notes (D35, 2026-11-15): drafted, for the reviewer.
+  'voice.heading': 'Ghi âm',
+  'voice.record': 'Ghi âm',
+  'voice.limit': 'Mỗi bài tối đa {max} đoạn ghi âm',
+  'voice.note': 'Ghi âm {n}',
+  'voice.play': 'Phát',
+  'voice.pause': 'Tạm dừng',
+  'voice.loading': 'Đang tải…',
+  'voice.pending': 'Chờ cập nhật',
+  'voice.pendingRemove': 'Sẽ gỡ khi cập nhật',
+  'voice.remove': 'Xoá',
+  'voice.removeTitle': 'Xoá đoạn ghi âm này?',
+  'voice.removeBody':
+    'Đoạn chưa gửi sẽ bị xoá ngay; đoạn đã gửi sẽ được gỡ khi bạn cập nhật lần tới.',
+  'voice.start': 'Bắt đầu ghi âm',
+  'voice.preparing': 'Đang chuẩn bị micrô…',
+  'voice.stop': 'Dừng',
+  'voice.recording': 'Đang ghi, còn {time}',
+  'voice.recorded': 'Đoạn ghi dài {time}',
+  'voice.listen': 'Nghe thử',
+  'voice.keep': 'Giữ lại',
+  'voice.redo': 'Ghi lại',
+  'voice.discard': 'Bỏ',
+  'voice.discardTitle': 'Bỏ đoạn ghi âm này?',
+  'voice.keepRecording': 'Quay lại',
+  'voice.uploading': 'Đang tải lên…',
+  'voice.kept': 'Đã giữ đoạn ghi âm. Học viên sẽ nghe được sau khi bạn gửi hoặc cập nhật.',
+  'voice.stillHere': 'Đoạn ghi âm vẫn còn đây; hãy thử lại.',
+  'voice.micDenied':
+    'Không dùng được micrô. Hãy cho phép trang này dùng micrô trong cài đặt trình duyệt hoặc điện thoại, rồi thử lại.',
+  'voice.unsupported':
+    'Trình duyệt này không ghi âm được. Hãy dùng Chrome, Safari hoặc Edge bản mới.',
+  'voice.failed': 'Ghi âm không thành công. Vui lòng thử lại.',
+  'voice.playFailed': 'Không phát được đoạn ghi âm này.',
+
   'status.saved': 'Đã lưu {time}',
   'status.submitted': 'Đã gửi {time}',
   'status.saving': 'Đang lưu…',
@@ -224,6 +261,9 @@ export const vi: Messages = {
   'limit.update': 'Hôm nay bạn đã cập nhật {max} lần, đạt giới hạn mỗi ngày.',
   'limit.images': 'Mỗi bài tối đa {max} ảnh.',
   'limit.chars': 'Bài gửi đi tối đa {max} ký tự.',
+  // For the reviewer (D35).
+  'limit.audio': 'Hôm nay bạn đã tải lên {max} đoạn ghi âm, đạt giới hạn mỗi ngày.',
+  'limit.audioNotes': 'Mỗi bài tối đa {max} đoạn ghi âm.',
   'limit.resets':
     'Giới hạn được đặt lại lúc nửa đêm giờ Bắc Kinh. Nội dung của bạn vẫn còn trong trình soạn thảo.',
   'limit.kept': 'Nội dung của bạn vẫn còn trong trình soạn thảo.',

@@ -19,7 +19,15 @@ export default defineConfig<E2eOptions>({
   retries: process.env.CI ? 1 : 0,
   forbidOnly: Boolean(process.env.CI),
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
-  use: { baseURL, trace: 'retain-on-failure', screenshot: 'only-on-failure' },
+  use: {
+    baseURL,
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    // A fake microphone (a steady tone), allowed without a prompt, for the voice-note recorder (D35).
+    launchOptions: {
+      args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
+    },
+  },
   // Each project signs in as its own seeded user, so projects running side by side never share settings.
   // Leaders are shared by two or three projects, so leader tests work on entries their own test just created.
   projects: [

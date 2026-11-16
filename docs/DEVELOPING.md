@@ -69,7 +69,7 @@ show (the seed command prints the same list; `server/src/services/seed.ts` has t
 | `mantra.noname` | COUNT_USER | Mantra only; no display name, so the username shows |
 
 `leader.departed` is created, comments, and is deleted again, so `student.full`'s 放生 shows a comment from a
-former leader. Voice notes are a 6-second tone from `server/seed-assets/` (one MP4, one WebM, so both play).
+former leader. Voice notes are a 6-second tone, as MP3 like the app's recordings, from `server/seed-assets/`.
 
 To start from an empty database instead: `docker compose down -v` (deletes the database volume), then
 `docker compose up -d --wait --build`. With no users at all, create the first admin as in production (see

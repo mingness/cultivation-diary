@@ -157,8 +157,6 @@ function longText(chars: number): string {
   return p(...paragraphs);
 }
 
-type Recording = 'm4a' | 'webm';
-
 interface SeedEntry {
   readonly owner: string;
   readonly daysAgo: number;
@@ -175,12 +173,12 @@ interface SeedEntry {
   readonly commentsSeen?: boolean;
   /** Voice notes (D35; the owner must be a leader when the seed writes them). */
   readonly audio?: {
-    /** Recorded before the submissions, so they are part of the submitted entry. */
-    readonly submitted?: readonly Recording[];
+    /** How many are recorded before the submissions, so they are part of the submitted entry. */
+    readonly submitted?: number;
     /** How many of those the owner then removes, waiting for 更新 (readers still hear them). */
     readonly removeAfter?: number;
-    /** Recorded after the submissions, waiting for 提交/更新. */
-    readonly pending?: readonly Recording[];
+    /** How many are recorded after the submissions, waiting for 提交/更新. */
+    readonly pending?: number;
   };
 }
 
@@ -336,7 +334,7 @@ export const SEED_ENTRIES: readonly SeedEntry[] = [
     title: '今晚共修的提醒',
     submissions: [p('今晚共修前，請大家先聽這兩段錄音。')],
     access: 'course',
-    audio: { submitted: ['m4a', 'webm'] },
+    audio: { submitted: 2 },
     comments: [{ leader: 'leader.reviewer', state: 'submitted', body: p('多聆聽，說得好。') }],
   },
   {
@@ -345,7 +343,7 @@ export const SEED_ENTRIES: readonly SeedEntry[] = [
     title: '給新同學的話（錄音待更新）',
     submissions: [p('歡迎新同學。錄音裡有幾句叮嚀。')],
     // Other leaders hear the two submitted notes until 更新 swaps the first for the pending one.
-    audio: { submitted: ['m4a', 'webm'], removeAfter: 1, pending: ['m4a'] },
+    audio: { submitted: 2, removeAfter: 1, pending: 1 },
   },
   {
     owner: 'leader.voice',
@@ -353,7 +351,7 @@ export const SEED_ENTRIES: readonly SeedEntry[] = [
     title: '錄音草稿',
     submissions: [],
     draft: p('還沒想好要怎麼說，先錄一段。'),
-    audio: { pending: ['webm'] },
+    audio: { pending: 1 },
   },
   {
     owner: 'student.exleader',
@@ -361,7 +359,7 @@ export const SEED_ENTRIES: readonly SeedEntry[] = [
     title: '帶班的最後一週',
     submissions: [p('這是我帶班的最後一週，錄了一段話給大家。')],
     access: 'course',
-    audio: { submitted: ['webm'] },
+    audio: { submitted: 1 },
   },
 ];
 
@@ -388,15 +386,12 @@ const SEED_ALERTS: readonly (readonly [string, AlertRule])[] = [
   ['mantra.noname', 'new_devices'],
 ];
 
-/** The seed's recordings: a 6-second tone in each format phones record (§8.14). */
-const RECORDINGS = new URL('../../seed-assets/', import.meta.url);
+/** The seed's recording: a 6-second tone as MP3, the format the app records (§8.14). */
+const RECORDING = new URL('../../seed-assets/voice-note.mp3', import.meta.url);
 
-async function loadRecordings(): Promise<Record<Recording, Buffer> | null> {
+async function loadRecording(): Promise<Buffer | null> {
   try {
-    return {
-      m4a: await readFile(new URL('voice-note.m4a', RECORDINGS)),
-      webm: await readFile(new URL('voice-note.webm', RECORDINGS)),
-    };
+    return await readFile(RECORDING);
   } catch {
     // The production image doesn't ship them (and refuses to seed anyway).
     return null;
@@ -433,7 +428,7 @@ export async function seed(ctx: AppContext, options: { reset: boolean }): Promis
     );
   }
   if (options.reset) await ctx.db.delete(users);
-  const recordings = await loadRecordings();
+  const recording = await loadRecording();
 
   const created = new Map<string, UserRow>();
   const result: SeedResult['users'] = [];
@@ -477,14 +472,14 @@ export async function seed(ctx: AppContext, options: { reset: boolean }): Promis
     const dayCtx: AppContext = { ...ctx, clock: () => new Date(now - entry.daysAgo * 86_400_000) };
     // A second apart, so an entry's notes keep their order (they are listed oldest first).
     let recorded = 0;
-    const record = async (kind: Recording) => {
-      if (!recordings) return null;
+    const record = async () => {
+      if (!recording) return null;
       const at = new Date(dayCtx.clock().getTime() + ++recorded * 1000);
       const { note } = await addAudio(
         { ...dayCtx, clock: () => at },
         owner,
         document.id,
-        recordings[kind],
+        recording,
         RECORDING_MS,
       );
       return note.id;
@@ -495,8 +490,8 @@ export async function seed(ctx: AppContext, options: { reset: boolean }): Promis
       body: entry.draft && entry.submissions.length === 0 ? entry.draft : first,
     });
     const submittedNotes: string[] = [];
-    for (const kind of entry.audio?.submitted ?? []) {
-      const id = await record(kind);
+    for (let i = 0; i < (entry.audio?.submitted ?? 0); i++) {
+      const id = await record();
       if (id) submittedNotes.push(id);
     }
     if (entry.submissions.length > 0) {
@@ -511,7 +506,7 @@ export async function seed(ctx: AppContext, options: { reset: boolean }): Promis
     for (const id of submittedNotes.slice(0, entry.audio?.removeAfter ?? 0)) {
       await removeAudio(dayCtx, owner, document.id, id);
     }
-    for (const kind of entry.audio?.pending ?? []) await record(kind);
+    for (let i = 0; i < (entry.audio?.pending ?? 0); i++) await record();
     if (entry.access === 'course' || entry.unsharedByLeader) {
       await changeAccess(dayCtx, owner, document.id, { kind: 'share', scope: 'course' });
     }
@@ -554,5 +549,5 @@ export async function seed(ctx: AppContext, options: { reset: boolean }): Promis
     if (spec.demotedAfterSeed) await adminUpdateUser(ctx, user.id, { role: spec.role });
     if (spec.deletedAfterSeed) await adminDeleteUser(ctx, admin.id, user.id);
   }
-  return { users: result, entries: SEED_ENTRIES.length, voiceNotes: recordings !== null };
+  return { users: result, entries: SEED_ENTRIES.length, voiceNotes: recording !== null };
 }

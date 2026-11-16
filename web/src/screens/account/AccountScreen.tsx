@@ -27,6 +27,9 @@ export function displayName(me: { username: string; profile: MeResponse['user'][
   return personName(me.profile.familyName, me.profile.givenName) || me.username;
 }
 
+/** Where the voice-note encoder's source is (`@breezystack/lamejs`, LGPL-3.0). */
+const LAME_SOURCE = 'https://github.com/shijinyu/lamejs';
+
 export function AccountScreen() {
   const { t } = useI18n();
   const me = useMe();
@@ -76,6 +79,13 @@ export function AccountScreen() {
           {t('account.logout')}
         </Button>
       </div>
+      {/* The LGPL asks that people can find the encoder and its source (voice notes, D35). */}
+      <p className={styles.credits}>
+        {t('account.credits')}{' '}
+        <a href={LAME_SOURCE} rel="noreferrer" target="_blank">
+          {LAME_SOURCE.replace('https://', '')}
+        </a>
+      </p>
     </div>
   );
 }

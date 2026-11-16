@@ -20,6 +20,7 @@ import { useI18n } from '../../i18n/index.js';
 import { formatDiaryDate } from '../../lib/dates.js';
 import { StopSharing } from '../review/StopSharing.js';
 import { CommentEditor } from '../review/CommentEditor.js';
+import { VoiceNoteList } from './AudioPlayer.js';
 import { AccessChip, CommentChip, StateChip } from './chips.js';
 import { CommentList } from './CommentList.js';
 import { RichContent } from './RichContent.js';
@@ -66,6 +67,14 @@ export function EntryArticle({
         : // Leaders review, and 開放日記 shows, what was submitted, the reader's own entries included.
           { title: entry.submitted?.title ?? '', body: entry.submitted?.body ?? '' };
   const submitted = entry.view !== 'owner' || entry.submitted !== null;
+  // Voice notes follow the text (D35): the owner's diary shows the newest, with 待更新 on notes kept since the
+  // last 更新; everywhere else shows what was submitted.
+  const notes =
+    entry.view !== 'owner'
+      ? entry.audio
+      : ownView
+        ? entry.audio.filter((n) => n.pending !== 'remove')
+        : entry.audio.filter((n) => n.pending !== 'add').map((n) => ({ ...n, pending: null }));
   // Not a reader's view: the leader's own comment and sharing state are known.
   const withMine = entry.view === 'reader' ? null : entry;
   const reviewing = context === 'review' && entry.view !== 'reader';
@@ -129,6 +138,7 @@ export function EntryArticle({
       <div className={styles.body}>
         {shown.body ? <RichContent html={shown.body} /> : t('entry.empty')}
       </div>
+      <VoiceNoteList documentId={entry.id} notes={notes} />
       <TranslateBlock source={{ documentId: entry.id }} />
       {ownView && (
         <ShareToggle

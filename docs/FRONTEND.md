@@ -169,6 +169,8 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
   is heard by others only after 提交/更新, and a note added or removed since shows a muted 待更新. After the
   sixth note the button is disabled with "每篇最多 6 段錄音". A refused microphone shows how to allow it.
   A recording not yet kept or discarded counts as unsaved writing (`useReportUnsaved`).
+  Notes are recorded as MP3 in every browser (ARCHITECTURE §8.14); 我的 names the encoder (LAME, LGPL) and
+  links its source.
 - **Sticky bottom bar:** 暫存 (secondary), 提交 (primary; reads **更新** once the entry has been submitted),
   歷史版本. Enable and disable follow spec §5.2.
 - **History** opens as a bottom sheet (phone) or side panel (desktop) listing the versions, each expandable.

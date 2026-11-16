@@ -317,7 +317,7 @@ export const comments = pgTable(
   ],
 );
 
-export const audioMimeEnum = pgEnum('audio_mime', ['audio/mp4', 'audio/webm']);
+export const audioMimeEnum = pgEnum('audio_mime', ['audio/mpeg']);
 /** What the next 提交/更新 does with a voice note; null = part of the submitted entry. */
 export const audioPendingEnum = pgEnum('audio_pending', ['add', 'remove']);
 
