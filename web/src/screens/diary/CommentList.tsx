@@ -1,8 +1,12 @@
-/** Submitted comments under an entry (spec §5.4, §6.1): the `Comment:` label, then one card per leader. */
+/**
+ * Submitted comments under an entry (spec §5.4, §6.1): the `Comment:` label, then one card per leader, each
+ * in that leader's own colour (D36), so a reader tells the leaders apart at a glance.
+ */
 import type { SubmittedComment } from '@diary/shared';
 import { Chip } from '../../components/Chip.js';
 import { useI18n } from '../../i18n/index.js';
 import { formatDateTime } from '../../lib/dates.js';
+import { leaderStyle } from '../../lib/leaders.js';
 import { RichContent } from './RichContent.js';
 import { TranslateBlock } from './TranslateBlock.js';
 import styles from './CommentList.module.css';
@@ -18,7 +22,7 @@ export function CommentList({ comments }: { comments: readonly Comment[] }) {
       <h2 className={styles.label}>{t('entry.commentLabel')}</h2>
       <ul className={styles.list}>
         {comments.map((comment) => (
-          <li key={comment.id} className={styles.card}>
+          <li key={comment.id} className={styles.card} style={leaderStyle(comment.authorColour)}>
             <div className={styles.meta}>
               <span className={styles.author}>
                 {comment.authorName

@@ -7,24 +7,34 @@
  *   editor for their own. Elsewhere (開放日記) the entry is read-only and their own comment is listed with the
  *   others. A leader's own entry seen in review gets the review treatment.
  * - Anyone else, for an open entry: the submitted version and its submitted comments.
+ *
+ * A leader's entry is framed and tinted in the leader's own colour, which also marks their name (D36); the
+ * reader's own entry, met outside 我的日記, is framed in the primary colour and marked 我的, so both stand out
+ * from the class's.
  */
 import { useEffect } from 'react';
 import { Link } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { personName, type EntryView } from '@diary/shared';
+import { DAILY_LIMITS, ENTRY_LIMITS, ErrorCode, personName, type EntryView } from '@diary/shared';
+import { ApiError } from '../../api/client.js';
+import { saveEntry, storeOwnDocument } from '../../api/diary.js';
 import { refreshAfterRead } from '../../api/leader.js';
 import { useSession } from '../../api/session.js';
 import { buttonClass } from '../../components/Button.js';
+import { Chip } from '../../components/Chip.js';
 import { Icon } from '../../components/Icon.js';
+import { useToast } from '../../components/Toast.js';
 import { useI18n } from '../../i18n/index.js';
 import { formatDiaryDate } from '../../lib/dates.js';
+import { leaderStyle } from '../../lib/leaders.js';
 import { StopSharing } from '../review/StopSharing.js';
 import { CommentEditor } from '../review/CommentEditor.js';
 import { VoiceNoteList } from './AudioPlayer.js';
-import { AccessChip, CommentChip, StateChip } from './chips.js';
+import { AudienceChips, CommentChip } from './chips.js';
+import { AudienceControl } from './AudienceControl.js';
 import { CommentList } from './CommentList.js';
+import { PinToggle } from './PinToggle.js';
 import { RichContent } from './RichContent.js';
-import { ShareToggle } from './ShareToggle.js';
 import { TranslateBlock } from './TranslateBlock.js';
 import styles from './EntryArticle.module.css';
 
@@ -85,11 +95,13 @@ export function EntryArticle({
       ? personName(session.me.profile.familyName, session.me.profile.givenName) ||
         session.me.username
       : null;
+  const myColour = session?.status === 'ready' ? session.me.leaderColour : null;
   const mine =
     !commenting && withMine?.myComment?.state === 'submitted' && withMine.myComment.submittedAt
       ? [
           {
             id: `mine-${entry.id}`,
+            authorColour: myColour,
             authorName: myName,
             submittedAt: withMine.myComment.submittedAt,
             body: withMine.myComment.body,
@@ -100,9 +112,53 @@ export function EntryArticle({
     a.submittedAt.localeCompare(b.submittedAt),
   );
   const Title = `h${level}` as const;
+  const toast = useToast();
+
+  /** The first 提交 from the read view (D37): what the owner last saved goes to the leaders as it is. */
+  async function sendDraft({ quiet }: { quiet: boolean }): Promise<string | null> {
+    if (!ownView) return null;
+    const content = ownView.draft ?? ownView.submitted ?? { title: '', body: '' };
+    try {
+      const saved = await saveEntry.submit(ownView.id, {
+        title: content.title,
+        body: content.body,
+      });
+      storeOwnDocument(queryClient, saved);
+      if (!quiet) toast.show(t(isLeader ? 'editor.submittedLeader' : 'editor.submitted'));
+      return saved.id;
+    } catch (error) {
+      if (error instanceof ApiError && error.code === ErrorCode.LimitReached) {
+        const limit = String(error.details.limit ?? '');
+        if (limit === 'submit') {
+          toast.show(`${t('limit.submit', { max: DAILY_LIMITS.submit })} ${t('limit.resets')}`);
+          return null;
+        }
+        if (limit === 'chars') {
+          toast.show(t('limit.chars', { max: ENTRY_LIMITS.chars }));
+          return null;
+        }
+      }
+      toast.showError(error);
+      return null;
+    }
+  }
+  // The reader's own entry shows their colour too, as the class sees it.
+  const authorColour = entry.view !== 'owner' ? entry.author.leaderColour : myColour;
+  const mineElsewhere = entry.view === 'owner' && context !== 'own';
 
   return (
-    <article className={styles.article}>
+    <article
+      className={[
+        styles.article,
+        authorColour !== null && styles.leaderEntry,
+        mineElsewhere && styles.ownEntry,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      style={leaderStyle(authorColour)}
+      // Lets the feed's card step aside, so the frame is the card rather than a box inside it.
+      data-framed={authorColour !== null || mineElsewhere || undefined}
+    >
       <div className={styles.titleRow}>
         <Title className={level === 1 ? styles.title : styles.titleSmall}>
           {shown.title || t('entry.untitled')}
@@ -117,13 +173,26 @@ export function EntryArticle({
       <div className={styles.meta}>
         <span>{formatDiaryDate(entry.diaryDate, lang)}</span>
         {entry.view !== 'owner' ? (
-          <span>{entry.author.name || entry.author.username}</span>
+          authorColour !== null ? (
+            <span className={styles.leaderName}>
+              {t('entry.leader', { name: entry.author.name || entry.author.username })}
+            </span>
+          ) : (
+            <span>{entry.author.name || entry.author.username}</span>
+          )
         ) : (
-          context === 'read' && <span>{myName}</span>
+          context === 'read' &&
+          (authorColour !== null ? (
+            <span className={styles.leaderName}>{t('entry.leader', { name: myName ?? '' })}</span>
+          ) : (
+            <span>{myName}</span>
+          ))
         )}
+        {mineElsewhere && <Chip tone="primary">{t('entry.mine')}</Chip>}
         {/* For reading, the comments speak for themselves and everything shown is open. */}
-        {ownView && <StateChip state={ownView.state} />}
-        {context !== 'read' && withMine && <AccessChip access={withMine.access} />}
+        {context !== 'read' && withMine && (
+          <AudienceChips state={ownView?.state ?? 'submitted'} access={withMine.access} />
+        )}
         {/* A leader's own entry has the author's share box below instead. */}
         {reviewing && entry.view === 'leader' && entry.access !== 'private' && (
           <StopSharing documentId={entry.id} />
@@ -131,7 +200,9 @@ export function EntryArticle({
         {context !== 'read' && <CommentChip count={comments.length} />}
       </div>
       {/* Quiet lines, not boxes: the entry itself should be the most visible thing here. */}
-      {ownView && !ownView.submitted && <p className={styles.note}>{t('entry.draftNote')}</p>}
+      {ownView && !ownView.submitted && (
+        <p className={styles.note}>{t(isLeader ? 'entry.draftNoteLeader' : 'entry.draftNote')}</p>
+      )}
       {ownView?.submitted && ownView.draft && (
         <p className={styles.note}>{t('entry.pendingNote')}</p>
       )}
@@ -141,11 +212,21 @@ export function EntryArticle({
       <VoiceNoteList documentId={entry.id} notes={notes} />
       <TranslateBlock source={{ documentId: entry.id }} />
       {ownView && (
-        <ShareToggle
+        <AudienceControl
           documentId={ownView.id}
+          sent={submitted}
           access={ownView.access}
-          submitted={submitted}
           unsharedByLeader={ownView.unsharedByLeader}
+          hasComments={ownView.comments.length > 0}
+          canSend
+          send={sendDraft}
+        />
+      )}
+      {ownView && (isLeader || ownView.pinned) && (
+        <PinToggle
+          documentId={ownView.id}
+          pinned={ownView.pinned}
+          shared={ownView.access !== 'private'}
         />
       )}
       <CommentList comments={comments} />

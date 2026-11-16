@@ -68,6 +68,15 @@ export const TRANSLATE_LIMITS = {
   maxChars: 10_000,
 } as const;
 
+/**
+ * Pinned entries in 開放日記 (D36). A leader pins their own shared entries to the top of every month; the cap
+ * keeps the top of the page from pushing the class's entries out of sight. Leaders unpin by hand.
+ */
+export const PIN_LIMITS = {
+  /** Entries one leader may have pinned at once. */
+  perLeader: 3,
+} as const;
+
 /** History versions kept per entry (spec §5.2). */
 export const MAX_VERSIONS = 3;
 
@@ -80,7 +89,7 @@ export function visibleCharCount(text: string): number {
   return [...text.replace(/\s+/gu, '')].length;
 }
 
-export type LimitName = DailyLimitKind | 'images' | 'chars' | 'audioNotes' | 'count';
+export type LimitName = DailyLimitKind | 'images' | 'chars' | 'audioNotes' | 'count' | 'pins';
 
 /**
  * The caps that flag the account when reached: volume caps, which honest users don't meet. The per-entry

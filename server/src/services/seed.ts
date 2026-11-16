@@ -23,7 +23,7 @@ import { adminDeleteUser, adminUpdateUser } from './admin-users.js';
 import { addAudio, removeAudio } from './diary/audio.js';
 import { saveMyComment } from './diary/comments.js';
 import { createDocument, saveDraft, submitDocument } from './diary/documents.js';
-import { changeAccess } from './sharing.js';
+import { changeAccess, setPinned } from './sharing.js';
 import { submitCount, updateCountSettings } from './count.js';
 import { createUser, type UserRow } from './users.js';
 
@@ -171,6 +171,8 @@ interface SeedEntry {
   readonly comments?: readonly SeedComment[];
   /** The owner has already opened the submitted comments (no 有新批注). */
   readonly commentsSeen?: boolean;
+  /** Pinned to the top of 開放日記 (D36; a leader's own shared entry). */
+  readonly pinned?: boolean;
   /** Voice notes (D35; the owner must be a leader when the seed writes them). */
   readonly audio?: {
     /** How many are recorded before the submissions, so they are part of the submitted entry. */
@@ -336,6 +338,16 @@ export const SEED_ENTRIES: readonly SeedEntry[] = [
     access: 'course',
     audio: { submitted: 2 },
     comments: [{ leader: 'leader.reviewer', state: 'submitted', body: p('多聆聽，說得好。') }],
+  },
+  {
+    // leader.reviewer: leader.voice serves three e2e projects, which each pin one entry at once (cap 3).
+    owner: 'leader.reviewer',
+    daysAgo: 40,
+    title: '共修須知（置頂）',
+    submissions: [p('每晚八點共修，請提早五分鐘到。日記每週至少寫兩篇。')],
+    access: 'course',
+    // Written last month, so it shows the pin heading every month (D36).
+    pinned: true,
   },
   {
     owner: 'leader.voice',
@@ -513,6 +525,7 @@ export async function seed(ctx: AppContext, options: { reset: boolean }): Promis
     if (entry.unsharedByLeader) {
       await changeAccess(dayCtx, userNamed('leader.reviewer'), document.id, { kind: 'unshare' });
     }
+    if (entry.pinned) await setPinned(dayCtx, owner, document.id, true);
     for (const comment of entry.comments ?? []) {
       const leader = userNamed(comment.leader);
       if (leader.role !== 'COURSE_LEADER') throw new Error(`seed: ${comment.leader} is no leader`);

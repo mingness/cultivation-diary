@@ -4,7 +4,7 @@
  */
 import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
-import { expect, test } from './fixtures.js';
+import { expect, sendToLeaders, test } from './fixtures.js';
 
 /** The editor's address once its entry exists on the server (a new one starts at /diary/new/edit). */
 const SAVED = /\/diary\/[0-9a-f-]{36}\/edit$/;
@@ -46,7 +46,7 @@ async function expectNoAxeViolations(page: Page) {
   ).toEqual([]);
 }
 
-test('write, save a draft, submit, then update with the earlier version kept in history', async ({
+test('write and save, send to the leaders, then publish changes with the earlier version kept', async ({
   userPage: page,
   t,
 }) => {
@@ -54,23 +54,24 @@ test('write, save a draft, submit, then update with the earlier version kept in 
   await page.goto('/diary');
   await page.getByRole('link', { name: t('diary.write') }).click();
 
-  const draft = page.getByRole('button', { name: t('editor.saveDraft') });
-  const submit = page.getByRole('button', { name: t('editor.submit'), exact: true });
-  await expect(draft).toBeDisabled();
-  await expect(submit).toBeDisabled();
+  // Before it is sent there is only saving: whatever is saved is the author's alone (D37).
+  const save = page.getByRole('button', { name: t('editor.save'), exact: true });
+  const update = page.getByRole('button', { name: t('editor.publish') });
+  await expect(save).toBeDisabled();
+  await expect(update).toHaveCount(0);
+  await expect(page.getByRole('radio', { name: t('audience.me') })).toBeChecked();
 
   await page.getByLabel(t('editor.title')).fill(title);
   await editorBody(page).click();
   await page.keyboard.type('First words.');
-  await draft.click();
+  await save.click();
 
   // The first save creates the entry and gives the editor its own address, without losing anything.
   await expect(page).toHaveURL(SAVED);
-  await expect(draft).toBeDisabled();
-  await expect(submit).toBeEnabled();
-  await submit.click();
-
-  const update = page.getByRole('button', { name: t('editor.update'), exact: true });
+  await expect(save).toBeDisabled();
+  await sendToLeaders(page, t);
+  await expect(page.getByText(t('editor.submitted'))).toBeVisible();
+  await expect(page.getByRole('button', { name: t('editor.saveForLater') })).toBeDisabled();
   await expect(update).toBeDisabled();
   await editorBody(page).click();
   await page.keyboard.press('End');
@@ -87,7 +88,7 @@ test('write, save a draft, submit, then update with the earlier version kept in 
   await page.getByRole('button', { name: t('common.back') }).click();
   const item = page.getByRole('listitem').filter({ hasText: title });
   await item.scrollIntoViewIfNeeded();
-  await expect(item).toContainText(t('chip.submitted'));
+  await expect(item).toContainText(t('chip.leaders'));
 });
 
 test('formatting survives saving and reopening exactly', async ({ userPage: page, t }) => {
@@ -107,15 +108,15 @@ test('formatting survives saving and reopening exactly', async ({ userPage: page
   await page.getByRole('button', { name: t('editor.underline') }).click();
   await page.keyboard.type('Styled');
   const before = await editorBody(page).innerHTML();
-  await page.getByRole('button', { name: t('editor.saveDraft') }).click();
+  await page.getByRole('button', { name: t('editor.save'), exact: true }).click();
   await expect(page).toHaveURL(SAVED);
-  await expect(page.getByRole('button', { name: t('editor.saveDraft') })).toBeDisabled();
+  await expect(page.getByRole('button', { name: t('editor.save'), exact: true })).toBeDisabled();
 
   await page.reload();
   await expect(editorBody(page)).toContainText('Styled');
   // The server's sanitiser kept everything the editor wrote, so reopening shows the same and isn't "changed".
   expect(await editorBody(page).innerHTML()).toBe(before);
-  await expect(page.getByRole('button', { name: t('editor.saveDraft') })).toBeDisabled();
+  await expect(page.getByRole('button', { name: t('editor.save'), exact: true })).toBeDisabled();
   expect(before).toMatch(/<h2>Heading<\/h2>/);
   expect(before).toMatch(/<strong>|<u>/);
   expect(before).toContain('font-size: 1.25em');
@@ -142,7 +143,7 @@ test.describe('photos (one project: generating them is slow)', () => {
     await expect(button).toBeDisabled();
     await expect(page.getByText(t('editor.imageLimit'))).toBeVisible();
 
-    await page.getByRole('button', { name: t('editor.saveDraft') }).click();
+    await page.getByRole('button', { name: t('editor.save'), exact: true }).click();
     await expect(page).toHaveURL(SAVED);
     await page.reload();
     await expect(editorBody(page).locator('img')).toHaveCount(2);
@@ -167,41 +168,57 @@ test('leaving with unsaved changes asks first, and keeping on writing loses noth
   await page.getByRole('button', { name: t('common.back') }).click();
   await dialog.getByRole('button', { name: t('leave.save') }).click();
   await expect(page.getByRole('heading', { name: t('diary.title') })).toBeVisible();
-  await expect(page.getByText(t('chip.draft')).first()).toBeVisible();
+  await expect(page.getByText(t('chip.me')).first()).toBeVisible();
 });
 
-test('over 5,000 characters 提交 waits, but 暫存 still saves', async ({ userPage: page, t }) => {
+test('over 5,000 characters sending waits, but saving still works', async ({
+  userPage: page,
+  t,
+}) => {
   await page.goto('/diary/new/edit');
   await editorBody(page).click();
   await page.keyboard.insertText('念'.repeat(5_001));
 
   await expect(page.getByText(t('editor.tooLong', { max: '5,000' })).first()).toBeVisible();
-  await expect(page.getByRole('button', { name: t('editor.submit'), exact: true })).toBeDisabled();
-  await page.getByRole('button', { name: t('editor.saveDraft') }).click();
+  await expect(
+    page.getByRole('radio', { name: t('audience.leaders'), exact: true }),
+  ).toBeDisabled();
+  await page.getByRole('button', { name: t('editor.save'), exact: true }).click();
   await expect(page).toHaveURL(SAVED);
-  await expect(page.getByRole('button', { name: t('editor.saveDraft') })).toBeDisabled();
+  await expect(page.getByRole('button', { name: t('editor.save'), exact: true })).toBeDisabled();
 });
 
-test('sharing is the author’s choice once submitted, after a confirmation, and can be stopped', async ({
+test('who can read it is the author’s choice: the class after a confirmation, and back to only me', async ({
   userPage: page,
   t,
 }) => {
   await page.goto('/diary/new/edit');
-  const share = page.getByRole('checkbox', { name: t('share.label') });
-  await expect(share).toBeDisabled();
   await editorBody(page).click();
   await page.keyboard.type('To share');
-  await page.getByRole('button', { name: t('editor.submit'), exact: true }).click();
-  await expect(share).toBeEnabled();
+  const radio = (key: 'audience.me' | 'audience.leaders' | 'audience.class') =>
+    page.getByRole('radio', { name: t(key), exact: true });
 
-  await share.click();
+  // Straight to the class from a new entry: it is sent and shared in one step.
+  await radio('audience.class').click();
   const dialog = page.getByRole('dialog', { name: t('share.confirmTitle') });
   await dialog.getByRole('button', { name: t('share.confirm') }).click();
-  await expect(page.getByText(t('share.shared'))).toBeVisible();
-  await expect(share).toBeChecked();
-  await share.uncheck();
-  await expect(page.getByText(t('share.shared'))).toBeHidden();
-  await expect(share).not.toBeChecked();
+  await expect(page.getByText(t('audience.classDone'))).toBeVisible();
+  await expect(radio('audience.class')).toBeChecked();
+  await expect(page.getByText(t('audience.classHint'))).toBeVisible();
+
+  await radio('audience.leaders').click();
+  await expect(radio('audience.leaders')).toBeChecked();
+  await expect(page.getByText(t('audience.leadersHint'))).toBeVisible();
+
+  // Nobody has commented, so it can go back to the author alone, and the editor offers plain saving again.
+  await radio('audience.me').click();
+  await page
+    .getByRole('dialog', { name: t('audience.backTitle') })
+    .getByRole('button', { name: t('audience.back') })
+    .click();
+  await expect(page.getByText(t('audience.backDone'))).toBeVisible();
+  await expect(radio('audience.me')).toBeChecked();
+  await expect(page.getByRole('button', { name: t('editor.publish') })).toHaveCount(0);
 });
 
 test('開放日記 is just for reading, and narrows by author and by day', async ({
@@ -235,7 +252,7 @@ test('開放日記 is just for reading, and narrows by author and by day', async
   const someoneElse = rows.find((d) => d.author.id !== other!.author.id);
   if (someoneElse) await expect(item(someoneElse.title)).toHaveCount(0);
   await expect(page.getByRole('link', { name: t('entry.edit') })).toHaveCount(0);
-  await expect(page.getByRole('checkbox', { name: t('share.label') })).toHaveCount(0);
+  await expect(page.getByRole('group', { name: t('audience.label') })).toHaveCount(0);
 
   // A day on the calendar narrows further; choosing it again lets go.
   await page.goto(`/open?date=${other!.diaryDate}`);

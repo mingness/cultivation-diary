@@ -62,6 +62,8 @@ export const OwnDocument = z.object({
    * next 更新 with a change.
    */
   unsharedByLeader: z.boolean(),
+  /** Pinned to the top of 開放日記 (D36): only a leader's own shared entry. */
+  pinned: z.boolean(),
   /** What leaders currently see; null until the first 提交. */
   submitted: z.object({ title: z.string(), body: z.string(), at: z.iso.datetime() }).nullable(),
   /** The owner's working copy, if it differs from what was submitted; null when there's nothing pending. */
@@ -74,6 +76,8 @@ export type OwnDocument = z.infer<typeof OwnDocument>;
 /** A submitted comment, as the owner, other leaders and (for shared entries) readers see it (spec §5.4). */
 export const SubmittedComment = z.object({
   id: z.uuid(),
+  /** The writing leader's colour number (see `EntryAuthor`); null once they are no longer a leader. */
+  authorColour: z.number().int().nullable(),
   /** "family given", or the username without a name; null when the leader's account has been deleted. */
   authorName: z.string().nullable(),
   submittedAt: z.iso.datetime(),
@@ -105,8 +109,16 @@ export const OwnerEntryView = OwnDocument.extend({
   audio: z.array(OwnAudioNote),
 });
 
-/** Whose entry it is, as leaders see it. */
-export const EntryAuthor = z.object({ id: z.uuid(), username: z.string(), name: z.string() });
+/**
+ * Whose entry it is, as leaders and readers see it. `leaderColour`: for a COURSE_LEADER, their number in the
+ * order leaders were added (0, 1, …), which the app maps to the leader's own colour; null for a student.
+ */
+export const EntryAuthor = z.object({
+  id: z.uuid(),
+  username: z.string(),
+  name: z.string(),
+  leaderColour: z.number().int().nullable(),
+});
 
 /**
  * `GET /api/documents/:id` for a leader (not the owner): the last submitted version only, never the owner's
@@ -167,6 +179,13 @@ export const AccessChangeRequest = z.discriminatedUnion('action', [
 ]);
 export const AccessChangeResponse = z.object({ access: Access });
 
+/**
+ * `PUT /api/documents/:id/pin` (D36): a leader pins their own shared entry to the top of 開放日記, or unpins it.
+ * Unsharing an entry unpins it.
+ */
+export const PinRequest = z.object({ pinned: z.boolean() });
+export const PinResponse = z.object({ pinned: z.boolean() });
+
 /** `YYYY-MM`, a Beijing calendar month. */
 export const Month = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
 
@@ -175,18 +194,25 @@ export const MyDocumentsQuery = z.object({ month: Month });
 /** `GET /api/documents/open`: the 開放日記 list for one Beijing month. */
 export const OpenDocumentsQuery = z.object({ month: Month });
 
-/** Entries shared with the reader, newest first; content comes from `GET /api/documents/:id` when a row is expanded. */
+/** One row of 開放日記; content comes from `GET /api/documents/:id` when the row comes into view. */
+export const OpenDocumentRow = z.object({
+  id: z.uuid(),
+  title: z.string(),
+  diaryDate: z.iso.date(),
+  author: EntryAuthor,
+  /** Submitted comments (spec §6.1's comment mark). */
+  commentCount: z.number().int(),
+  /** Pinned by its author, a leader (D36). */
+  pinned: z.boolean(),
+});
+
+/**
+ * Entries shared with the reader: the month's, newest first, and every pinned entry whatever its month
+ * (D36), most recently pinned first. A pinned entry of this month is in both lists.
+ */
 export const OpenDocumentList = z.object({
-  documents: z.array(
-    z.object({
-      id: z.uuid(),
-      title: z.string(),
-      diaryDate: z.iso.date(),
-      author: EntryAuthor,
-      /** Submitted comments (spec §6.1's comment mark). */
-      commentCount: z.number().int(),
-    }),
-  ),
+  documents: z.array(OpenDocumentRow),
+  pinned: z.array(OpenDocumentRow),
 });
 
 export const MyDocumentList = z.object({

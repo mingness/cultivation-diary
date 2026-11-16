@@ -1,6 +1,7 @@
 /**
  * 開放日記's filters, worked out from one month's list of open entries (no server round trip): the calendar's
- * counts per day, the authors with their counts, and the entries a day and/or author leaves.
+ * counts per day, the authors with their counts, the entries a day and/or author leaves, and where the pinned
+ * entries go.
  */
 import type { OpenDocumentRow } from '../../api/diary.js';
 
@@ -47,4 +48,20 @@ export function applyFilter(
       (filter.date === null || row.diaryDate === filter.date) &&
       (filter.user === null || row.author.id === filter.user),
   );
+}
+
+/**
+ * What 開放日記 shows (D36): unfiltered, the pinned entries on top and the month's others below, so none shows
+ * twice; with a day or author chosen, just the month's entries that match, pinned or not.
+ */
+export function feedSections(
+  rows: readonly OpenDocumentRow[],
+  pinned: readonly OpenDocumentRow[],
+  filter: OpenFilter,
+): { pinned: OpenDocumentRow[]; rows: OpenDocumentRow[] } {
+  if (filter.date !== null || filter.user !== null) {
+    return { pinned: [], rows: applyFilter(rows, filter) };
+  }
+  const top = new Set(pinned.map((row) => row.id));
+  return { pinned: [...pinned], rows: rows.filter((row) => !top.has(row.id)) };
 }

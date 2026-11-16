@@ -104,16 +104,59 @@ export const saveEntry = {
 export type AccessChange = z.infer<typeof AccessChangeRequest>;
 
 export function useAccessChange(id: string) {
+  const change = useAccessChangeOf();
+  return {
+    ...change,
+    mutate: (body: AccessChange, options?: Parameters<typeof change.mutate>[1]) =>
+      change.mutate({ id, change: body }, options),
+  };
+}
+
+/** The same, for whichever entry each call names: one just created by its first 提交 has no ID until then. */
+export function useAccessChangeOf() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (change: AccessChange) =>
+    mutationFn: ({ id, change }: { id: string; change: AccessChange }) =>
       api<{ access: Access }>('POST', `/api/documents/${id}/access`, change),
-    onSuccess: ({ access }) => {
+    onSuccess: ({ access }, { id }) => {
       queryClient.setQueryData<EntryView>(diaryKeys.entry(id), (old) =>
-        old && 'access' in old ? { ...old, access } : old,
+        old?.view === 'owner'
+          ? // Unsharing also unpins (D36).
+            { ...old, access, pinned: old.pinned && access !== 'private' }
+          : old && 'access' in old
+            ? { ...old, access }
+            : old,
       );
       void queryClient.invalidateQueries({ queryKey: diaryKeys.all });
       void queryClient.invalidateQueries({ queryKey: ['leader'] });
+    },
+  });
+}
+
+/** Take a sent entry back to "only me" (D37); refused once someone else has commented. */
+export function useWithdraw(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<OwnDocument>('POST', `/api/documents/${id}/withdraw`),
+    onSuccess: (document) => {
+      storeOwnDocument(queryClient, document);
+      void queryClient.invalidateQueries({ queryKey: diaryKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ['leader'] });
+    },
+  });
+}
+
+/** Pin the leader's own shared entry to the top of 開放日記, or unpin it (D36). */
+export function usePin(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (pinned: boolean) =>
+      api<{ pinned: boolean }>('PUT', `/api/documents/${id}/pin`, { pinned }),
+    onSuccess: ({ pinned }) => {
+      queryClient.setQueryData<EntryView>(diaryKeys.entry(id), (old) =>
+        old?.view === 'owner' ? { ...old, pinned } : old,
+      );
+      void queryClient.invalidateQueries({ queryKey: ['documents', 'open'] });
     },
   });
 }

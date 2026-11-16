@@ -12,6 +12,7 @@ import {
   AudioUploadQuery,
   ENTRY_LIMITS,
   OkResponse,
+  PIN_LIMITS,
   OwnAudioNote,
   AccessChangeResponse,
   CreateDocumentRequest,
@@ -25,6 +26,8 @@ import {
   OpenDocumentList,
   OpenDocumentsQuery,
   OwnDocument,
+  PinRequest,
+  PinResponse,
   SaveDocumentRequest,
 } from '@diary/shared';
 import type { AppContext } from '../context.js';
@@ -38,11 +41,12 @@ import {
   listOwnMonth,
   saveDraft,
   submitDocument,
+  withdrawDocument,
   type Written,
 } from '../services/diary/documents.js';
 import { listVersions, readEntry, type Reader } from '../services/diary/entries.js';
 import { listOpenMonth } from '../services/open-diaries.js';
-import { changeAccess } from '../services/sharing.js';
+import { changeAccess, setPinned } from '../services/sharing.js';
 import { LimitReachedError } from '../services/diary/usage.js';
 
 const TAG = ['diary'];
@@ -118,7 +122,8 @@ export function documentRoutes(app: FastifyInstance, ctx: AppContext): void {
       schema: {
         tags: TAG,
         summary:
-          '開放日記: open entries in a Beijing calendar month, newest first (read each with GET /api/documents/:id)',
+          '開放日記: open entries in a Beijing calendar month, newest first, and every pinned entry, most ' +
+          'recently pinned first (read each with GET /api/documents/:id)',
         querystring: OpenDocumentsQuery,
         response: { 200: OpenDocumentList },
       },
@@ -206,6 +211,26 @@ export function documentRoutes(app: FastifyInstance, ctx: AppContext): void {
         submitDocument(ctx, user.id, request.params.id, request.body),
       );
       return document;
+    },
+  );
+
+  routes.post(
+    '/api/documents/:id/withdraw',
+    {
+      onRequest: writer,
+      schema: {
+        tags: TAG,
+        summary:
+          'Back to "only me" (D37): leaders and the class stop seeing the entry; what was sent becomes my ' +
+          'draft. Unshares and unpins. 409 has_comments once someone else has sent a comment, ' +
+          'invalid_transition if it was never sent.',
+        params: DocumentIdParams,
+        response: { 200: OwnDocument },
+      },
+    },
+    async (request) => {
+      const { user } = authOf(request);
+      return (await withdrawDocument(ctx, user.id, request.params.id)).document;
     },
   );
 
@@ -342,6 +367,26 @@ export function documentRoutes(app: FastifyInstance, ctx: AppContext): void {
           ? { kind: 'share', scope: request.body.scope }
           : { kind: 'unshare' },
       ),
+    }),
+  );
+
+  routes.put(
+    '/api/documents/:id/pin',
+    {
+      onRequest: writer,
+      schema: {
+        tags: TAG,
+        summary:
+          'Pinning (D36). A leader pins their own shared entry to the top of 開放日記 for every month, or ' +
+          'unpins it; unsharing also unpins. 409 invalid_transition for an entry that is not shared, ' +
+          `limit_reached {limit: "pins"} beyond ${PIN_LIMITS.perLeader} pinned entries per leader.`,
+        params: DocumentIdParams,
+        body: PinRequest,
+        response: { 200: PinResponse },
+      },
+    },
+    async (request) => ({
+      pinned: await setPinned(ctx, authOf(request).actor, request.params.id, request.body.pinned),
     }),
   );
 }

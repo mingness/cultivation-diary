@@ -4,7 +4,7 @@
  * DRAFT, waiting for review by a Vietnamese practitioner (ARCHITECTURE.md §8.10, D34). Offered in the switch
  * ahead of that review (2026-11-14). Terms chosen for the reviewer to confirm:
  * 修行日記 Nhật ký tu tập · 大悲咒 Chú Đại Bi · a recitation biến · 報數 báo số · 批注 lời phê ·
- * course leader người hướng dẫn · student học viên · open diaries nhật ký chia sẻ · 批閱 duyệt bài.
+ * course leader người hướng dẫn · student học viên · Class (open entries) Lớp · My notes Ghi chép của tôi · entry bài · 批閱 duyệt bài.
  */
 import type { Messages } from './messages.js';
 
@@ -117,8 +117,9 @@ export const vi: Messages = {
   'account.themeSystem': 'Theo thiết bị',
   'account.logout': 'Đăng xuất',
 
-  'nav.diary': 'Nhật ký',
-  'nav.open': 'Nhật ký chia sẻ',
+  // Screen names (D38, 2026-11-16): drafted, for the reviewer.
+  'nav.diary': 'Ghi chép',
+  'nav.open': 'Lớp',
   'common.back': 'Quay lại',
   'common.cancel': 'Hủy',
 
@@ -128,17 +129,16 @@ export const vi: Messages = {
   'month.next': 'Tháng sau',
   'month.nextYear': 'Năm sau',
 
-  'diary.title': 'Nhật ký của tôi',
-  'diary.write': 'Viết nhật ký',
+  'diary.title': 'Ghi chép của tôi',
+  'diary.write': 'Viết bài',
   'diary.empty': 'Tháng này chưa có bài nào',
   'diary.newComment': 'Có lời phê mới!',
-  'diary.newEntry': 'Có bài mới!',
+  'diary.newEntry': 'Có bài mới từ một thiết bị khác.',
 
-  'chip.draft': 'Bản nháp · chưa gửi',
-  'chip.submitted': 'Đã gửi',
-  'chip.pending': 'Đã gửi · có thay đổi chưa gửi',
-  'chip.private': 'Riêng tư',
-  'chip.shared': 'Đã chia sẻ',
+  'chip.pending': 'Có thay đổi chưa đăng',
+  'chip.me': 'Chỉ mình tôi',
+  'chip.leaders': 'Người hướng dẫn',
+  'chip.class': 'Người hướng dẫn và cả lớp',
   'chip.comment': '{n} lời phê',
   'chip.comments': '{n} lời phê',
   'chip.noComment': 'Chưa có lời phê',
@@ -146,32 +146,57 @@ export const vi: Messages = {
 
   'entry.notFound': 'Không tìm thấy bài này',
   'entry.edit': 'Sửa',
-  'entry.draftNote': 'Bản nháp: chỉ bạn thấy được. Người hướng dẫn đọc được sau khi bạn gửi.',
+  'entry.draftNote':
+    'Chỉ bạn thấy được. Muốn người hướng dẫn đọc, hãy chọn ở mục Ai đọc được bài này bên dưới.',
+  'entry.draftNoteLeader':
+    'Chỉ bạn thấy được. Muốn những người hướng dẫn khác đọc, hãy chọn ở mục Ai đọc được bài này bên dưới.',
   'entry.pendingNote':
-    'Đây là những thay đổi chưa gửi. Người hướng dẫn vẫn thấy bản bạn gửi lần trước cho đến khi bạn bấm Cập nhật.',
+    'Đây là những thay đổi chưa đăng. Người khác vẫn thấy bản bạn đăng lần trước cho đến khi bạn bấm Đăng thay đổi.',
   'entry.empty': '(Không có nội dung)',
   'entry.untitled': '(Không có tiêu đề)',
   'entry.commentLabel': 'Lời phê:',
   'entry.newComment': 'Mới',
   'entry.leader': 'Người hướng dẫn {name}',
   'entry.formerLeader': 'Người hướng dẫn cũ',
+  'entry.mine': 'Của tôi',
 
   'translate.button': 'Dịch sang tiếng Việt',
   'translate.working': 'Đang dịch…',
   'translate.result': 'Bản dịch',
   'translate.off': 'Máy chủ này chưa bật chức năng dịch.',
 
-  'share.label': 'Chia sẻ với lớp',
-  'share.notSubmitted': 'Bạn có thể chia sẻ một bài sau khi đã gửi.',
-  'share.shared': 'Đã chia sẻ: mọi người trong lớp đọc được bài này và các lời phê đã gửi.',
   'share.unsharedByLeader':
-    'Người hướng dẫn đã ngừng chia sẻ bài này. Bạn có thể chia sẻ lại sau khi cập nhật.',
+    'Người hướng dẫn đã ngừng chia sẻ bài này. Bạn có thể chia sẻ lại với cả lớp sau khi đăng một thay đổi.',
   'share.confirmTitle': 'Chia sẻ bài này?',
   'share.confirmBody':
     'Mọi người trong lớp sẽ đọc được bài này và các lời phê đã gửi. Bạn có thể ngừng chia sẻ bất cứ lúc nào, người hướng dẫn cũng vậy.',
   'share.confirm': 'Chia sẻ',
+  // Who can read an entry, save / publish (D37, 2026-11-16): drafted, for the reviewer.
+  'audience.label': 'Ai đọc được bài này',
+  'audience.me': 'Chỉ mình tôi',
+  'audience.leaders': 'Người hướng dẫn',
+  'audience.otherLeaders': 'Những người hướng dẫn khác',
+  'audience.class': 'Người hướng dẫn và cả lớp',
+  'audience.meHint': 'Chỉ bạn thấy được.',
+  'audience.leadersHint': 'Người hướng dẫn đọc được và có thể phê.',
+  'audience.otherLeadersHint': 'Những người hướng dẫn khác đọc được và có thể phê.',
+  'audience.classHint':
+    'Người hướng dẫn và các bạn cùng lớp đọc được bài này và các lời phê đã gửi.',
+  'audience.meLocked': 'Bài đã có lời phê nên không thể trở lại Chỉ mình tôi.',
+  'audience.sendTitle': 'Gửi cho người hướng dẫn?',
+  'audience.sendTitleLeader': 'Gửi cho những người hướng dẫn khác?',
+  'audience.sendBody':
+    'Họ sẽ thấy bài như hiện tại và có thể phê. Những thay đổi sau này đến với họ khi bạn bấm Đăng thay đổi.',
+  'audience.send': 'Gửi',
+  'audience.backTitle': 'Trở lại Chỉ mình tôi?',
+  'audience.backBody':
+    'Người hướng dẫn và các bạn cùng lớp sẽ không thấy bài này nữa, và bài sẽ bỏ ghim. Nội dung được giữ làm bản nháp; bạn có thể gửi lại sau.',
+  'audience.back': 'Trở lại Chỉ mình tôi',
+  'audience.backDone': 'Giờ chỉ bạn thấy được bài này.',
+  'audience.classDone': 'Đã chia sẻ với cả lớp.',
+  'audience.leadersDone': 'Không còn chia sẻ với cả lớp.',
 
-  'editor.newTitle': 'Viết nhật ký',
+  'editor.newTitle': 'Viết bài',
   'editor.editTitle': 'Sửa bài',
   'editor.title': 'Tiêu đề',
   'editor.date': 'Ngày',
@@ -203,16 +228,28 @@ export const vi: Messages = {
   'editor.imageStripped': 'Đã xóa vị trí và các dữ liệu khác khỏi ảnh.',
   'editor.imageUnreadable': 'Không đọc được ảnh này. Vui lòng chọn ảnh JPEG hoặc PNG.',
   'editor.imageTooLarge': 'Ảnh vẫn quá lớn sau khi nén. Vui lòng chọn ảnh khác.',
+  'editor.save': 'Lưu',
+  'editor.saveForLater': 'Lưu, chưa đăng',
+  'editor.publish': 'Đăng thay đổi',
   'editor.counter': '{n} / {max} ký tự',
   'editor.lengthCare': 'Bài viết cô đọng giúp người hướng dẫn đọc kỹ hơn.',
   'editor.tooLong':
-    'Khi gửi, bài tối đa {max} ký tự; vui lòng rút ngắn trước. Vẫn có thể lưu nháp.',
-  'editor.saveDraft': 'Lưu nháp',
-  'editor.submit': 'Gửi',
-  'editor.update': 'Cập nhật',
+    'Bài gửi hoặc đăng chỉ được tối đa {max} chữ; hãy rút gọn trước. Vẫn lưu được như thường.',
   'editor.history': 'Lịch sử',
   'editor.submitted': 'Đã gửi. Người hướng dẫn giờ đã đọc được bài này.',
-  'editor.updated': 'Đã cập nhật. Người hướng dẫn giờ thấy bản mới.',
+  'editor.updated': 'Đã đăng thay đổi. Người hướng dẫn giờ thấy bản mới.',
+  // Leader-aware notices and pinning (D36, 2026-11-16): drafted, for the reviewer.
+  'editor.submittedLeader':
+    'Đã gửi. Những người hướng dẫn khác giờ đã đọc được bài này; chia sẻ với cả lớp thì cả lớp cũng đọc được.',
+  'editor.updatedLeader': 'Đã đăng thay đổi. Những người hướng dẫn khác giờ thấy bản mới.',
+  'editor.updatedShared': 'Đã đăng thay đổi. Người hướng dẫn và các bạn cùng lớp giờ thấy bản mới.',
+  'pin.label': 'Ghim lên đầu trang Lớp',
+  'pin.hint':
+    'Bài được ghim sẽ luôn ở đầu trang Lớp cho đến khi bạn bỏ ghim. Ngừng chia sẻ cũng sẽ bỏ ghim.',
+  'pin.notShared': 'Hãy chia sẻ bài trước rồi mới ghim được.',
+  'pin.pinned': 'Đã ghim. Cả lớp sẽ thấy bài này ở đầu trang Lớp.',
+  'pin.unpinned': 'Đã bỏ ghim.',
+  'pin.limit': 'Bạn chỉ ghim được tối đa {max} bài cùng lúc. Hãy bỏ ghim một bài trước.',
 
   // Voice notes (D35, 2026-11-15): drafted, for the reviewer.
   'voice.heading': 'Ghi âm',
@@ -222,12 +259,12 @@ export const vi: Messages = {
   'voice.play': 'Phát',
   'voice.pause': 'Tạm dừng',
   'voice.loading': 'Đang tải…',
-  'voice.pending': 'Chờ cập nhật',
-  'voice.pendingRemove': 'Sẽ gỡ khi cập nhật',
+  'voice.pending': 'Chưa đăng',
+  'voice.pendingRemove': 'Gỡ khi bạn đăng',
   'voice.remove': 'Xoá',
   'voice.removeTitle': 'Xoá đoạn ghi âm này?',
   'voice.removeBody':
-    'Đoạn chưa gửi sẽ bị xoá ngay; đoạn đã gửi sẽ được gỡ khi bạn cập nhật lần tới.',
+    'Đoạn ghi âm chưa đăng sẽ bị xóa ngay; đoạn đã đăng sẽ được gỡ khi bạn đăng thay đổi lần tới.',
   'voice.start': 'Bắt đầu ghi âm',
   'voice.preparing': 'Đang chuẩn bị micrô…',
   'voice.stop': 'Dừng',
@@ -240,7 +277,8 @@ export const vi: Messages = {
   'voice.discardTitle': 'Bỏ đoạn ghi âm này?',
   'voice.keepRecording': 'Quay lại',
   'voice.uploading': 'Đang tải lên…',
-  'voice.kept': 'Đã giữ đoạn ghi âm. Học viên sẽ nghe được sau khi bạn gửi hoặc cập nhật.',
+  'voice.kept':
+    'Đã giữ đoạn ghi âm. Ai đọc được bài này sẽ nghe được sau khi bạn gửi bài hoặc đăng thay đổi.',
   'voice.stillHere': 'Đoạn ghi âm vẫn còn đây; hãy thử lại.',
   'voice.micDenied':
     'Không dùng được micrô. Hãy cho phép trang này dùng micrô trong cài đặt trình duyệt hoặc điện thoại, rồi thử lại.',
@@ -250,7 +288,7 @@ export const vi: Messages = {
   'voice.playFailed': 'Không phát được đoạn ghi âm này.',
 
   'status.saved': 'Đã lưu {time}',
-  'status.submitted': 'Đã gửi {time}',
+  'status.submitted': 'Đã đăng {time}',
   'status.saving': 'Đang lưu…',
   'status.dirty': 'Có thay đổi chưa lưu',
   'status.offline': 'Đang ngoại tuyến, vui lòng thử lại sau',
@@ -258,7 +296,7 @@ export const vi: Messages = {
 
   'limit.create': 'Hôm nay bạn đã bắt đầu {max} bài, đạt giới hạn mỗi ngày.',
   'limit.submit': 'Hôm nay bạn đã gửi {max} bài mới, đạt giới hạn mỗi ngày.',
-  'limit.update': 'Hôm nay bạn đã cập nhật {max} lần, đạt giới hạn mỗi ngày.',
+  'limit.update': 'Hôm nay bạn đã đăng thay đổi {max} lần, đạt giới hạn mỗi ngày.',
   'limit.images': 'Mỗi bài tối đa {max} ảnh.',
   'limit.chars': 'Bài gửi đi tối đa {max} ký tự.',
   // For the reviewer (D35).
@@ -269,26 +307,27 @@ export const vi: Messages = {
   'limit.kept': 'Nội dung của bạn vẫn còn trong trình soạn thảo.',
 
   'leave.title': 'Bạn có thay đổi chưa lưu',
-  'leave.body': 'Lưu nháp trước khi rời đi?',
-  'leave.save': 'Lưu rồi rời đi',
+  'leave.body': 'Lưu trước khi rời đi?',
+  'leave.save': 'Lưu và rời đi',
   'leave.discard': 'Rời đi không lưu',
   'leave.stay': 'Tiếp tục viết',
 
   'history.title': 'Lịch sử',
   'history.empty':
-    'Chưa có bản cũ nào. Mỗi lần bạn cập nhật, bản đã gửi trước đó được giữ lại ở đây (tối đa 3 bản).',
+    'Chưa có bản cũ nào. Mỗi lần bạn đăng thay đổi, bản trước đó được giữ ở đây (tối đa 3 bản).',
   'history.version': 'Bản {n}',
 
-  'open.title': 'Nhật ký chia sẻ',
+  'open.title': 'Lớp',
   'open.empty': 'Tháng này chưa có bài chia sẻ nào',
   'open.noMatch': 'Không có bài nào khớp bộ lọc',
   'open.filters': 'Lọc',
   'open.everyone': 'tất cả',
   'open.authors': 'Tác giả',
   'open.clear': 'Bỏ lọc',
+  'open.pinned': 'Đã ghim',
 
   'nav.review': 'Duyệt bài',
-  'nav.myDiary': 'Nhật ký của tôi',
+  'nav.myDiary': 'Ghi chép của tôi',
   'nav.waiting': '{n} đang chờ',
 
   'review.title': 'Duyệt bài',
@@ -316,23 +355,24 @@ export const vi: Messages = {
   'comment.title': 'Lời phê của tôi',
   'comment.edit': 'Sửa lời phê',
   'comment.write': 'Viết lời phê',
+  'comment.saveDraft': 'Lưu nháp',
   'comment.body': 'Nội dung lời phê',
   'comment.placeholder': 'Viết lời phê…',
   'comment.submit': 'Gửi lời phê',
   'comment.update': 'Cập nhật lời phê',
   'comment.none': 'Chưa có lời phê.',
-  'comment.draft': 'Bản nháp: học viên chưa thấy.',
-  'comment.submittedAt': 'Đã gửi {time}: học viên đã thấy.',
+  'comment.draft': 'Bản nháp: chỉ bạn thấy được.',
+  'comment.submittedAt': 'Đã gửi {time}: ai đọc được bài này đều thấy.',
   'comment.retract':
-    'Lưu một lời phê đã gửi thành bản nháp sẽ ẩn nó khỏi học viên cho đến khi bạn gửi lại.',
+    'Lưu một lời phê đã gửi thành bản nháp sẽ ẩn nó khỏi mọi người cho đến khi bạn gửi lại.',
   'comment.needsContent': 'Lời phê cần có chữ hoặc ảnh mới gửi được.',
   'comment.saved': 'Đã lưu lời phê thành bản nháp.',
-  'comment.sent': 'Đã gửi lời phê. Học viên giờ đã thấy.',
+  'comment.sent': 'Đã gửi lời phê. Tác giả sẽ thấy nó được đánh dấu là mới.',
 
   'unshare.button': 'Ngừng chia sẻ',
   'unshare.title': 'Ngừng chia sẻ?',
   'unshare.body':
-    'Các học viên khác sẽ không đọc được bài này nữa. Học viên có thể chia sẻ lại sau khi cập nhật.',
+    'Các bạn cùng lớp sẽ không đọc được bài này nữa, và bài sẽ không còn được ghim. Tác giả có thể chia sẻ lại sau khi cập nhật.',
   'unshare.done': 'Đã ngừng chia sẻ.',
 
   'reading.end': 'Đây là bài cuối cùng.',
@@ -473,7 +513,7 @@ export const vi: Messages = {
   'docs.empty': 'Không có bài phù hợp',
   'docs.deleteTitle': 'Xóa “{title}”?',
   'docs.deleteBody':
-    'Bài viết, lịch sử và các lời phê của bài sẽ bị xóa ngay, vĩnh viễn. Không thể hoàn tác.',
+    'Bài viết, lịch sử, các đoạn ghi âm và các lời phê của bài sẽ bị xóa ngay, vĩnh viễn. Không thể hoàn tác.',
   'docs.deleted': 'Đã xóa bài.',
 
   'nav.count': 'Chú Đại Bi',
@@ -628,9 +668,10 @@ export const vi: Messages = {
   'error.unauthorized': 'Bạn đã bị đăng xuất. Vui lòng đăng nhập lại.',
   'error.forbidden': 'Bạn không được phép làm việc này.',
   'error.invalid_transition': 'Không thể làm việc này ở trạng thái hiện tại.',
-  'error.not_submitted': 'Bài phải được gửi trước.',
+  'error.not_submitted': 'Cần gửi bài trước đã.',
   'error.unshared_by_leader':
-    'Người hướng dẫn đã ngừng chia sẻ bài này. Hãy cập nhật bài để chia sẻ lại.',
+    'Người hướng dẫn đã ngừng chia sẻ bài này. Hãy đăng một thay đổi để chia sẻ lại.',
+  'error.has_comments': 'Bài này đã có lời phê nên không thể trở lại Chỉ mình tôi.',
   'error.invalid_credentials':
     'Sai tên đăng nhập hoặc mật khẩu, hoặc tài khoản đang chờ đặt lại mật khẩu.',
   'error.captcha_failed': 'Câu trả lời xác minh sai hoặc đã hết hạn. Đây là hình mới.',

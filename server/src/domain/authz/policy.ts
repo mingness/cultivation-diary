@@ -115,6 +115,8 @@ export const DocumentAction = {
   Delete: 'delete',
   /** Add a voice note (D35): leaders only, on their own entries. Removing one is `Edit`. */
   RecordAudio: 'record_audio',
+  /** Pin to the top of 開放日記 (D36): leaders only, on their own entries. Unpinning is `Edit`. */
+  Pin: 'pin',
 } as const;
 export type DocumentAction = (typeof DocumentAction)[keyof typeof DocumentAction];
 
@@ -138,6 +140,9 @@ export function canOnDocument(actor: Actor, action: DocumentAction, doc: Documen
       return asLeader;
     case DocumentAction.RecordAudio:
       // Students can't record (D35); a leader made a NORMAL_USER keeps their notes and may remove them (Edit).
+      return isOwner && actor.role === 'COURSE_LEADER';
+    case DocumentAction.Pin:
+      // Pinning is a leader's notice to the class (D36); a leader made a NORMAL_USER may still unpin (Edit).
       return isOwner && actor.role === 'COURSE_LEADER';
     case DocumentAction.Delete:
       // The spec gives deleting entries to SYS_ADMIN (§6.5), which needs no access to content.

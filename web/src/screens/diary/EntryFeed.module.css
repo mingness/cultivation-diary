@@ -16,6 +16,13 @@
   scroll-margin-top: 5rem;
 }
 
+/* A leader's or the reader's own entry brings its own coloured frame (EntryArticle), which replaces the card. */
+.item:has([data-framed]) {
+  padding: 0;
+  background: none;
+  border: none;
+}
+
 .placeholder {
   min-height: 12rem;
 }

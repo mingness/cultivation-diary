@@ -85,13 +85,16 @@ export async function readEntry(ctx: AppContext, reader: Reader, id: string): Pr
         row,
         audio.some((a) => a.pending !== null),
       ),
-      comments: shown.map(({ id: commentId, authorName, submittedAt, body, seenByOwnerAt }) => ({
-        id: commentId,
-        authorName,
-        submittedAt,
-        body,
-        isNew: seenByOwnerAt === null,
-      })),
+      comments: shown.map(
+        ({ id: commentId, authorColour, authorName, submittedAt, body, seenByOwnerAt }) => ({
+          id: commentId,
+          authorColour,
+          authorName,
+          submittedAt,
+          body,
+          isNew: seenByOwnerAt === null,
+        }),
+      ),
       myComment: isLeader ? await myComment(ctx, id, dek, reader.id) : null,
       audio,
     };
@@ -116,8 +119,9 @@ export async function readEntry(ctx: AppContext, reader: Reader, id: string): Pr
   };
   const shownComments = (
     await submittedComments(ctx, id, dek, view === 'leader' ? reader.id : undefined)
-  ).map(({ id: commentId, authorName, submittedAt, body }) => ({
+  ).map(({ id: commentId, authorColour, authorName, submittedAt, body }) => ({
     id: commentId,
+    authorColour,
     authorName,
     submittedAt,
     body,

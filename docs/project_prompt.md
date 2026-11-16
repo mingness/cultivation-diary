@@ -115,32 +115,46 @@ course leader reads → writes comment draft (invisible) → submits comment (vi
 ### 5.2 Editor (used for diary content and for a course leader's comment)
 - Title input on top; rich-text body: font family, font size, underline, bold, headings (Title, H1–H3), insert local image.
 - Images are processed before insertion so phone photos need no manual preparation: any image over 500 KB or over 1600 px on its long edge is **automatically downscaled** (to fit 1600 px) and lossy-compressed, and the user is told what was done (original and new size). Photo metadata (including location) is removed. Images are embedded inline with the text. The server rejects images and documents over its size limits with a clear message.
-- Bottom buttons **暂存 | 提交 | 历史版本**:
-  - Both start disabled; become active as soon as the text (or title/open-access) changes.
-  - 暂存 saves a draft, then deactivates itself while 提交 becomes active. Auto-draft every 5 minutes while dirty.
-  - 提交 saves, marks the document submitted, then deactivates. Once the document has been submitted, the button reads **更新** (update): it saves, archives the previous submitted content into history (max 3 versions), then deactivates. Re-entering an already-submitted document does not re-activate it until something changes.
+- **Who can read it (revised 2026-11-16, D37):** one choice, 誰可以閱讀: **只有我** (only me), **導師** (my
+  leaders; 其他導師 for a leader's own entry) or **導師和同班學員** (leaders and class). A new entry starts
+  as 只有我 and may stay so for good: the practice matters most. Choosing 導師 sends the entry (the old 提交)
+  after a confirmation; leaders then read and comment. Choosing the class also shares it (§5.3). Going back
+  to 只有我 is allowed until someone else has sent a comment; once there is a comment it is a conversation.
+  Going back unshares and unpins; what was sent becomes the author's draft again.
+- Bottom buttons:
+  - Before the entry is sent: **儲存 | 历史版本**. Saving is all there is, since only the author sees it.
+  - Once sent: **先儲存 | 發佈修改 | 历史版本**. 先儲存 keeps changes for later; readers keep seeing the last
+    published version. 發佈修改 publishes them and archives the previous published content into history (max
+    3 versions).
+  - 儲存 starts disabled and becomes active as soon as the text or title changes; it deactivates after saving.
+    發佈修改 is active while there is anything readers haven't seen. Auto-save every 5 minutes while dirty.
+    Re-entering an entry does not re-activate the buttons until something changes.
   - 历史版本 lists the stored versions (version number + time + content) and can collapse.
 - **No cursor-jump-to-start bug** is acceptable in the comment editor — the initial text must load without moving the caret.
 - After submitting, content must survive re-entry exactly as saved.
 - All rich text is sanitized on the server against an allowlist of the editor's own tags and attributes, before storing and before display.
 - **Voice notes (course leaders' own entries only, added 2026-11-15):** a course leader may record up to 6 voice notes, at most 2 minutes each, on their own entry. A note is part of the entry: it is saved with the draft and goes out with 提交/更新, so it reaches exactly the readers the entry does (other leaders once submitted, the class once shared). Readers see a small player under the body. Students cannot record. No transcript.
 
-### 5.3 Sharing flow (revised 2026-10-19)
+### 5.3 Sharing flow (revised 2026-11-16, D37)
 ```
-The author checks the share box (with a confirm dialog) → 'Class'
-The author unchecks it                                  → 'Private'; they may share again at any time
-Any COURSE_LEADER stops sharing (with a confirm dialog) → 'Private'; the author may share again only after 更新
+The author chooses 導師和同班學員 (with a confirm dialog) → 'Class' (sending it first if it wasn't sent)
+The author chooses 導師                                   → leaders only; they may share again at any time
+The author chooses 只有我 (with a confirm dialog)         → nobody else; refused once someone else has commented
+Any COURSE_LEADER stops sharing (with a confirm dialog)   → leaders only; the author may share again only after 發佈修改
 ```
 - Sharing is the author's choice; nobody approves it. A leader can only stop sharing.
-- Default unchecked. Only a submitted diary can be shared.
+- Default 只有我. Only a sent diary can be shared.
 - `Class` means content **and** all submitted comments readable by everyone in the author's class. There is
   only one class for now, so that is every diary member (NORMAL_USER and COURSE_LEADER). A COUNT_USER is never
   a reader.
-- After a leader stops sharing, the author sees why and the box stays off until they submit an update that
-  changes the entry.
+- After a leader stops sharing, the author sees why and the class choice stays off until they publish a
+  change to the entry.
 - **Later, with several classes:** authors choose between their own class and everyone. The data already
   holds an `Everyone` level; it is not offered yet.
 - The server enforces these rules.
+- **Pinning (D36, 2026-11-16):** a course leader may pin up to 3 of their own shared entries to the top of
+  Open diaries, where they show above every month until the leader unpins them. Stopping sharing also
+  unpins. Students can't pin.
 
 ### 5.4 Comment visibility
 - A course leader's 暂存 comment → invisible to the user and to other leaders.

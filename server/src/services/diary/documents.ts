@@ -6,7 +6,7 @@
  * activity it caused, for the route to record after the transaction has committed.
  */
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, lt, ne, or, sql } from 'drizzle-orm';
 import {
   ENTRY_LIMITS,
   ErrorCode,
@@ -15,7 +15,7 @@ import {
   type OwnDocument,
 } from '@diary/shared';
 import type { AppContext } from '../../context.js';
-import { comments, documents, documentVersions } from '../../db/schema.js';
+import { comments, documentAudio, documents, documentVersions } from '../../db/schema.js';
 import { openText, sealText } from '../../domain/crypto/aead.js';
 import { fieldAad } from '../../domain/crypto/contexts.js';
 import { beijingDate, monthDates } from '../../domain/count/schedule.js';
@@ -102,6 +102,7 @@ export function toOwnDocument(
     state: stateOf(row, pendingAudio),
     access: row.access,
     unsharedByLeader: row.unsharedByLeaderAt !== null,
+    pinned: row.pinnedAt !== null,
     submitted,
     draft,
     createdAt: row.createdAt.toISOString(),
@@ -283,6 +284,87 @@ export async function submitDocument(
   });
   // Every pending voice-note change was applied above, or there was none.
   return { document: toOwnDocument(ctx, row, false), activity, elevated };
+}
+
+/**
+ * Takes a sent entry back to "only me" (D37): leaders and the class stop seeing it, and what was sent becomes
+ * the owner's draft again (a pending draft, if there is one, wins, so no writing is lost). Refused with 409
+ * has_comments once someone else has sent a comment: it is a conversation then. A leader's unsent comment
+ * doesn't count; it stays with them, hidden, and returns if the entry is sent again. Sharing and a pin go;
+ * voice notes become pending additions again, and those waiting to be removed are removed. History versions
+ * stay with the entry. The entry row is locked, as comment writes lock it, so a comment can't slip in.
+ */
+export async function withdrawDocument(
+  ctx: AppContext,
+  ownerId: string,
+  id: string,
+): Promise<Written> {
+  const row = await ctx.db.transaction(async (tx) => {
+    const current = await lockOwn(tx, ownerId, id);
+    if (!current.firstSubmittedAt || !current.contentCt || !current.contentNonce) {
+      throw new HttpError(409, ErrorCode.InvalidTransition, 'Only a sent entry can be taken back');
+    }
+    const [comment] = await tx
+      .select({ id: comments.id })
+      .from(comments)
+      .where(
+        and(
+          eq(comments.documentId, id),
+          eq(comments.state, 'submitted'),
+          or(isNull(comments.authorId), ne(comments.authorId, ownerId)),
+        ),
+      )
+      .limit(1);
+    if (comment) {
+      throw new HttpError(409, ErrorCode.HasComments, 'Someone has commented on this entry');
+    }
+    const dek = documentKey(ctx, id, current.dekWrapped);
+    const now = ctx.clock();
+    // Before the first 提交 an entry's text lives in the draft fields and `title` is the working title.
+    const draft =
+      current.draftCt && current.draftNonce
+        ? { ct: current.draftCt, nonce: current.draftNonce }
+        : seal(
+            dek,
+            openText(
+              dek,
+              { ciphertext: current.contentCt, nonce: current.contentNonce },
+              fieldAad.documentContent(id),
+            ),
+            fieldAad.documentDraft(id),
+          );
+    const title = current.draftCt ? (current.draftTitle ?? current.title) : current.title;
+    await tx
+      .delete(documentAudio)
+      .where(and(eq(documentAudio.documentId, id), eq(documentAudio.pending, 'remove')));
+    await tx
+      .update(documentAudio)
+      .set({ pending: 'add' })
+      .where(and(eq(documentAudio.documentId, id), isNull(documentAudio.pending)));
+    const [updated] = await tx
+      .update(documents)
+      .set({
+        title,
+        draftTitle: title,
+        draftCt: draft.ct,
+        draftNonce: draft.nonce,
+        draftSavedAt: current.draftSavedAt ?? now,
+        contentCt: null,
+        contentNonce: null,
+        firstSubmittedAt: null,
+        lastSubmittedAt: null,
+        access: 'private',
+        accessDecidedBy: ownerId,
+        accessDecidedAt: now,
+        pinnedAt: null,
+        updatedAt: now,
+      })
+      .where(eq(documents.id, id))
+      .returning();
+    if (!updated) throw notFound();
+    return updated;
+  });
+  return { document: toOwnDocument(ctx, row, false), activity: null, elevated: null };
 }
 
 /** Stores the outgoing body as the next version and drops all but the newest MAX_VERSIONS. */

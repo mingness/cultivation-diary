@@ -135,10 +135,11 @@ documents
   first_submitted_at NULL                 -- NULL = never submitted = invisible to leaders
   last_submitted_at NULL
   CHECKs: ciphertext/nonce pairs set together; content exists iff first_submitted_at is set; only submitted
-  entries can be anything but private
+  entries can be anything but private; only shared entries can be pinned
   access ENUM(private, course, everyone)  -- who it's shared with (D29); `everyone` is not offered yet
   access_decided_by FK users NULL, access_decided_at NULL   -- last sharing change
   unshared_by_leader_at NULL              -- a leader stopped sharing; cleared by the next 更新 with a change
+  pinned_at NULL                          -- D36; a leader pinned their own entry to the top of 開放日記; unsharing clears it
   dek_wrapped, key_version
   created_at, updated_at
   INDEX (diary_date) WHERE first_submitted_at IS NOT NULL, INDEX (owner_id, diary_date), INDEX (access)
@@ -290,9 +291,11 @@ using `actor.role`, `isOwner`, and the document's `first_submitted_at` and `acce
 | COUNT_USER | Never; they have no diary capability at all (D30) |
 | SYS_ADMIN | Never. Metadata only (title, date, owner, access state) |
 
-### 7.2 Sharing (revised 2026-10-19, D29)
+### 7.2 Sharing (revised 2026-10-19, D29; taking back added 2026-11-16, D37)
 
 ```
+owner:   sent ──withdraw (confirm dialog)──► never sent (draft), private, unpinned
+                                              refused (409 has_comments) once someone else sent a comment
 owner:   private ──share(scope) (confirm dialog)──► scope    refused while a leader's unshare stands
 owner:   scope ──share(other scope)──► other scope
 owner:   scope ──unshare──► private
@@ -317,9 +320,11 @@ bodies are ignored.
 | `POST /api/me/totp/setup`, `/confirm` | – | ✅ optional | ✅ optional | ✅ optional | ✅ required |
 | `GET /api/documents/mine?month=` → per entry `state, access, commentCount, hasUnseenComment` | – | ❌ | ✅ | ✅ | ❌ |
 | `POST /api/documents`, `PUT /:id/draft`, `POST /:id/submit` (first submit or update) | – | ❌ | own, daily limits | own, daily limits | ❌ |
-| `GET /api/documents/open?month=` | – | ❌ | ✅ | ✅ | ❌ |
+| `GET /api/documents/open?month=` (the month's rows, plus every pinned entry) | – | ❌ | ✅ | ✅ | ❌ |
+| `PUT /api/documents/:id/pin` (`{pinned}`, D36) | – | ❌ | ❌ (unpin: own, if once a leader) | own, shared; 3 at once | ❌ |
 | `GET /api/documents/:id`, `/:id/versions` | – | ❌ | per §7.1 | per §7.1 | ❌ |
 | `POST /api/documents/:id/access` (`{action: share, scope: course}` / `{action: unshare}`) | – | ❌ | own | own | ❌ |
+| `POST /api/documents/:id/withdraw` (back to 只有我, D37) | – | ❌ | own, no comment by others | own, no comment by others | ❌ |
 | `POST /api/documents/:id/access` (`{action: unshare}`) | – | ❌ | ❌ | ✅ submitted | ❌ |
 | `GET /api/leader/documents?date=&page=&size=`, `?user=&month=` and `?unread=true&page=&size=` → per entry `myCommentState, otherLeaderCommented, unread, access` | – | ❌ | ❌ | ✅ submitted only | ❌ |
 | `GET /api/leader/calendar?month=` → submitted-entry count per day | – | ❌ | ❌ | ✅ | ❌ |
@@ -428,8 +433,18 @@ any submitted entry, their own included, and the review lists include their own 
 - **Editor (§5.2):** Tiptap with only the extensions matching the allowlisted tags (`p, h1–h3, b, strong, u,
   span[style=font-family|font-size], img[src=data:image/(jpeg|png|webp)], br`). The server sanitiser uses the
   same allowlist, so anything the editor can produce survives sanitising unchanged.
-- **Buttons:** the draft/submit enable logic is a unit-tested reducer. Auto-draft runs every 5 minutes while
-  there are unsaved changes. The submit button reads 提交 until `first_submitted_at` is set, then 更新.
+- **Buttons and audience (D37):** the enable logic is a unit-tested reducer (`editorButtons`). Before the
+  first submit there is only 儲存; sending is the 誰可以閱讀 choice (導師, or the class, which also shares).
+  Once sent, 先儲存 writes the draft and 發佈修改 submits (the API's `submit`, unchanged). Auto-save runs every
+  5 minutes while there are unsaved changes.
+- **Taking back (D37):** `POST /api/documents/:id/withdraw` returns a sent entry to never-sent: the newest
+  writing (the pending draft, else the submitted text) becomes the draft, `first_submitted_at` and the
+  content are cleared, sharing and a pin go, submitted voice notes become `pending = add` and those pending
+  removal are deleted. History versions stay. Refused with 409 `has_comments` when someone other than the
+  author has a submitted comment; a leader's draft comment stays hidden with them and returns if the entry
+  is sent again. The entry row is locked, as comment saves lock it, so a comment and a withdrawal can't
+  both succeed. Sending again counts as a first submission (daily limit). The read audit keeps earlier
+  reads.
 - **Entry date (D22):** `diary_date` is the Asia/Shanghai date of `created_at`, set on insert. Create and draft
   bodies carry no date, so backdating is impossible rather than merely validated.
 - **Images (D6, agreed):**
@@ -692,6 +707,25 @@ aside for now; when they return they should reuse this recorder and player.
 - **Accepted gap:** a voice note can't be read by a deaf member or translated; no labels and no
   transcription for now (D35).
 
+### 8.15 Pinned entries and leaders' colours (D36, agreed 2026-11-16)
+
+- **Pinning:** a COURSE_LEADER pins their own shared entry (`PUT /api/documents/:id/pin`), and it heads
+  開放日記 above every month, most recently pinned first, until the leader unpins it; nothing expires it.
+  At most 3 per leader at once (`PIN_LIMITS.perLeader`; 409 `limit_reached` `{limit: "pins"}`, not
+  recorded as activity: it's tidiness, not misuse). Only a shared entry can be pinned (a database check);
+  unsharing, by the author or another leader, clears the pin, and sharing again doesn't restore it. A leader
+  made a NORMAL_USER may unpin but not pin. The leader's user row is locked while pinning, so two pins at
+  once can't both take the last place. `GET /api/documents/open` returns `pinned` beside the month's
+  `documents`; unfiltered, the app shows the pinned ones on top and leaves them out of the month below; with
+  a day or author filter there is no pinned section.
+- **Leaders' colours:** each current leader has a number in the order their accounts were made
+  (`EntryAuthor.leaderColour`, `SubmittedComment.authorColour`, and `leaderColour` in `GET /api/me` for a
+  leader's own comments and entries); students get null. The app maps it onto six `--leader-*` tokens
+  (FRONTEND.md §2.1), so a leader's name, entry edge and comment cards keep one colour. Numbering rather than
+  hashing the ID means a handful of leaders never share a colour; a seventh shares the first's. Demoting a
+  leader renumbers those added after them. The name still reads 「…導師」, so colour is never the only sign.
+- **Own entries:** outside 我的日記 (開放日記, 批閱), the reader's own entry is tinted and marked 我的.
+
 ### 8.8 Android fallback (only if D10 says so)
 
 A minimal Kotlin WebView that loads the **remote** HTTPS site, not bundled assets. The site updates itself as
@@ -953,6 +987,18 @@ Built before Phase E, which is set aside for now.
     themes. Then real-phone playback checks (iPhone ↔ Android). *(Built 2026-11-15: `VoiceNotes.tsx`,
     `VoiceRecorder.tsx`, `AudioPlayer.tsx`, `web/e2e/voice.spec.ts`; the real-phone checks are still to do.)*
 
+### Phase G: pinning and leaders' colours (D36, agreed 2026-11-16)
+
+33. **Pinning, colours, notices:** `documents.pinned_at` (migration 0012), the pin route and the pinned list
+    in 開放日記, leader colour numbers on authors and comments; the pin box on a leader's own entry, the
+    置頂 section, leader colours and the 我的 mark; submit and comment notices that fit leaders' entries and
+    shared entries. *(Built 2026-11-16: `services/sharing.ts` `setPinned`, `PinToggle.tsx`,
+    `server/test/integration/pinned.test.ts`, `web/e2e/pin.spec.ts`.)*
+34. **Who can read it (D37):** the 誰可以閱讀 control replacing the share box and 提交; 儲存 / 先儲存 /
+    發佈修改; taking an entry back to 只有我 until someone else comments; strings reworded away from
+    暫存/提交/更新 for entries (leaders' comments keep 暫存/提交批注). *(Built 2026-11-16:
+    `withdrawDocument`, `AudienceControl.tsx`, `server/test/integration/withdraw.test.ts`.)*
+
 ### Phase C: production
 
 18. **Ops:** deploy to Hong Kong with TLS, backup/restore, key rotation, RUNBOOK, SECURITY.md, PRIVACY.md,
@@ -1004,4 +1050,7 @@ Each slice ships with tests, both languages where it has UI, permission tests pe
 | D33 | Recording announcements | **Agreed** (2026-11-13): a leader may record an announcement in English or Chinese; the recording is **kept and the class can play it**; a speech-to-text provider transcribes it into the draft, which the leader corrects before publishing. Open: the provider, and how Simplified output becomes Traditional. §8.13 |
 | D34 | Vietnamese | **Agreed** (2026-11-13): a third interface language on both sites, reviewed by a Vietnamese practitioner before it is offered; translation gains Vietnamese as a target. Alert email unchanged. §8.10, §8.6 |
 | D35 | Voice notes on leaders' entries | **Agreed** (2026-11-15): a COURSE_LEADER may add up to 6 voice notes, 2 minutes each, to their own entries; students can't. A note is part of the entry: it goes out with 提交/更新 and is heard by whoever may read the entry, so the class hears it once the entry is shared. Recorded as MP3 in every browser (2026-11-16). No labels or transcription (deaf and translation gap accepted). Comments and announcements get none for now. §8.14 |
+| D36 | Pinned entries; telling leaders apart | **Agreed** (2026-11-16): a leader pins their own shared entries (3 at once) to the top of 開放日記 for every month, until they unpin them; unsharing unpins. Each leader has their own colour on name, entry and comments; the reader's own entries are marked 我的 outside 我的日記. §8.15 |
+| D37 | Draft, sent, shared | **Agreed** (2026-11-16): one 誰可以閱讀 choice (只有我 / 導師 / 導師和同班學員) instead of 提交 plus a share box; 只有我 is fine for good ("the practice is the most important"). Buttons 儲存, then 先儲存 / 發佈修改 once sent. An entry may go back to 只有我 until someone else has commented ("once there's a comment, it's already a dialogue"). §7.2, §8.3 |
+| D38 | Screen names | **Agreed** (2026-11-16; Chinese and Vietnamese for review): 我的日記 → 我的筆記 / "My notes", 開放日記 → 班級 / "Class", one entry → 一篇筆記 / "entry"; leaders' notices made "diary" too narrow. The product stays 修行日記. Only the UI strings changed; code names and these docs keep 日記 / 開放日記. FRONTEND.md §3 |
 | F1–F6 | Frontend decisions | **Agreed**: see FRONTEND.md §11 |

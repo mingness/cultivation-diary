@@ -114,6 +114,15 @@ describe('canOnDocument', () => {
       sysAdmin: [false, false],
       countUser: [false, false],
     },
+    // D36: leaders pin their own entries only (whether it is shared is the service's check).
+    [A.Pin]: {
+      owner: [false, false],
+      ownerLeader: [true, true],
+      otherUser: [false, false],
+      otherLeader: [false, false],
+      sysAdmin: [false, false],
+      countUser: [false, false],
+    },
     [A.Delete]: {
       owner: [false, false],
       ownerLeader: [false, false],
