@@ -34,3 +34,19 @@
   font-size: var(--text-sm);
   opacity: 0.8;
 }
+
+/* Pinned entries (D36): above the month, set off by a rule so the month's own entries clearly start below. */
+.pinned {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-5);
+  border-bottom: 2px solid var(--border);
+}
+
+.pinnedHeading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-lg);
+}

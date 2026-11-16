@@ -36,15 +36,15 @@ import { Icon } from '../../components/Icon.js';
 import { Notice } from '../../components/Notice.js';
 import { EmptyState, ErrorState, LoadingState } from '../../components/States.js';
 import { useToast } from '../../components/Toast.js';
-import { useI18n } from '../../i18n/index.js';
+import { useI18n, type MessageKey } from '../../i18n/index.js';
 import { useAnyUnsaved, useReportUnsaved } from '../../lib/unsaved.js';
 import { beijingDate, formatDiaryDate, formatTime } from '../../lib/dates.js';
 import { readToolbarState, Toolbar, usePhotoInsert, type EditorMessage } from './editorParts.js';
 import { HistorySheet } from './HistorySheet.js';
 import { counterTone, editorButtons } from './rules.js';
 import { contentExtensions, countImages } from './schema.js';
-import { ShareToggle } from './ShareToggle.js';
 import { EditorVoiceNotes } from './VoiceNotes.js';
+import { AudienceControl } from './AudienceControl.js';
 import contentStyles from './content.module.css';
 import styles from './EditorScreen.module.css';
 
@@ -161,9 +161,12 @@ function EntryEditor({ initial }: { initial: OwnerEntry | null }) {
       },
   });
 
-  // Sharing changes go straight to the server (ShareToggle) and land in the cached entry.
+  // 誰可以閱讀 changes go straight to the server (AudienceControl) and land in the cached entry.
   const live = useEntry(server.id).data;
   const access = live?.view === 'owner' ? live.access : server.access;
+  // Going back to 只有我 happens there too, so the cached entry also says whether leaders have it.
+  const submittedOnce = live?.view === 'owner' ? live.submitted !== null : server.submittedOnce;
+  const hasComments = live?.view === 'owner' && live.comments.length > 0;
   // A new entry can't have been unshared; otherwise the server's answer decides (a refusal explains itself).
   const unsharedByLeader = live?.view === 'owner' && live.unsharedByLeader;
   // Voice notes (D35) are saved as they're kept, so the cached entry is their truth; pending ones need 更新.
@@ -181,7 +184,7 @@ function EntryEditor({ initial }: { initial: OwnerEntry | null }) {
   const buttons = editorButtons({
     dirty,
     busy: saving,
-    submittedOnce: server.submittedOnce,
+    submittedOnce,
     pendingDraft: server.pendingDraft || pendingAudio,
     chars,
   });
@@ -192,7 +195,7 @@ function EntryEditor({ initial }: { initial: OwnerEntry | null }) {
    */
   async function persist(
     kind: 'draft' | 'submit',
-    options: { leaving?: boolean } = {},
+    options: { leaving?: boolean; quiet?: boolean } = {},
   ): Promise<string | null> {
     {
       if (!editor || busy.current) return null;
@@ -233,8 +236,8 @@ function EntryEditor({ initial }: { initial: OwnerEntry | null }) {
           at: kind === 'submit' ? (saved.submitted?.at ?? saved.updatedAt) : saved.updatedAt,
           submitted: kind === 'submit',
         });
-        if (kind === 'submit') {
-          toast.show(t(server.submittedOnce ? 'editor.updated' : 'editor.submitted'));
+        if (kind === 'submit' && !options.quiet) {
+          toast.show(t(submitNotice(submittedOnce, saved.access)));
         }
         return saved.id;
       } catch (error) {
@@ -246,6 +249,16 @@ function EntryEditor({ initial }: { initial: OwnerEntry | null }) {
         busy.current = false;
       }
     }
+  }
+
+  /**
+   * Who can read the entry now: a leader's entry reaches the other leaders, anyone's shared entry the class
+   * too. A first 提交 is never shared yet.
+   */
+  function submitNotice(wasSubmitted: boolean, access: Access): MessageKey {
+    if (!wasSubmitted) return canRecord ? 'editor.submittedLeader' : 'editor.submitted';
+    if (access !== 'private') return 'editor.updatedShared';
+    return canRecord ? 'editor.updatedLeader' : 'editor.updated';
   }
 
   function messageFor(error: ApiError | null): Message {
@@ -369,11 +382,14 @@ function EntryEditor({ initial }: { initial: OwnerEntry | null }) {
         ensureEntry={() => (server.id ? Promise.resolve(server.id) : persist('draft'))}
       />
 
-      <ShareToggle
+      <AudienceControl
         documentId={server.id}
+        sent={submittedOnce}
         access={access}
-        submitted={server.submittedOnce}
         unsharedByLeader={unsharedByLeader}
+        hasComments={hasComments}
+        canSend={buttons.canSend}
+        send={({ quiet }) => persist('submit', { quiet })}
       />
 
       <div aria-live="polite">
@@ -385,26 +401,32 @@ function EntryEditor({ initial }: { initial: OwnerEntry | null }) {
       </div>
 
       <div className={styles.bar}>
-        <Button disabled={!buttons.draft} onClick={() => void persist('draft')}>
-          {t('editor.saveDraft')}
-        </Button>
         <Button
-          variant="primary"
-          disabled={!buttons.submit}
-          onClick={() => void persist('submit')}
-          aria-describedby={buttons.submitBlockedBy === 'tooLong' ? 'too-long' : undefined}
+          variant={buttons.publish === null ? 'primary' : 'secondary'}
+          disabled={!buttons.save}
+          onClick={() => void persist('draft')}
         >
-          {t(buttons.submitLabel === 'update' ? 'editor.update' : 'editor.submit')}
+          {t(buttons.saveLabel === 'save' ? 'editor.save' : 'editor.saveForLater')}
         </Button>
+        {buttons.publish !== null && (
+          <Button
+            variant="primary"
+            disabled={!buttons.publish}
+            onClick={() => void persist('submit')}
+            aria-describedby={buttons.publishBlockedBy === 'tooLong' ? 'too-long' : undefined}
+          >
+            {t('editor.publish')}
+          </Button>
+        )}
         <Button
           variant="quiet"
-          disabled={!server.id || !server.submittedOnce}
+          disabled={!server.id || !submittedOnce}
           onClick={() => setHistoryOpen(true)}
         >
           <Icon name="history" />
           {t('editor.history')}
         </Button>
-        {buttons.submitBlockedBy === 'tooLong' && (
+        {buttons.publishBlockedBy === 'tooLong' && (
           <span id="too-long" className="visually-hidden">
             {t('editor.tooLong', { max: ENTRY_LIMITS.chars.toLocaleString() })}
           </span>

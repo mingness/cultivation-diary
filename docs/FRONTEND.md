@@ -41,6 +41,7 @@ just hue.
 | `--blue` / `--blue-soft` | `#2F5D8C` / `#E2EBF4` | `#8DB4DE` / `#1F2C3A` | comments, info, 報數 progress, auto-submit names |
 | `--danger` | `#A63A2A` | `#F09A8A` | delete, logout |
 | `--focus` | `#2F5D8C` | `#8DB4DE` | 3 px focus ring |
+| `--leader-0`…`5` | `#0F6B6B` `#6B3FA0` `#A3324F` `#2F5D8C` `#4A6A1A` `#9A4A12` | `#6FCFCF` `#C3A3EF` `#F19AB0` `#8DB4DE` `#A8CF73` `#F0A868` | each leader's own colour (D36): name, entry edge, comment cards; 5:1 or more as text on every surface |
 
 ### 2.1.1 Mantra site palette (D31; built 2026-11-02)
 
@@ -95,11 +96,16 @@ phones (§2.2). The icon is 大悲 in off-white on the green.
 
 | Role | Phone (< 768 px): bottom tab bar | Desktop (≥ 1024 px): top bar |
 |---|---|---|
-| NORMAL_USER | 日記 · 開放日記 · 報數 · 我的 | same four, as top links |
-| COURSE_LEADER | 批閱 · 日記 · 開放日記 · 報數 · 我的 | 批閱 · 我的日記 · 開放日記 · 報數 · 我的 |
+| NORMAL_USER | 筆記 · 班級 · 報數 · 我的 | same four, as top links |
+| COURSE_LEADER | 批閱 · 筆記 · 班級 · 報數 · 我的 | 批閱 · 我的筆記 · 班級 · 報數 · 我的 |
 | COUNT_USER (either site) | 報數 · 我的 | same two |
-| SYS_ADMIN | 注意 (badge) · 用戶 (badge) · 日記 · 報數 · 我的 | 注意 (badge) · 用戶 (badge) · 日記管理 · 報數 · 我的 (報數管理 is a link on 報數; admins take part in 報數 too) |
+| SYS_ADMIN | 注意 (badge) · 用戶 (badge) · 筆記 · 報數 · 我的 | 注意 (badge) · 用戶 (badge) · 筆記管理 · 報數 · 我的 (報數管理 is a link on 報數; admins take part in 報數 too) |
 
+- **Names (D38, 2026-11-16):** the screens were 我的日記 and 開放日記; they are now **我的筆記** ("My notes")
+  and **班級** ("Class"), and one piece of writing is **一篇筆記** ("an entry"), since leaders' notices are
+  written there too. The product keeps its name, 修行日記. These docs and the code still say 我的日記 / 開放日記
+  (`MyDiaryScreen`, `OpenDiaryScreen`, `/open`) for the same two screens. The user chose the English; the
+  Chinese is waiting for review.
 - **The mantra site** shows only 報數 · 我的, whatever the role: diary members who sign in there see the
   same two tabs, and use the diary site for the rest.
 - The tab bar replaces the spec's My Diary / Open Diary toggle and its scattered header buttons (§6.2, §7.4).
@@ -147,7 +153,8 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
 
 ### 4.3 Editor (users and leaders, own entries)
 
-- **Header:** back, title, and a save status ("已暫存 10:42" / "儲存中…" / "未儲存的修改" / "離線，稍後再試").
+- **Header:** back, title, and a save status ("已儲存 10:42" / "已發佈 10:42" / "儲存中…" / "未儲存的修改" /
+  "離線，稍後再試").
 - **Fields:** title, the date shown read-only (set when the entry was created; a short help line explains that
   entries can't be backdated), then a toolbar that wraps on phones (font, paragraph style, size, B, U, 圖片).
 - **Body** in the serif face.
@@ -155,28 +162,33 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
   info notice reports original → new size and that location data was removed. After the second photo the 圖片
   button is disabled, with the note "每篇最多 2 張相片".
 - **Length:** from 4,000 characters a quiet counter appears ("4,200 / 5,000"), turning amber, never red, near the
-  limit, with the kindly framed line from spec §5.5. Over 5,000, 暫存 still works and 提交/更新 is disabled with
-  the reason.
+  limit, with the kindly framed line from spec §5.5. Over 5,000, saving still works; sending and 發佈修改 are
+  disabled with the reason.
 - **Limits reached:** a notice names the limit and when it resets (midnight Beijing time); the text stays in the
   editor.
-- **Sharing (D29):** a checkbox row "開放給同班學員閱讀", disabled with a hint until the entry has been
-  submitted once. Checking it asks for confirmation (nobody reviews the entry first), then shares at once;
-  unchecking stops sharing. After a leader stops sharing, the hint says so and the box stays disabled until
-  an 更新 that changes the entry.
+- **誰可以閱讀 (D37, replaces the share checkbox and the 提交 button):** three radio choices, side by side
+  while they fit: 只有我 / 導師 (其他導師 on a leader's own entry) / 導師和同班學員, with a muted line saying
+  what the choice means. A choice takes effect at once: 導師 from 只有我 asks "交給導師閱讀？" and sends the
+  writing as it stands; the class asks the share confirmation (and sends first if needed); back to 只有我
+  asks "改回只有我？" and is disabled, with the reason, once someone else has commented; class → 導師 needs
+  no confirmation. After a leader stops sharing, the class choice is disabled with the reason until a
+  發佈修改 that changes the entry. The same control sits under the owner's entry in 我的日記.
 - **Voice notes (leaders only, D35):** under the body, a 錄音 button (hidden for students) and the entry's
   notes. Recording opens a sheet with a countdown from 2:00 and a stop button; it stops itself at the limit.
   Then 試聽 / 保留 / 重錄 / 捨棄. 保留 uploads the note at once (creating the entry first if it is new); it
-  is heard by others only after 提交/更新, and a note added or removed since shows a muted 待更新. After the
+  is heard by others only once the entry is sent or its changes published, and a note added or removed since
+  shows a muted 待發佈 / 發佈時移除. After the
   sixth note the button is disabled with "每篇最多 6 段錄音". A refused microphone shows how to allow it.
   A recording not yet kept or discarded counts as unsaved writing (`useReportUnsaved`).
   Notes are recorded as MP3 in every browser (ARCHITECTURE §8.14); 我的 names the encoder (LAME, LGPL) and
   links its source.
-- **Sticky bottom bar:** 暫存 (secondary), 提交 (primary; reads **更新** once the entry has been submitted),
-  歷史版本. Enable and disable follow spec §5.2.
+- **Sticky bottom bar:** before the entry is sent, 儲存 (primary) and 歷史版本; once sent, 先儲存 (secondary),
+  發佈修改 (primary) and 歷史版本. Enable and disable follow spec §5.2 (`editorButtons` in `rules.ts`).
 - **History** opens as a bottom sheet (phone) or side panel (desktop) listing the versions, each expandable.
 - **Leaving with unsaved changes** shows a confirm dialog. Autosave runs every 5 minutes, plus when the app
   goes to the background (`visibilitychange`), so a phone being locked doesn't lose text.
-- **API:** `GET documents/:id` (with draft), `PUT draft`, `POST submit`, `GET versions`, `POST access`.
+- **API:** `GET documents/:id` (with draft), `PUT draft`, `POST submit` (send, or publish changes),
+  `POST withdraw` (back to 只有我), `GET versions`, `POST access`.
   Limit values come from `shared/src/limits.ts`.
 
 ### 4.4 Entry view (owner, leaders, readers of open entries)
@@ -188,13 +200,19 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
 - **Voice notes (D35):** under the body, one compact player per note (play/pause, elapsed / length). The audio
   downloads only when play is first tapped. Readers hear the submitted notes only.
 - **Comments:** the `Comment:` label, then one card per submitted comment (leader name, date, text, its own
-  translate buttons).
-- **Owner actions:** 編輯 (opens 4.3), and the share box.
+  translate buttons), its edge and name in that leader's colour (D36; plain blue for a former leader).
+- **Who wrote it (D36):** a leader's entry shows 「name導師」 with a dot, and its body's left edge, in the
+  leader's colour. The reader's own entry met outside 我的日記 is tinted (`--primary-soft`) with a 我的 chip.
+- **Pinning (D36):** on a leader's own entry, under the share box, 置頂於開放日記 (disabled until shared;
+  shown to a former leader only while something is still pinned).
+- **Owner actions:** 編輯 (opens 4.3), and 誰可以閱讀 (as in 4.3; from here, sending sends what was last
+  saved). Chips: 只有我, or 給導師 / 給導師和同班, plus 有未發佈的修改 while saved changes wait.
 - **開放日記 (revised 2026-10-15):** just for reading. One month as a continuous feed of whole entries
   (title, date, author, text, translate, comments, a leader's own included), with no chips, counts, editing
   or sharing controls, the reader's own shared entries included. Filters: a day on the calendar and/or an
   author (those with shared entries that month), kept in the address; beside the feed on wide screens, folded
-  under a one-line summary on phones. No page per entry. Stopping sharing happens elsewhere: the owner's
+  under a one-line summary on phones. No page per entry. Unfiltered, a 置頂 section with the leaders' pinned
+  entries comes first, above a rule, whatever the month (D36); the month's feed below leaves them out. Stopping sharing happens elsewhere: the owner's
   share toggle, or 取消開放 beside the 已開放 chip in the leaders' review.
 - **Visual weight (2026-10-15):** the entry is the most visible thing. Notes (draft, pending changes) are
   muted lines, not boxes; a shared entry has no notice at all (in review, a small 取消開放 beside its chip). Without a translation provider the
@@ -206,9 +224,10 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
   another, with no page per entry and no one-at-a-time view; filters (month, day, author or student) choose
   what the feed holds. Entries load as they come near the screen, so a leader's read audit only records what
   they reached.
-- **API:** `GET documents/open?month=` → rows `id, title, diaryDate, author, commentCount`;
+- **API:** `GET documents/open?month=` → `documents` and `pinned`, rows `id, title, diaryDate, author
+  {…, leaderColour}, commentCount, pinned`;
   `GET documents/:id` → `view` (`owner` / `leader` / `reader`) + content + submitted comments
-  `{id, authorName, submittedAt, body}` (`authorName` null for a former leader; the owner also gets `isNew`);
+  `{id, authorColour, authorName, submittedAt, body}` (`authorName` null for a former leader; the owner also gets `isNew`);
   `POST translate {documentId|commentId, direction}`.
 
 ### 4.5 報數 (all)
@@ -325,7 +344,7 @@ snapshot at 360 px and 1280 px.
   `server/src/i18n/`; ARCHITECTURE §8.10). Dates use `Intl.DateTimeFormat` with the active locale
   (10月14日 週三 / Wed 14 Oct / Thứ 4, 14 thg 10).
 - Vietnamese (draft, for review): 修行日記 Nhật ký tu tập; 大悲咒 Chú Đại Bi, a recitation one *biến*; 批注
-  *lời phê*; course leader *người hướng dẫn*; student *học viên*; 開放日記 *Nhật ký chia sẻ*; 批閱 *Duyệt bài*.
+  *lời phê*; course leader *người hướng dẫn*; student *học viên*; 我的筆記 *Ghi chép của tôi*; 班級 *Lớp*; an entry *bài*; 批閱 *Duyệt bài*.
 
 ## 8. Accessibility checklist
 

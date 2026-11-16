@@ -74,6 +74,7 @@ export async function submittedComments(
     const submittedAt = r.submittedAt ?? r.updatedAt;
     return {
       id: r.id,
+      authorColour: r.authorId ? (authors.get(r.authorId)?.leaderColour ?? null) : null,
       authorName: (r.authorId && authors.get(r.authorId)?.name) ?? null,
       submittedAt: submittedAt.toISOString(),
       submittedAtDate: submittedAt,

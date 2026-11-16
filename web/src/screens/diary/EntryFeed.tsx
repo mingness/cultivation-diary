@@ -20,8 +20,11 @@ export function EntryFeed({
   rows,
   context,
   level = 3,
+  end = true,
 }: {
   rows: readonly FeedRow[];
+  /** Says 已經是最後一篇 after the last entry; off for a list that more entries follow. */
+  end?: boolean;
   /** The entries' heading level: 3 under a list heading, 2 straight under the page's. */
   level?: 2 | 3;
   context: 'own' | 'review' | 'read';
@@ -38,7 +41,7 @@ export function EntryFeed({
           </li>
         ))}
       </ol>
-      {rows.length > 0 && <p className={styles.end}>{t('reading.end')}</p>}
+      {end && rows.length > 0 && <p className={styles.end}>{t('reading.end')}</p>}
     </>
   );
 }

@@ -250,6 +250,11 @@ export const documents = pgTable(
      * clears this.
      */
     unsharedByLeaderAt: timestamptz('unshared_by_leader_at'),
+    /**
+     * When its author, a leader, pinned it to the top of 開放日記 (D36); null when not pinned. Unsharing
+     * clears it.
+     */
+    pinnedAt: timestamptz('pinned_at'),
     dekWrapped: bytea('dek_wrapped').notNull(),
     /** Copy of the wrapped key's version, so key rotation can find old ones with an index. */
     keyVersion: integer('key_version').notNull(),
@@ -263,6 +268,9 @@ export const documents = pgTable(
       .where(sql`${t.firstSubmittedAt} IS NOT NULL`),
     index('documents_access_idx').on(t.access),
     index('documents_key_version_idx').on(t.keyVersion),
+    index('documents_pinned_idx')
+      .on(t.ownerId)
+      .where(sql`${t.pinnedAt} IS NOT NULL`),
     check('documents_content_pair', sql`(${t.contentCt} IS NULL) = (${t.contentNonce} IS NULL)`),
     check('documents_draft_pair', sql`(${t.draftCt} IS NULL) = (${t.draftNonce} IS NULL)`),
     check(
@@ -273,6 +281,7 @@ export const documents = pgTable(
       'documents_only_submitted_shared',
       sql`${t.access} = 'private' OR ${t.firstSubmittedAt} IS NOT NULL`,
     ),
+    check('documents_only_shared_pinned', sql`${t.pinnedAt} IS NULL OR ${t.access} <> 'private'`),
   ],
 );
 

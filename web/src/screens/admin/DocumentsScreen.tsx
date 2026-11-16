@@ -15,7 +15,7 @@ import { EmptyState, ErrorState, LoadingState } from '../../components/States.js
 import { useToast } from '../../components/Toast.js';
 import { useI18n } from '../../i18n/index.js';
 import { formatDiaryDate } from '../../lib/dates.js';
-import { AccessChip, StateChip } from '../diary/chips.js';
+import { AudienceChips } from '../diary/chips.js';
 import styles from './admin.module.css';
 
 export function DocumentsScreen() {
@@ -123,8 +123,7 @@ function DocumentRow({ doc }: { doc: AdminDocument }) {
       <td>{doc.ownerUsername}</td>
       <td>
         <span className={styles.actions}>
-          <StateChip state={doc.state} />
-          <AccessChip access={doc.access} />
+          <AudienceChips state={doc.state} access={doc.access} />
         </span>
       </td>
       <td>

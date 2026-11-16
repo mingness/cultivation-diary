@@ -158,3 +158,20 @@ export async function expectNoSidewaysScroll(page: Page) {
   );
   expect(overflow).toBeLessThanOrEqual(0);
 }
+
+/**
+ * Sends the entry on screen to the leaders (D37): the 誰可以閱讀 choice, then its confirmation. `asLeader`: the
+ * author is a leader, whose choice reads 其他導師.
+ */
+export async function sendToLeaders(page: Page, t: Fixtures['t'], asLeader = false) {
+  await page
+    .getByRole('radio', {
+      name: t(asLeader ? 'audience.otherLeaders' : 'audience.leaders'),
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole('dialog', { name: t(asLeader ? 'audience.sendTitleLeader' : 'audience.sendTitle') })
+    .getByRole('button', { name: t('audience.send') })
+    .click();
+}

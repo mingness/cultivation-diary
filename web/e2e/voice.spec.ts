@@ -9,6 +9,7 @@ import {
   expectNoAxeViolations,
   expectNoSidewaysScroll,
   test,
+  sendToLeaders,
   type Fixtures,
 } from './fixtures.js';
 
@@ -66,7 +67,7 @@ test('a leader records a note on a new entry, and 提交 makes it part of the en
   const before = await (await page.request.get(`/api/documents/${id}`)).json();
   expect(before.audio).toEqual([expect.objectContaining({ pending: 'add' })]);
 
-  await page.getByRole('button', { name: t('editor.submit'), exact: true }).click();
+  await sendToLeaders(page, t, true);
   await expect(page.getByText(t('voice.pending'), { exact: true })).toHaveCount(0);
   const after = await (await page.request.get(`/api/documents/${id}`)).json();
   expect(after.audio).toEqual([expect.objectContaining({ pending: null })]);
@@ -86,8 +87,11 @@ test('a leader records a note on a new entry, and 提交 makes it part of the en
 
 test('readers play the seeded notes in 開放日記', async ({ userPage: page, t }) => {
   await page.goto('/open');
-  const entry = page.getByRole('article').filter({ hasText: '今晚共修的提醒' });
-  await entry.scrollIntoViewIfNeeded();
+  // Pinned entries may come first; an entry further down is only a title until it is scrolled near.
+  const item = page.getByRole('listitem').filter({ hasText: '今晚共修的提醒' });
+  await item.scrollIntoViewIfNeeded();
+  const entry = item.getByRole('article');
+  await expect(entry).toBeVisible();
   await expectPlays(entry, t, 0, t('voice.note', { n: 1 }));
   await expectPlays(entry, t, 1, t('voice.note', { n: 2 }));
 });
@@ -100,8 +104,8 @@ test('removing a submitted note waits for 更新, and 更新 alone sends it', as
   await page.getByLabel(t('editor.title')).fill(uniqueTitle('Remove'));
   await (await recordNote(page, t)).getByRole('button', { name: t('voice.keep') }).click();
   await expect(page).toHaveURL(SAVED);
-  await page.getByRole('button', { name: t('editor.submit'), exact: true }).click();
-  const update = page.getByRole('button', { name: t('editor.update'), exact: true });
+  await sendToLeaders(page, t, true);
+  const update = page.getByRole('button', { name: t('editor.publish') });
   await expect(update).toBeDisabled();
 
   await page

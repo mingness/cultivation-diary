@@ -275,7 +275,7 @@ function CommentForm({
           </Button>
         )}
         <Button small disabled={!buttons.draft} onClick={() => void persist('draft')}>
-          {t('editor.saveDraft')}
+          {t('comment.saveDraft')}
         </Button>
         <Button
           small

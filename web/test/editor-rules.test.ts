@@ -5,44 +5,53 @@ import { FONTS, fontKeyOf, sizeKeyOf } from '../src/screens/diary/schema.js';
 
 const base = { dirty: false, busy: false, submittedOnce: false, pendingDraft: false, chars: 10 };
 
-describe('editorButtons (spec §5.2)', () => {
-  it('starts with both off, and turns both on with a change', () => {
-    expect(editorButtons(base)).toMatchObject({
-      draft: false,
-      submit: false,
-      submitLabel: 'submit',
+describe('editorButtons (spec §5.2, D37)', () => {
+  it('before sending, offers only 儲存, on with a change', () => {
+    expect(editorButtons(base)).toEqual({
+      save: false,
+      saveLabel: 'save',
+      publish: null,
+      publishBlockedBy: null,
+      canSend: true,
     });
-    expect(editorButtons({ ...base, dirty: true })).toMatchObject({ draft: true, submit: true });
+    expect(editorButtons({ ...base, dirty: true })).toMatchObject({ save: true, publish: null });
   });
 
-  it('after 暫存 turns 暫存 off but leaves 提交 on for the saved draft', () => {
-    expect(editorButtons({ ...base, pendingDraft: true })).toMatchObject({
-      draft: false,
-      submit: true,
+  it('once sent, saves for later and publishes what readers haven’t seen, and nothing else', () => {
+    const sent = { ...base, submittedOnce: true };
+    expect(editorButtons(sent)).toMatchObject({
+      saveLabel: 'saveForLater',
+      save: false,
+      publish: false,
+    });
+    expect(editorButtons({ ...sent, dirty: true })).toMatchObject({ save: true, publish: true });
+    // After 儲存，暫不發佈 the saved changes still wait to be published.
+    expect(editorButtons({ ...sent, pendingDraft: true })).toMatchObject({
+      save: false,
+      publish: true,
     });
   });
 
-  it('reads 更新 once submitted, and stays off on re-entry until something changes', () => {
-    expect(editorButtons({ ...base, submittedOnce: true })).toMatchObject({
-      submit: false,
-      submitLabel: 'update',
+  it('over 5,000 characters blocks sending and 發佈修改 but still saves', () => {
+    expect(editorButtons({ ...base, dirty: true, chars: 5001 })).toMatchObject({
+      save: true,
+      canSend: false,
     });
-  });
-
-  it('blocks 提交 over 5,000 characters but still lets 暫存 save', () => {
-    expect(editorButtons({ ...base, dirty: true, chars: 5001 })).toEqual({
-      draft: true,
-      submit: false,
-      submitLabel: 'submit',
-      submitBlockedBy: 'tooLong',
-    });
-    expect(editorButtons({ ...base, dirty: true, chars: 5000 }).submit).toBe(true);
+    expect(editorButtons({ ...base, submittedOnce: true, dirty: true, chars: 5001 })).toMatchObject(
+      {
+        save: true,
+        publish: false,
+        publishBlockedBy: 'tooLong',
+      },
+    );
+    expect(editorButtons({ ...base, dirty: true, chars: 5000 }).canSend).toBe(true);
   });
 
   it('turns everything off while a save is in flight', () => {
-    expect(editorButtons({ ...base, dirty: true, busy: true })).toMatchObject({
-      draft: false,
-      submit: false,
+    expect(editorButtons({ ...base, submittedOnce: true, dirty: true, busy: true })).toMatchObject({
+      save: false,
+      publish: false,
+      canSend: false,
     });
   });
 });

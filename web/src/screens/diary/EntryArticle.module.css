@@ -47,3 +47,37 @@
   color: var(--muted);
   font-size: var(--text-sm);
 }
+
+/* A leader's entry (D36): their colour, set as --who on the article, on the name and the body's edge. */
+.leaderName {
+  color: var(--who);
+  font-weight: 700;
+}
+
+.leaderName::before {
+  content: '';
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-inline-end: 0.35em;
+  border-radius: 50%;
+  background: var(--who);
+}
+
+/* The whole entry, comments included, framed in the author's colour; the writing stays on plain paper inside. */
+.leaderEntry,
+.ownEntry {
+  padding: var(--space-4);
+  border: 2px solid var(--who);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--who) 8%, var(--surface));
+}
+
+/* The reader's own entry among others' (besides the 我的 chip); a leader's keeps their own colour. */
+.ownEntry {
+  --who: var(--primary);
+}
+
+.ownEntry:not(.leaderEntry) {
+  background: var(--primary-soft);
+}

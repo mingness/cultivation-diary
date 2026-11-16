@@ -18,6 +18,7 @@ import {
   TotpSetupResponse,
   UpdateMeRequest,
 } from '@diary/shared';
+import { leaderColourOf } from '../services/people.js';
 import type { AppContext } from '../context.js';
 import { users } from '../db/schema.js';
 import { checkTotp, generateTotpSecret, totpUri } from '../domain/auth/totp.js';
@@ -49,6 +50,7 @@ export function meRoutes(app: FastifyInstance, ctx: AppContext, throttles: AuthT
         profile: openProfile(ctx.config.profileKeyring, user.id, user),
         totpEnabled: user.totpEnabledAt !== null,
         storageBytes: await storageBytesFor(ctx, user.id),
+        leaderColour: await leaderColourOf(ctx, user.id),
       },
       features: { translation: ctx.translator !== null },
       csrfToken: session.csrfToken,

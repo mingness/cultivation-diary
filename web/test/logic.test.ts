@@ -48,6 +48,7 @@ describe('sessionFromMe', () => {
       profile: { familyName: '', givenName: '', address: '', phone: '', photo: null },
       totpEnabled,
       storageBytes: 0,
+      leaderColour: null,
     },
     features: { translation: false },
     csrfToken: 't',

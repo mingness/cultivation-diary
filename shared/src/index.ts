@@ -52,6 +52,11 @@ export const ErrorCode = {
   TranslationTimeout: 'translation_timeout',
   /** This server doesn't take new registrations at the moment (403; REGISTRATION_OPEN=false). */
   RegistrationClosed: 'registration_closed',
+  /**
+   * The entry can't go back to "only me" (D37): someone else has already sent a comment on it, so it is a
+   * conversation now.
+   */
+  HasComments: 'has_comments',
 } as const;
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 

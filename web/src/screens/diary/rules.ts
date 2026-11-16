@@ -6,11 +6,11 @@ import { ENTRY_LIMITS } from '@diary/shared';
 export interface ButtonInput {
   /** The editor differs from what was last saved. */
   dirty: boolean;
-  /** A save or submit is in flight. */
+  /** A save or send is in flight. */
   busy: boolean;
-  /** The entry has been submitted at least once, so the button reads 更新. */
+  /** Leaders have the entry (it was submitted at least once), so changes wait for 發佈修改. */
   submittedOnce: boolean;
-  /** A saved working copy that leaders haven't seen yet (the server's `draft`). */
+  /** Saved changes readers haven't seen yet (the server's `draft`, or pending voice notes). */
   pendingDraft: boolean;
   /** Visible characters, whitespace excluded. */
   chars: number;
@@ -19,26 +19,32 @@ export interface ButtonInput {
 export type SubmitBlock = 'unchanged' | 'tooLong' | null;
 
 export interface Buttons {
-  draft: boolean;
-  submit: boolean;
-  submitLabel: 'submit' | 'update';
-  /** Why 提交/更新 is off when there is something to send. */
-  submitBlockedBy: SubmitBlock;
+  /** 儲存, or once sent 儲存，暫不發佈. */
+  save: boolean;
+  saveLabel: 'save' | 'saveForLater';
+  /** 發佈修改: only once sent (null hides it); the first send is a 誰可以閱讀 choice instead (D37). */
+  publish: boolean | null;
+  /** Why 發佈修改 is off when there is something to publish. */
+  publishBlockedBy: SubmitBlock;
+  /** Whether choosing leaders or the class can send the writing now. */
+  canSend: boolean;
 }
 
 /**
- * 暫存 is on while there are unsaved changes. 提交/更新 is on while there is anything leaders haven't seen
- * (unsaved changes or a saved draft) and the entry is within the length limit; a draft over the limit still
- * saves, so writing is never lost.
+ * Saving is on while there are unsaved changes. Before an entry is sent, saving is all there is: whatever is
+ * saved is only the author's. Once sent, saving keeps changes for later and 發佈修改 shows them to readers; it is
+ * on while there is anything they haven't seen and the entry is within the length limit. A draft over the
+ * limit still saves, so writing is never lost.
  */
 export function editorButtons(input: ButtonInput): Buttons {
   const hasNews = input.dirty || input.pendingDraft;
   const tooLong = input.chars > ENTRY_LIMITS.chars;
   return {
-    draft: input.dirty && !input.busy,
-    submit: hasNews && !tooLong && !input.busy,
-    submitLabel: input.submittedOnce ? 'update' : 'submit',
-    submitBlockedBy: hasNews && tooLong ? 'tooLong' : null,
+    save: input.dirty && !input.busy,
+    saveLabel: input.submittedOnce ? 'saveForLater' : 'save',
+    publish: input.submittedOnce ? hasNews && !tooLong && !input.busy : null,
+    publishBlockedBy: input.submittedOnce && hasNews && tooLong ? 'tooLong' : null,
+    canSend: !tooLong && !input.busy,
   };
 }
 

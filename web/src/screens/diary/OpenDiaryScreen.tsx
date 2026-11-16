@@ -1,13 +1,15 @@
 /**
- * 開放日記 (FRONTEND.md §4.4): entries their owners shared and a leader opened, just for reading. One month at a
- * time as a continuous feed, narrowed by a day on the calendar and/or an author. Filters live in the address,
- * so a filtered view can be shared or returned to.
+ * 開放日記 (FRONTEND.md §4.4): entries their authors shared, just for reading. One month at a time as a
+ * continuous feed, narrowed by a day on the calendar and/or an author, under the entries leaders pinned
+ * (D36), which head every month until they're unpinned. Filters live in the address, so a filtered view can be
+ * shared or returned to.
  */
 import { useSearchParams } from 'react-router';
 import { useOpenDocuments } from '../../api/diary.js';
 import { Button } from '../../components/Button.js';
 import { Calendar } from '../../components/Calendar.js';
 import { FilterLayout } from '../../components/FilterLayout.js';
+import { Icon } from '../../components/Icon.js';
 import { EmptyState, ErrorState, LoadingState } from '../../components/States.js';
 import { useI18n } from '../../i18n/index.js';
 import {
@@ -18,7 +20,7 @@ import {
   parseMonth,
 } from '../../lib/dates.js';
 import { EntryFeed } from './EntryFeed.js';
-import { applyFilter, authorsOf, dayCounts, type Author } from './openFilter.js';
+import { authorsOf, dayCounts, feedSections, type Author } from './openFilter.js';
 import styles from './OpenDiaryScreen.module.css';
 
 export function OpenDiaryScreen() {
@@ -31,7 +33,10 @@ export function OpenDiaryScreen() {
   const rows = query.data?.documents ?? [];
   const authors = authorsOf(rows);
   const author = authors.find((a) => a.id === user) ?? null;
-  const shown = applyFilter(rows, { date, user: author ? user : null });
+  const sections = feedSections(rows, query.data?.pinned ?? [], {
+    date,
+    user: author ? user : null,
+  });
 
   function set(next: { month?: string; date?: string | null; user?: string | null }) {
     const values: Record<string, string> = { month: next.month ?? month };
@@ -84,12 +89,28 @@ export function OpenDiaryScreen() {
         <LoadingState />
       ) : query.isError ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
-      ) : rows.length === 0 ? (
-        <EmptyState title={t('open.empty')} />
-      ) : shown.length === 0 ? (
-        <EmptyState title={t('open.noMatch')} />
       ) : (
-        <EntryFeed rows={shown} context="read" level={2} />
+        <>
+          {sections.pinned.length > 0 && (
+            <section className={styles.pinned} aria-labelledby="open-pinned">
+              <h2 id="open-pinned" className={styles.pinnedHeading}>
+                <Icon name="pin" />
+                {t('open.pinned')}
+              </h2>
+              <EntryFeed rows={sections.pinned} context="read" level={3} end={false} />
+            </section>
+          )}
+          {rows.length === 0 ? (
+            <EmptyState title={t('open.empty')} />
+          ) : sections.rows.length === 0 ? (
+            // Everything this month is pinned above; nothing to repeat.
+            filtered ? (
+              <EmptyState title={t('open.noMatch')} />
+            ) : null
+          ) : (
+            <EntryFeed rows={sections.rows} context="read" level={2} />
+          )}
+        </>
       )}
     </FilterLayout>
   );

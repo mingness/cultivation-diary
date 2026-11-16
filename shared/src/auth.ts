@@ -137,6 +137,8 @@ export const MeResponse = z.object({
     totpEnabled: z.boolean(),
     /** Total size of the user's stored data (spec §4.4: shown for information; no quota). */
     storageBytes: z.number().int(),
+    /** A leader's colour number (D36, as `EntryAuthor.leaderColour`), for their own comments; null otherwise. */
+    leaderColour: z.number().int().nullable(),
   }),
   /** What this server has switched on, so the app can grey out what isn't (e.g. the translate buttons). */
   features: z.object({ translation: z.boolean() }),

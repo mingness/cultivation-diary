@@ -96,7 +96,7 @@ test('today’s entries show at once; a draft comment stays hidden until it is s
   await item.getByRole('button', { name: t('comment.write') }).click();
   await item.getByRole('textbox', { name: t('comment.body') }).click();
   await page.keyboard.type('Keep going.');
-  await item.getByRole('button', { name: t('editor.saveDraft') }).click();
+  await item.getByRole('button', { name: t('comment.saveDraft') }).click();
   await expect(item.getByText(t('comment.draft'))).toBeVisible();
   expect((await ownerView(userPage, entry.id)).comments).toEqual([]);
 
@@ -106,9 +106,12 @@ test('today’s entries show at once; a draft comment stays hidden until it is s
   expect(comments).toHaveLength(1);
   expect(comments[0].body).toContain('Keep going.');
 
-  // The student sees it under their entry.
+  // The student sees it under their entry; it is a conversation now, so it can't go back to only me (D37).
   await userPage.goto('/diary');
-  await expect((await inFeed(userPage, entry.title)).getByText('Keep going.')).toBeVisible();
+  const own = await inFeed(userPage, entry.title);
+  await expect(own.getByText('Keep going.')).toBeVisible();
+  await expect(own.getByRole('radio', { name: t('audience.me'), exact: true })).toBeDisabled();
+  await expect(own.getByText(t('audience.meLocked'))).toBeVisible();
 });
 
 test('a posted comment reads like the others until 編輯 opens it again', async ({
@@ -141,7 +144,7 @@ test('a shared entry has no notice in review, just its chip and a small 取消�
   const entry = await submittedEntry(userPage, 'Shared', true);
   await page.goto('/review');
   const item = await inFeed(page, entry.title);
-  await expect(item.getByText(t('chip.shared'), { exact: true })).toBeVisible();
+  await expect(item.getByText(t('chip.class'), { exact: true })).toBeVisible();
   await item.getByRole('button', { name: t('unshare.button') }).click();
   const dialog = page.getByRole('dialog', { name: t('unshare.title') });
   await dialog.getByRole('button', { name: t('unshare.button') }).click();
@@ -151,7 +154,9 @@ test('a shared entry has no notice in review, just its chip and a small 取消�
   // The student sees why, and can't share it again until they've updated it.
   await userPage.goto(`/diary/${entry.id}/edit`);
   await expect(userPage.getByText(t('share.unsharedByLeader'))).toBeVisible();
-  await expect(userPage.getByRole('checkbox', { name: t('share.label') })).toBeDisabled();
+  await expect(
+    userPage.getByRole('radio', { name: t('audience.class'), exact: true }),
+  ).toBeDisabled();
 });
 
 test('changing the filter with an unsaved comment asks first', async ({

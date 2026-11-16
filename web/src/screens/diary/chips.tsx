@@ -1,20 +1,32 @@
-/** The state, sharing and comment chips used on entry cards and the entry view (FRONTEND.md §4.2). */
+/** The audience and comment chips used on entry cards and the entry view (FRONTEND.md §4.2). */
 import type { Access } from '@diary/shared';
 import type { MyDocumentRow } from '../../api/diary.js';
 import { Chip } from '../../components/Chip.js';
 import { useT } from '../../i18n/index.js';
 
-export function StateChip({ state }: { state: MyDocumentRow['state'] }) {
+/**
+ * Who can read an entry (D37): 只有我 until it is sent, then the leaders, or the leaders and the class; plus
+ * 有未發佈的修改 while the owner has saved changes readers haven't seen.
+ */
+export function AudienceChips({
+  state,
+  access,
+}: {
+  state: MyDocumentRow['state'];
+  access: Access;
+}) {
   const t = useT();
-  if (state === 'draft') return <Chip tone="amber">{t('chip.draft')}</Chip>;
-  if (state === 'submitted_with_draft') return <Chip tone="primary">{t('chip.pending')}</Chip>;
-  return <Chip tone="green">{t('chip.submitted')}</Chip>;
-}
-
-export function AccessChip({ access }: { access: Access }) {
-  const t = useT();
-  if (access === 'private') return <Chip>{t('chip.private')}</Chip>;
-  return <Chip tone="green">{t('chip.shared')}</Chip>;
+  if (state === 'draft') return <Chip tone="amber">{t('chip.me')}</Chip>;
+  return (
+    <>
+      {access === 'private' ? (
+        <Chip>{t('chip.leaders')}</Chip>
+      ) : (
+        <Chip tone="green">{t('chip.class')}</Chip>
+      )}
+      {state === 'submitted_with_draft' && <Chip tone="primary">{t('chip.pending')}</Chip>}
+    </>
+  );
 }
 
 export function CommentChip({ count, unseen = false }: { count: number; unseen?: boolean }) {

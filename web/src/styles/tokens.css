@@ -21,6 +21,13 @@
   --danger: #a63a2a;
   --danger-soft: #f8e4e0;
   --focus: #2f5d8c;
+  /* Each leader's own colour (D36), for their name and the edge of their writing; 5:1 or more as text. */
+  --leader-0: #0f6b6b;
+  --leader-1: #6b3fa0;
+  --leader-2: #a3324f;
+  --leader-3: #2f5d8c;
+  --leader-4: #4a6a1a;
+  --leader-5: #9a4a12;
   color-scheme: light;
 
   /* Traditional Chinese system fonts (no web fonts: FRONTEND.md §2.2). Linux names its Noto fonts "CJK". */
@@ -111,6 +118,12 @@
     --danger: #f09a8a;
     --danger-soft: #3a221e;
     --focus: #8db4de;
+    --leader-0: #6fcfcf;
+    --leader-1: #c3a3ef;
+    --leader-2: #f19ab0;
+    --leader-3: #8db4de;
+    --leader-4: #a8cf73;
+    --leader-5: #f0a868;
     color-scheme: dark;
   }
 }
@@ -134,6 +147,12 @@
   --danger: #f09a8a;
   --danger-soft: #3a221e;
   --focus: #8db4de;
+  --leader-0: #6fcfcf;
+  --leader-1: #c3a3ef;
+  --leader-2: #f19ab0;
+  --leader-3: #8db4de;
+  --leader-4: #a8cf73;
+  --leader-5: #f0a868;
   color-scheme: dark;
 }
 

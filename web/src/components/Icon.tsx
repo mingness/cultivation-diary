@@ -34,6 +34,7 @@ const PATHS = {
   pause: 'M8 5v14M16 5v14',
   stop: 'M6 6h12v12H6V6Z',
   trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
+  pin: 'M9 4h6l-1 6 3 3v2H7v-2l3-3-1-6Zm3 11v6',
 } as const;
 
 export type IconName = keyof typeof PATHS;
