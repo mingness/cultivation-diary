@@ -1,5 +1,5 @@
 /**
- * Routes and the session gate. Public screens (sign-in, register, forgot password) redirect away once signed
+ * Routes and the session gate. Public screens (sign-in, forgot password) redirect away once signed
  * in; everything else needs a ready session, and a SYS_ADMIN without an authenticator sees only its setup.
  */
 import { useEffect } from 'react';
@@ -30,7 +30,6 @@ import { AccountScreen } from './screens/account/AccountScreen.js';
 import { EnrolScreen } from './screens/auth/EnrolScreen.js';
 import { ForgotPasswordScreen } from './screens/auth/ForgotPasswordScreen.js';
 import { LoginScreen } from './screens/auth/LoginScreen.js';
-import { RegisterScreen } from './screens/auth/RegisterScreen.js';
 
 /** Waits for the session; a failed check (not "signed out", which is a valid answer) offers a retry. */
 function SessionGate({ children }: { children: (session: Session) => ReactNode }) {
@@ -219,35 +218,6 @@ const countRoute: RouteObject = {
   }),
 };
 
-/**
- * Each site's screens (ARCHITECTURE §8.11, D31). The mantra site has 報數 and the account page, and is the
- * only one where people register; the diary is curated. The condition tests the build-time value itself
- * rather than `SITE` (web/src/site.ts): the bundler only drops the other site's screens when it is a literal
- * in this module.
- */
-const SITE_ROUTES: { public: RouteObject[]; private: RouteObject[] } =
-  import.meta.env.VITE_SITE === 'mantra'
-    ? {
-        public: [
-          { path: '/login', element: <LoginScreen /> },
-          { path: '/register', element: <RegisterScreen /> },
-          { path: '/forgot-password', element: <ForgotPasswordScreen /> },
-        ],
-        private: [countRoute],
-      }
-    : {
-        public: [
-          { path: '/login', element: <LoginScreen /> },
-          { path: '/forgot-password', element: <ForgotPasswordScreen /> },
-        ],
-        private: [
-          { element: <ForRoles roles={WRITERS} />, children: diaryRoutes },
-          { element: <ForRoles roles={LEADERS} />, children: reviewRoutes },
-          { element: <ForRoles roles={ADMINS} />, children: adminRoutes },
-          countRoute,
-        ],
-      };
-
 const router = createBrowserRouter([
   {
     element: (
@@ -260,13 +230,22 @@ const router = createBrowserRouter([
     ),
     errorElement: <Crashed />,
     children: [
-      { element: <PublicLayout />, children: SITE_ROUTES.public },
+      {
+        element: <PublicLayout />,
+        children: [
+          { path: '/login', element: <LoginScreen /> },
+          { path: '/forgot-password', element: <ForgotPasswordScreen /> },
+        ],
+      },
       {
         element: <PrivateLayout />,
         children: [
           { index: true, element: <Home /> },
           { path: '/me', element: <AccountScreen /> },
-          ...SITE_ROUTES.private,
+          { element: <ForRoles roles={WRITERS} />, children: diaryRoutes },
+          { element: <ForRoles roles={LEADERS} />, children: reviewRoutes },
+          { element: <ForRoles roles={ADMINS} />, children: adminRoutes },
+          countRoute,
           { path: '*', element: <NotFound /> },
         ],
       },

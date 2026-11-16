@@ -7,6 +7,8 @@
 > **Revised 2026-10-19:** sharing is the author's choice, with no leader approval; leaders may stop sharing an entry (D29).
 > **Revised 2026-11-02:** 報數 opens to the public on its own site, with self-registered mantra-only accounts (COUNT_USER);
 > the diary stays curated, with no self-registration (D30, D31).
+> **Revised 2026-11-16:** the mantra site became its own app in its own repository (D39). The diary has no second site,
+> no self-registration and no COUNT_USER role; diary members keep 報數 inside the diary, as a separate tally.
 > App title: **修行日記** (English: **Cultivation Diary**) · Languages: 繁體中文 (default) / English / Tiếng Việt (added 2026-11-13, offered once its wording is reviewed), switchable everywhere.
 
 ---
@@ -19,7 +21,7 @@ This is a private diary platform with a supervision workflow:
 2. **Course leaders (COURSE_LEADER)** — one or more — can read every *submitted* diary and attach **comments (批注)** to them. A user's unsubmitted drafts are never visible to leaders. A comment is invisible to the user until its leader submits it.
 3. **Users may choose to share** a diary with their class. No approval is needed, to keep leaders' work light; once shared, everyone in the class can read that diary's content and submitted comments. Any course leader can stop sharing an entry, and its author can share it again only after updating it.
 4. Separately, everyone participates in a collective **报数 (daily count)** of their **Great Compassion Mantra (大悲咒)** recitations: each user reports how many times they recited it that day, contributing to a shared goal of 10,000,000 recitations, with an optional automatic daily submission. The page is titled 大悲咒共修報數, and its tab reads 大悲咒 / Mantra (2026-10-15).
-   報數 is also open to the wider community (2026-11-02): anyone may sign up on the **mantra site** for an account that reaches 報數 only. Diary users are curated: they are invited outside the app and their accounts are created by a SYS_ADMIN.
+   Diary users are curated: they are invited outside the app and their accounts are created by a SYS_ADMIN. (The wider community counts in a separate app, 大悲咒共修報數, since 2026-11-16.)
 5. A **web app** serves all of this and can be **installed on a phone's home screen** (web app manifest). An Android wrapper app is a fallback, built only if installing the web app proves impractical for the users (§9).
 
 **Golden rules:**
@@ -31,23 +33,19 @@ This is a private diary platform with a supervision workflow:
 
 | Role | Count | Purpose |
 |---|---|---|
-| COUNT_USER | any | Report counts only (the mantra site); created by self-registration or by a SYS_ADMIN |
 | NORMAL_USER | any | Write diaries, read open diaries, report counts |
 | COURSE_LEADER | one or more | Read all submitted diaries, write comments, stop sharing; may keep their own diary |
 | SYS_ADMIN | one or more (the last one cannot be deleted or demoted) | Manage users & documents (metadata only), reset passwords, administer 报数 |
 
 - Each account has exactly one role. A COURSE_LEADER may also keep their own diary, exactly like a NORMAL_USER. Leaders treat it like anyone's: they (and other leaders) may comment on it, and other leaders may stop sharing it.
 - SYS_ADMIN accounts must log in with a second factor (authenticator app, TOTP).
-- **Production starts empty.** The first SYS_ADMIN is created with a server command-line tool. SYS_ADMINs then create other accounts and assign roles. Nobody can register for the diary; anyone may register for 報數 on the mantra site, which creates a COUNT_USER (§4.2).
-- **The diary and the mantra are two sites** on one server and one account system (2026-11-02): **diary.gcdr.org.au** (everything in this spec) and **mantra.gcdr.org.au** (報數 and the account page only, plus registration). Each is installable on its own (§9.1). Diary users reach 報數 inside the diary as before and never need the mantra site.
-- **The diary roles are one-way.** A SYS_ADMIN may promote a COUNT_USER to NORMAL_USER (keeping their counts and login) once they have joined a course, but never turns a NORMAL_USER or COURSE_LEADER into a COUNT_USER. A diary member who leaves is deleted, as before.
-- A COUNT_USER never reaches anything of the diary: not entries, open diaries, comments, translation or the leader screens.
+- **Production starts empty.** The first SYS_ADMIN is created with a server command-line tool. SYS_ADMINs then create other accounts and assign roles. Nobody registers (§4.2).
 - **Test environments** are seeded with sample accounts and diaries (§11). The seed must refuse to run against production.
 - Courses (separate, isolated groups of users each with their own leaders) are **out of scope** for now; the whole app behaves as a single course. The design should not make adding them later unduly hard.
 
 ## 3. Data Concepts & Security Requirements
 
-**user profile** — username (immutable), password, email, phone, address, photo (auto-resized to 300×300 on selection), family name, given name, preferred font size. A COUNT_USER's profile is the username, an optional display name (shown on the 報數 board; stored as the profile's name), email and/or phone, and their preferences; they have no address or photo.
+**user profile** — username (immutable), password, email, phone, address, photo (auto-resized to 300×300 on selection), family name, given name, preferred font size.
 
 **document (diary)** — title (stored in plaintext), content (**encrypted**), date (the Beijing date on which the entry was **created**, set by the server; a user may write several entries on one date, but can never choose or change the date), submitted flag (never submitted / submitted), current unsubmitted draft (**encrypted**), sharing level (`Private` / `Class` / `Everyone`; only `Private` and `Class` are offered while there is one class), whether a leader stopped sharing it since its last update, and up to **3 submitted history versions** (**encrypted**).
 
@@ -70,17 +68,13 @@ This is a private diary platform with a supervision workflow:
 ### 4.1 Login
 - Username + password + **human verification** (CAPTCHA). CAPTCHA failure refreshes the question automatically. SYS_ADMIN additionally enters a 6-digit authenticator code.
 - CAPTCHA = a distorted image of a simple **addition or subtraction** question (never ×/÷). Image styling: gradient background, ~200 random colored noise dots, per-character random rotation/skew/color, 5 Bézier interference curves, 15 faint decoy characters. A "更新" refresh button sits beside it. The answer must never be sent to the client in readable form.
-- On the diary site, login lands on the role home (COURSE_LEADER → leader home, SYS_ADMIN → management home, else user home); 报数 is one tab away. A COUNT_USER always lands on the counting page.
-- On the mantra site every login lands on the counting page. The two sites keep separate sessions; signing in to one does not sign in to the other.
+- Login lands on the role home (COURSE_LEADER → leader home, SYS_ADMIN → management home, else user home); 报数 is one tab away.
 - A **"remember this device"** option keeps the user logged in on that device (browser or installed app) for up to 90 days of inactivity, without storing the password. Devices are listed on the account page and can be signed out individually.
 - Rate-limit login attempts per IP and per username.
 
-### 4.2 Registration (mantra site only, revised 2026-11-02)
-- Offered on the mantra site only; the diary site has no register link and directs mantra-only visitors to the mantra site.
-- Fields: username, optional display name (shown on the 報數 board instead of the username), email and/or phone (**at least one**, so a SYS_ADMIN can reach the person to reset a password), password entered twice and must match, CAPTCHA.
-- **No verification** of the email or phone (dozens of signups are expected; a wrong number only means the admin cannot reach them, never access to the account). Phone numbers are free text: an optional leading `+`, digits, spaces, hyphens and brackets, 6–20 digits.
-- Creates a **COUNT_USER**; on success → login page.
-- Registration can be switched off on the server (e.g. if bots appear); the register link then disappears.
+### 4.2 Registration (none, since 2026-11-16)
+- Nobody registers: SYS_ADMINs create every account (§6.5). Self-registration for 報數 lives in the separate mantra app (D39).
+- Phone numbers in profiles are free text: an optional leading `+`, digits, spaces, hyphens and brackets, 6–20 digits.
 
 ### 4.3 Forgot password
 1. User submits username → account is marked `RESET_PENDING` and the user cannot log in.
@@ -96,7 +90,6 @@ This is a private diary platform with a supervision workflow:
 - Theme: light / dark / follow the device.
 - SYS_ADMIN: set up / reset the authenticator app.
 - Logout.
-- COUNT_USER: display name, email, phone (at least one of the two must remain), text size, theme, password, devices and logout; no address, photo or storage row.
 
 ## 5. Diary Document Flow
 
@@ -145,8 +138,7 @@ Any COURSE_LEADER stops sharing (with a confirm dialog)   → leaders only; the 
 - Sharing is the author's choice; nobody approves it. A leader can only stop sharing.
 - Default 只有我. Only a sent diary can be shared.
 - `Class` means content **and** all submitted comments readable by everyone in the author's class. There is
-  only one class for now, so that is every diary member (NORMAL_USER and COURSE_LEADER). A COUNT_USER is never
-  a reader.
+  only one class for now, so that is every diary member (NORMAL_USER and COURSE_LEADER).
 - After a leader stops sharing, the author sees why and the class choice stays off until they publish a
   change to the entry.
 - **Later, with several classes:** authors choose between their own class and everyone. The data already
@@ -225,7 +217,7 @@ Both sets of values are constants, each in its own file so they're easy to find 
 - A shared document has a 取消開放 (stop sharing) button with a confirm dialog.
 
 ### 6.5 SYS_ADMIN home (sequential sections)
-1. **User management** — list users, filtered by role; fuzzy search by username with `?` / `*`; add a user (username + password + role required, others optional; a generated password is shown once); edit everything except username, including role (a COUNT_USER may be promoted; a diary member is never made a COUNT_USER); delete a user (confirm) — deleting a user **deletes all their documents**; batch delete of normal users and COUNT_USERs. The last SYS_ADMIN cannot be deleted or demoted.
+1. **User management** — list users, filtered by role; fuzzy search by username with `?` / `*`; add a user (username + password + role required, others optional; a generated password is shown once); edit everything except username, including role; delete a user (confirm) — deleting a user **deletes all their documents**; batch delete of normal users. The last SYS_ADMIN cannot be deleted or demoted.
 2. **Document management** — search by username and/or date, delete documents; only metadata is shown (title, date, owner, state) — never content or comments.
 3. **报数 admin list** — shows **all** users; per-row toggle of the user's auto-submit flag; per-row button to delete a user's count entries, all of them or those in a count-date range (confirm); status of the last auto-submit run, and a button to run it now.
 4. **Pending password resets** — the `RESET_PENDING` list with the generate/manual password flow (§4.3).
@@ -270,7 +262,6 @@ REPORTED_TODAY今日報告: <today> (entries紀錄: <n>)
 - An in-process scheduler fires at that time; a protected internal endpoint (Bearer secret, mounted outside normal authentication, not reachable from the public internet) can trigger the same job for an external cron. A SYS_ADMIN can also trigger it manually. Each run is recorded, and a missed or failed run is visible to SYS_ADMINs.
 
 ### 7.4 Diary ↔ count navigation
-- On the mantra site the counting page is the home page and there is no diary.
 - Diary pages have a 报数 button → count page; the count page has a "Go Diary" button → role home, and the user chip → profile.
 - The count page header shows the **logo** (green variant, 400×80) with `countTitle` beneath it (`\n` renders as line breaks).
 
@@ -284,7 +275,6 @@ REPORTED_TODAY今日報告: <today> (entries紀錄: <n>)
 
 ### 9.1 Installable web app (primary)
 - The web app has a **web app manifest** (name 修行日記, icons, standalone display, theme colour) and a service worker, so users can add it to their home screen and open it like an app.
-- The mantra site is a separate installable app named 大悲咒共修報數, with its own icon and a palette in harmony with the Gold Coast Dharma Realm site (https://gcdr.org.au/).
 - The service worker caches **only the app's own files** (pages, scripts, styles, fonts, icons) — never diary content or any API response.
 - When a new version is deployed, the installed app shows a toast offering to reload into it; no manual update step is needed.
 - Where the browser offers an install prompt, an "install" button appears; otherwise (e.g. iPhone Safari, many Android phone-maker browsers) a short how-to explains "add to home screen". Inside WeChat's built-in browser, the page explains how to open it in a real browser.
@@ -313,7 +303,7 @@ Build this only if testing on the users' actual phones shows the installable web
 7. The UI is in every language throughout; new strings go through the translation tables.
 8. Secrets (API keys) live in configuration, never in client code or the repository.
 9. Every page works on a 360 px-wide phone screen; phones are the primary device for users, while leaders and SYS_ADMINs mostly use a computer.
-10. Light and dark themes; neutral, warm default palette (the mantra site: forest green and gold, after gcdr.org.au). Navigation stays simple: few top-level destinations, large touch targets, clear labels with icons.
+10. Light and dark themes; neutral, warm default palette. Navigation stays simple: few top-level destinations, large touch targets, clear labels with icons.
 
 ## 11. Acceptance Checklist
 
@@ -330,5 +320,4 @@ Build this only if testing on the users' actual phones shows the installable web
 - [ ] 报数: clamped 1–1080 input (client and server); count date today or up to 4 days back; a later report replaces that date's number; at most 20 manual reports per count date; manual submit updates everything; auto-submit toggle persists; admin list shows all users with toggle + delete-entries (all or by date range) + last-run status; auto job runs at 02:00 Beijing.
 - [ ] Attention: reaching a limit, failed-login bursts and new-device bursts flag the account in the SYS_ADMIN Attention list; with email configured, SYS_ADMINs also get a throttled email; activity views and emails contain no content; sign-out-all and lock work.
 - [ ] Installable: the app can be added to the home screen on Android and iPhone, opens standalone, stays logged in, picks up new versions, and never caches diary content.
-- [ ] Two sites: the mantra site offers registration (email or phone required, no verification) creating a COUNT_USER, and shows only 報數 and the account page; the diary site has no registration. A COUNT_USER is refused every diary, leader and translation endpoint; a SYS_ADMIN can promote a COUNT_USER but never make a diary member a COUNT_USER. Each site installs as its own app.
-- [ ] Seed data (test environments only): 2 SYS_ADMINs, 2 COURSE_LEADERs, 2 COUNT_USERs, several NORMAL_USERs with encrypted sample diaries (including three shared, one a leader stopped sharing, one never-submitted draft, one submitted diary with a later unsubmitted draft, and comments in draft and submitted state from different leaders).
+- [ ] Seed data (test environments only): 2 SYS_ADMINs, 2 COURSE_LEADERs, several NORMAL_USERs with encrypted sample diaries (including three shared, one a leader stopped sharing, one never-submitted draft, one submitted diary with a later unsubmitted draft, and comments in draft and submitted state from different leaders).

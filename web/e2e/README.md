@@ -34,6 +34,6 @@ Chromium starts with a fake microphone (a steady tone, allowed without a prompt;
 
 ## Limits
 
-The server's per-IP limits are real: 60 CAPTCHAs and 20 sign-ins a minute, 10 registrations and 5
-forgot-password requests an hour. They reset with each run, but tests that use them heavily run in one
+The server's per-IP limits are real: 60 CAPTCHAs and 20 sign-ins a minute, and 5 forgot-password requests
+an hour. They reset with each run, but tests that use them heavily run in one
 project only.

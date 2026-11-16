@@ -15,18 +15,3 @@
 	# nginx (web) serves the app and forwards /api to the server; it sets the other security headers.
 	reverse_proxy web:8080
 }
-
-# The mantra site (docs/ARCHITECTURE.md §8.11): the same server behind its own build, on nginx's port 8082.
-{$MANTRA_DOMAIN} {
-	encode zstd gzip
-
-	@internal path /internal/*
-	respond @internal 404
-
-	header {
-		Strict-Transport-Security "max-age=31536000"
-		-Server
-	}
-
-	reverse_proxy web:8082
-}

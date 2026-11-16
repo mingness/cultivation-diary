@@ -46,6 +46,18 @@ test('a missed day can be reported for, by choosing its date', async ({ userPage
   expect(mine?.count).toBe(21);
 });
 
+test('the date choices fit on one row at full width', async ({ userPage: page, viewport }) => {
+  // On a phone they wrap, whatever their number; the complaint was the last one wrapping on a wide screen.
+  test.skip((viewport?.width ?? 0) < 1024, 'phones wrap the chips');
+  await page.goto('/count');
+  const chips = page.locator('label:has(input[name="countDate"])');
+  await expect(chips).toHaveCount(5);
+  const tops = await chips.evaluateAll((labels) =>
+    labels.map((label) => Math.round(label.getBoundingClientRect().top)),
+  );
+  expect(new Set(tops).size).toBe(1);
+});
+
 test('自動報數 stays as chosen', async ({ userPage: page, t }) => {
   await page.goto('/count');
   const auto = page.getByRole('checkbox', { name: new RegExp(t('count.auto')) });
@@ -171,18 +183,4 @@ test.describe('one project only (it signs in a fresh account; the server allows 
     await expect(page.getByText(t('account.passwordChanged'))).toBeVisible();
     await page.context().close();
   });
-});
-
-test('a mantra-only account lands on 報數, has only 報數 and 我的, and no diary', async ({
-  mantraPage: page,
-  t,
-}) => {
-  await page.goto('/');
-  await expect(page).toHaveURL(/\/count$/);
-  const nav = page.getByRole('navigation', { name: t('nav.label') });
-  await expect(nav.getByRole('link')).toHaveText([t('nav.count'), t('nav.me')]);
-  // The board shows their display name rather than the username.
-  await expect(page.getByText('妙音').first()).toBeVisible();
-  await page.goto('/diary');
-  await expect(page.getByText(t('state.notFound'))).toBeVisible();
 });

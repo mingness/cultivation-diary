@@ -1,15 +1,12 @@
 /**
  * Sign-in (FRONTEND.md §4.1, spec §4.1): username, password, CAPTCHA and "remember this device". A SYS_ADMIN
  * then enters their authenticator code in a second step. Signing in lands on the site's home (`landingPath`).
- * The mantra site (D31) is the only one that offers registering; the diary points mantra-only visitors there
- * instead.
  */
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation } from 'react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ErrorCode, type LoginResponse } from '@diary/shared';
-import { useAuthOptions } from '../../api/auth.js';
 import { ApiError, api, setCsrfToken } from '../../api/client.js';
 import { afterLogin, ANONYMOUS, SESSION_KEY, useSession } from '../../api/session.js';
 import { AuthLayout } from '../../components/AuthLayout.js';
@@ -17,7 +14,6 @@ import { Button } from '../../components/Button.js';
 import { CheckboxRow, PasswordField, TextField } from '../../components/Field.js';
 import { Notice } from '../../components/Notice.js';
 import { useI18n } from '../../i18n/index.js';
-import { SITE } from '../../site.js';
 import { CaptchaField, useCaptcha } from './Captcha.js';
 import styles from './auth.module.css';
 
@@ -32,7 +28,6 @@ export function LoginScreen() {
 }
 
 function PasswordStep() {
-  const options = useAuthOptions();
   const { t, tError } = useI18n();
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -134,16 +129,7 @@ function PasswordStep() {
       </Button>
       <div className={styles.links}>
         <Link to="/forgot-password">{t('auth.toForgot')}</Link>
-        {/* Hidden until the server says registering is open, so a closed one never flashes the link. */}
-        {SITE === 'mantra' && options.data?.registration && (
-          <Link to="/register">{t('auth.toRegister')}</Link>
-        )}
       </div>
-      {SITE === 'diary' && options.data?.mantraUrl && (
-        <p className={styles.intro}>
-          {t('auth.mantraOnly')} <a href={options.data.mantraUrl}>{t('auth.toMantra')}</a>
-        </p>
-      )}
     </form>
   );
 }

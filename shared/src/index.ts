@@ -32,10 +32,6 @@ export const ErrorCode = {
   RateLimited: 'rate_limited',
   /** The change would leave no SYS_ADMIN (deleting or demoting the last one). */
   LastAdmin: 'last_admin',
-  /** Roles only move up: a diary member (NORMAL_USER, COURSE_LEADER) is never made a COUNT_USER (D30). */
-  RoleChangeRefused: 'role_change_refused',
-  /** A self-registered account must keep an email or a phone, so an admin can reach them (spec §4.2). */
-  ContactRequired: 'contact_required',
   /** The current password given to change it was wrong. Not 401: the session itself is fine. */
   WrongPassword: 'wrong_password',
   /** An admin action that can't be applied to one's own account (e.g. deleting it). */
@@ -50,8 +46,6 @@ export const ErrorCode = {
   TranslationFailed: 'translation_failed',
   /** The translation provider didn't answer within 10 seconds (504, spec §8). */
   TranslationTimeout: 'translation_timeout',
-  /** This server doesn't take new registrations at the moment (403; REGISTRATION_OPEN=false). */
-  RegistrationClosed: 'registration_closed',
   /**
    * The entry can't go back to "only me" (D37): someone else has already sent a comment on it, so it is a
    * conversation now.

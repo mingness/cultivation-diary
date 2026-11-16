@@ -1,5 +1,5 @@
 /**
- * Request and response shapes for login, registration and the current user (spec §4).
+ * Request and response shapes for login and the current user (spec §4).
  */
 import { z } from 'zod';
 import { Role } from './roles.js';
@@ -31,14 +31,6 @@ export const PhoneOrNone = z
   .max(30)
   .refine((v) => v === '' || isPhone(v), 'Not a phone number');
 
-/**
- * Whether an account can be reached to pass on a new password (spec §4.2): self-registered accounts need an
- * email or a phone, since nothing else connects them to a person.
- */
-export function hasContact(email: string | null, phone: string): boolean {
-  return (email ?? '').trim() !== '' || phone.trim() !== '';
-}
-
 /** A photo is a small JPEG the browser has already resized to 300×300 (spec §4.4). */
 export const ProfilePhoto = z
   .string()
@@ -68,14 +60,6 @@ export const CaptchaResponse = z.object({
   id: z.uuid(),
   /** A standalone SVG document; show it with an <img src="data:image/svg+xml,…">. */
   svg: z.string(),
-});
-
-/** What the sign-in screens may offer before anyone signs in. */
-export const AuthOptions = z.object({
-  /** Whether new users may register themselves. When false, the web app hides the register link. */
-  registration: z.boolean(),
-  /** The mantra site, which the diary's sign-in page points mantra-only visitors to (D31); null for none. */
-  mantraUrl: z.string().nullable(),
 });
 
 export const LoginRequest = CaptchaAnswer.extend({
@@ -110,21 +94,6 @@ export const LoginResponse = z.discriminatedUnion('status', [
 export type LoginResponse = z.infer<typeof LoginResponse>;
 
 export const TotpCode = z.object({ code: z.string().regex(/^\d{6}$/) });
-
-/**
- * Registration on the mantra site (spec §4.2, D30): creates a COUNT_USER. The display name is shown on the
- * 報數 board and kept as the profile's given name; email or phone, at least one.
- */
-export const RegisterRequest = CaptchaAnswer.extend({
-  username: Username,
-  password: Password,
-  displayName: z.string().trim().max(50).default(''),
-  email: Email.nullable().default(null),
-  phone: PhoneOrNone.default(''),
-}).refine((body) => hasContact(body.email, body.phone), {
-  message: 'An email or a phone number is required',
-  path: ['phone'],
-});
 
 export const ForgotPasswordRequest = CaptchaAnswer.extend({
   username: z.string().max(64),

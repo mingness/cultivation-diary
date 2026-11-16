@@ -81,7 +81,6 @@ export function meRoutes(app: FastifyInstance, ctx: AppContext, throttles: AuthT
         tags: ME_TAG,
         summary:
           'Save my email, profile (name, address, phone, photo), text size or theme; fields left out stay as they are. ' +
-          'A COUNT_USER must keep an email or a phone (400 contact_required). ' +
           'The username never changes.',
         body: UpdateMeRequest,
         response: { 200: MeResponse },

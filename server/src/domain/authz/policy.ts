@@ -49,8 +49,6 @@ export type Capability = (typeof Capability)[keyof typeof Capability];
 const C = Capability;
 
 const ROLE_CAPABILITIES: Readonly<Record<Role, ReadonlySet<Capability>>> = {
-  // The mantra site's accounts (D30): nothing of the diary.
-  COUNT_USER: new Set([C.Count]),
   NORMAL_USER: new Set([C.WriteDiary, C.ReadOpenDiaries, C.Count, C.Translate]),
   // Leaders may keep their own diary too (D19).
   COURSE_LEADER: new Set([C.WriteDiary, C.ReadOpenDiaries, C.LeaderReview, C.Count, C.Translate]),
@@ -87,7 +85,6 @@ export function documentView(actor: Actor, doc: DocumentFacts): DocumentView | n
   if (actor.id === doc.ownerId) return 'owner';
   if (!doc.submitted) return null;
   if (actor.role === 'COURSE_LEADER') return 'leader';
-  // Shared means shared with diary members; a mantra-only account is never a reader.
   if (sharedWithReader(doc.access) && hasCapability(actor, C.ReadOpenDiaries)) return 'reader';
   return null;
 }

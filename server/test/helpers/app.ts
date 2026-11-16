@@ -49,7 +49,6 @@ const GENEROUS: AuthLimits = {
   captcha: { max: 10_000, timeWindow: '1 minute' },
   login: { max: 10_000, timeWindow: '1 minute' },
   totp: { max: 10_000, timeWindow: '1 minute' },
-  register: { max: 10_000, timeWindow: '1 minute' },
   forgotPassword: { max: 10_000, timeWindow: '1 minute' },
 };
 
@@ -117,24 +116,6 @@ export async function newCaptcha(app: FastifyInstance): Promise<string> {
   const res = await app.inject({ method: 'GET', url: '/api/auth/captcha' });
   if (res.statusCode !== 200) throw new Error(`captcha failed: ${res.body}`);
   return res.json().id as string;
-}
-
-export async function register(
-  app: FastifyInstance,
-  body: Record<string, unknown>,
-): Promise<LightMyRequestResponse> {
-  return app.inject({
-    method: 'POST',
-    url: '/api/auth/register',
-    payload: {
-      captchaId: await newCaptcha(app),
-      captchaAnswer: CAPTCHA_ANSWER,
-      password: TEST_PASSWORD,
-      // Registration needs an email or a phone (spec §4.2); tests about contacts override this.
-      phone: '+61 400 000 000',
-      ...body,
-    },
-  });
 }
 
 export interface Signin {

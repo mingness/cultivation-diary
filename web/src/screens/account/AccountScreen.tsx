@@ -53,10 +53,7 @@ export function AccountScreen() {
       <AppearanceSection />
       <section className={styles.section} aria-labelledby="security-heading">
         <h2 id="security-heading">{t('userForm.security')}</h2>
-        {/* A mantra-only account stores nothing but its counts (spec §4.4). */}
-        {me.role !== 'COUNT_USER' && (
-          <p>{t('account.storage', { size: formatBytes(me.storageBytes) })}</p>
-        )}
+        <p>{t('account.storage', { size: formatBytes(me.storageBytes) })}</p>
         <div className={styles.rowButtons}>
           <PasswordButton />
           <InstallButton />

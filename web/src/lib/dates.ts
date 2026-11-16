@@ -82,6 +82,22 @@ export function formatMonth(month: string, lang: Lang): string {
   return text.charAt(0).toLocaleUpperCase(LOCALE[lang]) + text.slice(1);
 }
 
+/**
+ * A recent date as a short chip: "16日 週一" / "Mon 16" / "Thứ 2, 16". No month: the 報數 date choices are a
+ * few consecutive days, and dropping it keeps all five chips on one row at full width.
+ */
+export function formatDayChip(date: string, lang: Lang): string {
+  const d = utcDate(date);
+  const weekday = new Intl.DateTimeFormat(LOCALE[lang], {
+    timeZone: 'UTC',
+    weekday: 'short',
+  }).format(d);
+  const { day } = parts(d, 'UTC', lang);
+  if (lang === 'zh-Hant') return `${day}日 ${weekday}`;
+  if (lang === 'en') return `${weekday} ${day}`;
+  return `${weekday}, ${day}`;
+}
+
 const CLOCK: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' };
 
 /** "10:42" for an instant, in the device's time zone (24-hour, so no 上午/下午). */

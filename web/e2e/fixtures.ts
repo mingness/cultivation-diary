@@ -52,8 +52,6 @@ export interface Fixtures {
   leaderPage: Page;
   /** A page already signed in as a SYS_ADMIN (shared by every project). */
   adminPage: Page;
-  /** A page already signed in as a mantra-only account (COUNT_USER; shared by every project). */
-  mantraPage: Page;
 }
 
 export const test = base.extend<E2eOptions & Fixtures>({
@@ -88,13 +86,6 @@ export const test = base.extend<E2eOptions & Fixtures>({
   adminPage: async ({ browser, lang, suggestInstall }, use) => {
     // Matches SESSION_ADMIN in global-setup.ts.
     const page = await signedInPage(browser, { lang, suggestInstall }, 'admin.backup');
-    await use(page);
-    await page.context().close();
-  },
-
-  mantraPage: async ({ browser, lang, suggestInstall }, use) => {
-    // Matches SESSION_MANTRA in global-setup.ts.
-    const page = await signedInPage(browser, { lang, suggestInstall }, 'mantra.named');
     await use(page);
     await page.context().close();
   },

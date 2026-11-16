@@ -15,9 +15,8 @@ Keep this file up to date when commands, conventions or pitfalls change.
 | Start the database                                     | `npm run db:up`                                                                                                        |
 | Run the API with reload                                | `npm run dev` (http://localhost:3000, needs the database)                                                              |
 | Run the web app with reload                            | `npm run dev:web` (http://localhost:5173, forwards `/api` to `npm run dev`)                                            |
-| Run the mantra site with reload                        | `npm run dev:mantra` (http://localhost:5174; same API)                                                                 |
 | API explorer (try every endpoint in the browser)       | http://localhost:3000/docs (OpenAPI JSON at `/docs/json`)                                                              |
-| Run the whole stack in Docker                          | `docker compose up -d --wait --build` (diary on http://localhost:8080, mantra site on :8082, API on :3000)             |
+| Run the whole stack in Docker                          | `docker compose up -d --wait --build` (diary on http://localhost:8080, API on :3000)                                   |
 | Same, in one step (creates `.env` if missing)          | `./run.sh` (`--seed` adds sample data, wiping; `./run.sh down` stops it)                                               |
 | CI's fast checks (no image build, e2e or scans)        | `npm run check`                                                                                                        |
 | Format / lint / types                                  | `npm run format`, `npm run lint`, `npm run typecheck`                                                                  |
@@ -43,9 +42,8 @@ Keep this file up to date when commands, conventions or pitfalls change.
 - `web/`: the React app (Vite). `src/api/` (the one fetch wrapper and the session), `src/i18n/` (every UI
   string, every language: zh-Hant, en, vi), `src/components/` (shared UI), `src/screens/` (one folder per screen group),
   `src/lib/` (pure helpers), `src/styles/` (tokens). Unit tests in `web/test/`, Playwright in `web/e2e/`.
-  `web/Dockerfile` builds it into nginx, which serves it and forwards `/api` to the server. It is built twice
-  (ARCHITECTURE.md §8.11): the diary, and with `--mode mantra` the mantra site (`dist-mantra/`, icons in
-  `public-mantra/`), served on 8080 and 8082.
+  `web/Dockerfile` builds it into nginx, which serves it on 8080 and forwards `/api` to the server. (The
+  community's 報數 site is a separate app since 2026-11-16, ARCHITECTURE.md §8.11: changes to it go there.)
 - `server/test/unit/` and `server/test/integration/`; helpers in `server/test/helpers/`. The test scripts also
   work from inside `server/` (`npm test`, `npm run test:unit`, …); they share the root `vitest.config.ts`.
 - `db/migrations/`: generated SQL plus `meta/_journal.json`. Append-only once shipped.
@@ -121,11 +119,6 @@ Keep this file up to date when commands, conventions or pitfalls change.
   `web/src/api/client.ts` inside TanStack Query; screens show `ApiError` codes with `tError` and the request
   ID. Styles are CSS modules using the tokens in `web/src/styles/tokens.css`, sized in rem. A new screen gets
   an axe check in both themes in `web/e2e/` and works at 360 px and 22 px text.
-- **Two sites:** `SITE` (`web/src/site.ts`) says which build is running; the mantra site shows 報數 and 我的
-  only and is the only one with registration. A screen or link that only exists on one site checks it. To keep
-  the other site's screens out of a bundle, test `import.meta.env.VITE_SITE` directly in the module that
-  imports them (see the routes in `App.tsx`): the bundler doesn't fold `SITE` across modules. The mantra
-  palette is `:root[data-site='mantra']` in `tokens.css`; keep its block order (light before the dark ones).
 - **Unsaved writing:** an editor that can lose typing calls `useReportUnsaved(dirty)` (`web/src/lib/unsaved.ts`);
   the new-version banner waits while any editor reports unsaved changes.
 - **Service worker:** it caches the built app files only. Never add runtime caching of `/api/` (diary content
@@ -135,7 +128,7 @@ Keep this file up to date when commands, conventions or pitfalls change.
   projects share each leader, so a leader test works on an entry its own student just created through the API. All
   projects share one SYS_ADMIN session (`adminPage`, `admin.backup`), signed in once with its authenticator code: a
   code can't be used twice, so admin tests never sign in through the form (only `auth.spec` does, as `admin.main`). The stack's per-IP limits are real: sign in through the saved sessions (`userPage`) rather than
-  the form where the form isn't the point, and run register/forgot-password/admin flows in one project.
+  the form where the form isn't the point, and run forgot-password/admin flows in one project.
 - **Comments** explain why, not what. Public functions get a doc comment.
 - **Commits:** Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `test:`).
 

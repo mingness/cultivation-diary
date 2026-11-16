@@ -37,13 +37,6 @@ export interface Config {
    * share the nearest proxy's address, and so one set of per-IP limits. 0 (the default) trusts none.
    */
   readonly trustProxyHops: number;
-  /** Whether new users may register themselves (spec §4.2). Admins can always create accounts under 用戶. */
-  readonly registrationOpen: boolean;
-  /**
-   * The mantra site's address (D31), e.g. `https://mantra.gcdr.org.au`, which the diary's sign-in page links to
-   * for mantra-only visitors; null hides the link.
-   */
-  readonly mantraUrl: string | null;
   /**
    * Optional SMTP for admin alert emails, e.g. `smtps://<address>:<authorization code>@smtp.qq.com:465`.
    * A secret (it holds the mailbox's authorization code). Without it, alerts stay in the app only.
@@ -102,11 +95,6 @@ const envSchema = z.object({
   API_DOCS: z.enum(['true', 'false']).optional(),
   CAPTCHA_FIXED: z.enum(['true', 'false']).default('false'),
   SKIP_TOTP: z.enum(['true', 'false']).default('false'),
-  REGISTRATION_OPEN: z.enum(['true', 'false']).default('true'),
-  MANTRA_URL: z
-    .url({ protocol: /^https?$/ })
-    .optional()
-    .or(z.literal('').transform(() => undefined)),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
   SMTP_URL: z
     .string()
@@ -200,8 +188,6 @@ export function loadConfig(env: Readonly<Record<string, string | undefined>>): C
     captchaFixed: e.CAPTCHA_FIXED === 'true',
     skipTotp: e.SKIP_TOTP === 'true',
     trustProxyHops: e.TRUST_PROXY_HOPS,
-    registrationOpen: e.REGISTRATION_OPEN === 'true',
-    mantraUrl: e.MANTRA_URL ?? null,
     smtp: e.SMTP_URL && e.MAIL_FROM ? { url: e.SMTP_URL, from: e.MAIL_FROM } : null,
     translate:
       e.TRANSLATE_API_URL && e.TRANSLATE_API_KEY && e.TRANSLATE_MODEL

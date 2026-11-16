@@ -33,7 +33,6 @@ test('the language switch shows the language in use, switches every string and i
 test('public screens pass axe in both themes and need no sideways scrolling at the largest size', async ({
   page,
 }) => {
-  // Registering is on the mantra site (mantra.spec.ts).
   for (const path of ['/login', '/forgot-password']) {
     await page.emulateMedia({ colorScheme: 'light' });
     await page.goto(path);

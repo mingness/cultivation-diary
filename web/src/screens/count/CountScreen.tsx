@@ -16,8 +16,7 @@ import {
 } from '../../api/count.js';
 import { ApiError } from '../../api/client.js';
 import { useMe } from '../../api/session.js';
-import mantraLogo from '../../assets/count-logo-mantra.svg';
-import diaryLogo from '../../assets/count-logo.svg';
+import logo from '../../assets/count-logo.svg';
 import { Button, buttonClass } from '../../components/Button.js';
 import { DataTable, tableStyles } from '../../components/DataTable.js';
 import { CheckboxRow } from '../../components/Field.js';
@@ -26,10 +25,9 @@ import { ErrorState, LoadingState } from '../../components/States.js';
 import { useToast } from '../../components/Toast.js';
 import { useI18n, type Lang } from '../../i18n/index.js';
 import { LOCALES } from '../../i18n/messages.js';
-import { formatDateTime, formatDiaryDate } from '../../lib/dates.js';
+import { formatDateTime, formatDayChip, formatDiaryDate } from '../../lib/dates.js';
 import { useMediaQuery } from '../../lib/media.js';
 import { dateState, noticeKeys } from './countRules.js';
-import { SITE } from '../../site.js';
 import styles from './CountScreen.module.css';
 
 const number = (n: number, lang: Lang) => n.toLocaleString(LOCALES[lang]);
@@ -42,13 +40,7 @@ export function CountScreen() {
     <div className={styles.page}>
       <header className={styles.header}>
         {/* Decorative and wordless, so it suits both languages; the title below names the page. */}
-        <img
-          className={styles.logo}
-          src={SITE === 'mantra' ? mantraLogo : diaryLogo}
-          alt=""
-          width={400}
-          height={80}
-        />
+        <img className={styles.logo} src={logo} alt="" width={400} height={80} />
         <h1>{t('count.title')}</h1>
         <p className={styles.subtitle}>{t('count.subtitle')}</p>
       </header>
@@ -63,8 +55,7 @@ export function CountScreen() {
         </>
       )}
       <Latest />
-      {/* 報數管理 is a diary-site screen; the mantra site has 報數 and 我的 only (D31). */}
-      {me.role === 'SYS_ADMIN' && SITE === 'diary' && (
+      {me.role === 'SYS_ADMIN' && (
         <Link to="/admin/count" className={`${buttonClass('secondary')} ${styles.manage}`}>
           {t('count.manage')}
         </Link>
@@ -110,9 +101,9 @@ function Progress({ summary }: { summary: SummaryData }) {
 type SummaryData = NonNullable<ReturnType<typeof useCountSummary>['data']>;
 type SettingsData = NonNullable<ReturnType<typeof useCountSettings>['data']>;
 
-/** "今天" for today, otherwise the date with its weekday ("10月13日 週二"). */
+/** "今天" for today, otherwise the day and weekday ("13日 週二"). */
 function chipLabel(date: string, today: string, lang: Lang, todayLabel: string) {
-  return date === today ? todayLabel : formatDiaryDate(date, lang);
+  return date === today ? todayLabel : formatDayChip(date, lang);
 }
 
 /** Waits for my settings, so the form can start from the number the nightly job would use. */

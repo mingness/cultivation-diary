@@ -3,7 +3,6 @@ import type { Messages } from './messages.js';
 
 export const en: Messages = {
   'app.title': 'Cultivation Diary',
-  'app.titleMantra': 'Great Compassion Mantra',
   'app.loading': 'Loading…',
   'lang.label': 'Language 語言',
 
@@ -39,7 +38,6 @@ export const en: Messages = {
     'Stay signed in on this device for up to 90 days. Your password is not stored.',
   'auth.login': 'Sign in',
   'auth.loggingIn': 'Signing in…',
-  'auth.toRegister': 'Create an account',
   'auth.toForgot': 'Forgot your password?',
   'auth.backToLogin': 'Back to sign in',
   'auth.required': 'Please fill in {field}',
@@ -58,28 +56,15 @@ export const en: Messages = {
   'enrol.submit': 'Finish setup',
   'enrol.done': 'Authenticator set up. You’ll need a code from it each time you sign in.',
 
-  'auth.mantraOnly': 'Here only for the mantra recitation count?',
-  'auth.toMantra': 'Go to the mantra site',
-  'register.title': 'Create an account',
-  'register.closed':
-    'Registration is closed at the moment. To get an account, please contact an administrator.',
   'register.usernameHint':
     '3–32 characters: letters, digits or . _ -, starting with a letter or digit. It can’t be changed later.',
   'register.familyName': 'Family name',
   'register.givenName': 'Given name',
   'register.address': 'Address',
   'register.email': 'Email',
-  'register.displayName': 'Display name',
-  'register.displayNameHint': 'Shown on the mantra board instead of your username',
   'register.phone': 'Phone',
-  'register.contactHint':
-    'Give an email or a phone number (at least one), so the admin can reach you if you forget your password',
   'register.badPhone': 'This phone number isn’t in the right format',
-  'register.contactRequired': 'Please give an email or a phone number',
   'register.passwordHint': 'At least 8 characters',
-  'register.confirmPassword': 'Password again',
-  'register.submit': 'Create account',
-  'register.submitting': 'Creating your account…',
   'register.badUsername': 'This username isn’t in the right format',
   'register.badPassword': 'The password needs at least 8 characters',
   'register.badEmail': 'This email address isn’t in the right format',
@@ -588,7 +573,6 @@ export const en: Messages = {
   'account.totpReset': 'If you lose your authenticator, ask another administrator to remove it.',
   'account.totpOn': 'Your authenticator is on: sign-in asks for its code.',
 
-  'admin.role.COUNT_USER': 'Mantra only',
   'admin.role.NORMAL_USER': 'Student',
   'admin.role.COURSE_LEADER': 'Leader',
   'admin.role.SYS_ADMIN': 'Administrator',
@@ -661,14 +645,11 @@ export const en: Messages = {
   'error.captcha_failed': 'The verification answer was wrong or expired. Here’s a new one.',
   'error.username_taken': 'This username is already taken.',
   'error.email_taken': 'This email address is already in use.',
-  'error.registration_closed': 'Registration is closed at the moment.',
   'error.totp_required': 'Please enter your authenticator code first.',
   'error.totp_invalid': 'Wrong or already used code. Please wait for the next one.',
   'error.csrf_failed': 'Your connection expired. Please reload the page.',
   'error.rate_limited': 'Too many attempts. Please try again later.',
   'error.last_admin': 'There must always be at least one system administrator.',
-  'error.role_change_refused': 'A student or leader cannot be changed to mantra only.',
-  'error.contact_required': 'Please keep an email or a phone number, so the admin can reach you.',
   'error.wrong_password': 'Your current password is wrong.',
   'error.self_action': 'You can’t do this to your own account.',
   'error.limit_reached': 'A usage limit has been reached.',

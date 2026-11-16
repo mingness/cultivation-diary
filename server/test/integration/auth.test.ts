@@ -1,11 +1,9 @@
 /**
- * Login, sessions, registration, forgot-password and the authenticator step, end to end against a real
+ * Login, sessions, forgot-password and the authenticator step, end to end against a real
  * database (spec §4, docs/ARCHITECTURE.md §8.2).
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq, sql } from 'drizzle-orm';
 import { CSRF_HEADER, ErrorBody, LoginResponse, MeResponse } from '@diary/shared';
-import { users } from '../../src/db/schema.js';
 import { currentTotpCode } from '../../src/domain/auth/totp.js';
 import { createSysadmin } from '../../src/services/admin-tools.js';
 import { EMPTY_PROFILE } from '../../src/services/profiles.js';
@@ -19,7 +17,6 @@ import {
   login,
   MINUTE,
   newCaptcha,
-  register,
   TEST_PASSWORD,
   type TestApp,
 } from '../helpers/app.js';
@@ -108,82 +105,6 @@ describe('CAPTCHA', () => {
       payload: { username, password: TEST_PASSWORD, captchaId, captchaAnswer: CAPTCHA_ANSWER },
     });
     expect(errorCode(res)).toBe('captcha_failed');
-  });
-});
-
-describe('registration', () => {
-  it('creates a mantra-only COUNT_USER who can then sign in, ignoring any role in the request', async () => {
-    const username = uniqueName('Reg');
-    const res = await register(t.app, { username, role: 'SYS_ADMIN' });
-    expect(res.statusCode).toBe(201);
-    const signin = await login(t.app, username.toLowerCase());
-    expect(LoginResponse.parse(signin.res.json())).toMatchObject({
-      status: 'ok',
-      user: { username, role: 'COUNT_USER' },
-    });
-  });
-
-  it('refuses a username that differs only in case', async () => {
-    const username = uniqueName('Case');
-    expect((await register(t.app, { username })).statusCode).toBe(201);
-    const dup = await register(t.app, { username: username.toUpperCase() });
-    expect(dup.statusCode).toBe(409);
-    expect(errorCode(dup)).toBe('username_taken');
-  });
-
-  it('refuses a duplicate email', async () => {
-    const email = `${uniqueName('mail')}@example.com`;
-    expect((await register(t.app, { username: uniqueName(), email })).statusCode).toBe(201);
-    const dup = await register(t.app, { username: uniqueName(), email: email.toUpperCase() });
-    expect(errorCode(dup)).toBe('email_taken');
-  });
-
-  it.each([
-    ['too short username', { username: 'ab' }],
-    ['username with spaces', { username: 'two words' }],
-    ['short password', { password: 'short' }],
-    ['neither email nor phone', { email: null, phone: '' }],
-    ['a phone that is not a number', { phone: 'call me' }],
-  ])('rejects %s', async (_label, body) => {
-    const res = await register(t.app, { username: uniqueName(), ...body });
-    expect(res.statusCode).toBe(400);
-    expect(errorCode(res)).toBe('validation_failed');
-  });
-
-  it('stores the display name and phone encrypted, as the profile’s given name and phone', async () => {
-    const username = uniqueName('enc');
-    await register(t.app, { username, displayName: '靜修', phone: '+61 7 5555 1234' });
-    const [row] = await t.ctx.db
-      .select({ dump: sql<string>`row_to_json(users)::text` })
-      .from(users)
-      .where(eq(users.username, username));
-    expect(row!.dump).not.toContain('靜修');
-    expect(row!.dump).not.toContain('5555 1234');
-
-    const signin = await login(t.app, username);
-    const profile = MeResponse.parse((await me(as(signin))).json()).user.profile;
-    expect(profile).toMatchObject({ familyName: '', givenName: '靜修', phone: '+61 7 5555 1234' });
-  });
-
-  it('a mantra-only account can swap its phone for an email, but not drop both', async () => {
-    const username = uniqueName('contact');
-    await register(t.app, { username, phone: '0412 345 678' });
-    const signin = await login(t.app, username);
-    const put = (payload: object) =>
-      t.app.inject({ method: 'PUT', url: '/api/me', headers: as(signin), payload });
-    const profile = MeResponse.parse((await me(as(signin))).json()).user.profile;
-
-    const dropped = await put({ profile: { ...profile, phone: '' } });
-    expect(dropped.statusCode).toBe(400);
-    expect(errorCode(dropped)).toBe('contact_required');
-
-    const swapped = await put({
-      email: `${username}@example.com`,
-      profile: { ...profile, phone: '' },
-    });
-    expect(swapped.statusCode).toBe(200);
-    // Now the email is the only contact, so clearing it alone is refused too.
-    expect(errorCode(await put({ email: null }))).toBe('contact_required');
   });
 });
 

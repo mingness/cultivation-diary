@@ -4,13 +4,13 @@
  * request body.
  */
 import { and, eq, gt, isNull } from 'drizzle-orm';
-import { ErrorCode, hasContact, type Profile, type Theme } from '@diary/shared';
+import { ErrorCode, type Profile, type Theme } from '@diary/shared';
 import type { AppContext } from '../context.js';
 import { sessions, users } from '../db/schema.js';
 import { hashPassword, verifyPassword } from '../domain/auth/passwords.js';
 import type { FailureThrottle } from '../domain/auth/throttle.js';
 import { HttpError, rateLimited } from '../http-errors.js';
-import { openProfile, sealProfile } from './profiles.js';
+import { sealProfile } from './profiles.js';
 import { revokeSession, revokeUserSessions, type SessionRow } from './sessions.js';
 import { isUniqueViolation, type UserRow } from './users.js';
 
@@ -28,14 +28,6 @@ export async function updateMe(
   user: UserRow,
   changes: MeChanges,
 ): Promise<UserRow> {
-  if (user.role === 'COUNT_USER' && (changes.email !== undefined || changes.profile)) {
-    // Nothing else connects a self-registered account to a person (spec §4.2).
-    const email = changes.email !== undefined ? changes.email : user.email;
-    const phone = (changes.profile ?? openProfile(ctx.config.profileKeyring, user.id, user)).phone;
-    if (!hasContact(email, phone)) {
-      throw new HttpError(400, ErrorCode.ContactRequired, 'Keep an email or a phone number');
-    }
-  }
   const sealed = changes.profile
     ? sealProfile(ctx.config.profileKeyring, user.id, changes.profile, user.profileDekWrapped)
     : {};

@@ -34,7 +34,7 @@ afterAll(async () => {
   await t?.close();
 });
 
-type Role = 'NORMAL_USER' | 'COURSE_LEADER' | 'COUNT_USER';
+type Role = 'NORMAL_USER' | 'COURSE_LEADER';
 let n = 0;
 async function person(role: Role = 'NORMAL_USER') {
   const username = `p${++n}x${Date.now() % 10000}`;
@@ -98,14 +98,12 @@ describe('pinning (D36)', () => {
     const studentsOwn = await entry(student, 'a student’s');
     const otherLeader = await person('COURSE_LEADER');
     const admin = await signedInAdmin(t);
-    const countUser = await person('COUNT_USER');
 
     expect((await pin(student, studentsOwn)).statusCode).toBe(403);
     expect((await pin(student, id)).statusCode).toBe(403);
     expect((await pin(otherLeader, id)).statusCode).toBe(403);
     expect((await pin(otherLeader, studentsOwn)).statusCode).toBe(403);
     expect((await pin(admin, id)).statusCode).toBe(403);
-    expect((await pin(countUser, id)).statusCode).toBe(403);
     expect((await pin(null, id)).statusCode).toBe(401);
     // Someone else's private entry doesn't exist for a student.
     const privateOne = await entry(leader, 'private', false);

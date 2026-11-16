@@ -3,20 +3,8 @@ import { isPhone, type MeResponse } from '@diary/shared';
 import { ApiError } from '../src/api/client.js';
 import { sessionFromMe } from '../src/api/session.js';
 import { parseAppearance } from '../src/lib/appearance.js';
-import { landingPath } from '../src/lib/landing.js';
 import { shouldRetry } from '../src/lib/query.js';
 import { secretFromUri } from '../src/screens/auth/EnrolScreen.js';
-import { checkRegistration } from '../src/screens/auth/RegisterScreen.js';
-
-describe('landingPath (spec §4.1)', () => {
-  it('sends each role to its diary home on the diary site, and everyone to 報數 on the mantra site', () => {
-    expect(landingPath('COUNT_USER', 'diary')).toBe('/count');
-    expect(landingPath('NORMAL_USER', 'diary')).toBe('/diary');
-    expect(landingPath('COURSE_LEADER', 'diary')).toBe('/review');
-    expect(landingPath('SYS_ADMIN', 'diary')).toBe('/admin');
-    expect(landingPath('SYS_ADMIN', 'mantra')).toBe('/count');
-  });
-});
 
 describe('parseAppearance', () => {
   it('keeps valid cached values and replaces anything else with the defaults', () => {
@@ -58,52 +46,6 @@ describe('sessionFromMe', () => {
     expect(sessionFromMe(me('SYS_ADMIN', false)).status).toBe('enrol');
     expect(sessionFromMe(me('SYS_ADMIN', true)).status).toBe('ready');
     expect(sessionFromMe(me('COURSE_LEADER', false)).status).toBe('ready');
-  });
-});
-
-describe('checkRegistration', () => {
-  const valid = {
-    username: 'chen.md',
-    displayName: '',
-    email: '',
-    phone: '+61 412 345 678',
-    password: 'long-enough',
-    confirm: 'long-enough',
-    answer: '3',
-  };
-
-  it('accepts a valid form with the optional fields empty, and either contact alone', () => {
-    expect(checkRegistration(valid)).toEqual({});
-    expect(checkRegistration({ ...valid, phone: '', email: 'a@example.com' })).toEqual({});
-  });
-
-  it('needs an email or a phone, and says so at the phone field', () => {
-    expect(checkRegistration({ ...valid, phone: ' ', email: '' })).toEqual({
-      phone: 'register.contactRequired',
-    });
-  });
-
-  it('names each problem next to its field', () => {
-    expect(
-      checkRegistration({
-        ...valid,
-        username: '.bad',
-        confirm: 'different',
-        email: 'not-an-email',
-        phone: 'call me',
-        answer: '',
-      }),
-    ).toEqual({
-      username: 'register.badUsername',
-      confirm: 'register.mismatch',
-      email: 'register.badEmail',
-      phone: 'register.badPhone',
-      answer: 'auth.required',
-    });
-    // A too-short password is the problem to fix first; "different" would only confuse.
-    expect(checkRegistration({ ...valid, password: 'short', confirm: 'other' })).toEqual({
-      password: 'register.badPassword',
-    });
   });
 });
 

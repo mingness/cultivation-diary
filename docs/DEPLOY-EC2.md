@@ -10,14 +10,12 @@ key rotation, monitoring).
 ## What runs
 
 ```
-                                ┌─ diary.…  ──▶ web:8080 (diary build)  ──┐
-internet ──443──▶ caddy (HTTPS) ┤                                         ├─ /api ──▶ server ──▶ db
-                                └─ mantra.… ──▶ web:8082 (mantra build) ──┘
+internet ──443──▶ caddy (HTTPS) ──▶ web:8080 (nginx: the diary) ── /api ──▶ server ──▶ db
 ```
 
-- Two sites, one server and one database (ARCHITECTURE.md §8.11): the curated diary and the public mantra
-  site, where people register for 報數. Caddy gets a certificate for each hostname and sends it to its own
-  nginx port; nginx serves that site's build and adds the security headers.
+- Caddy gets a certificate for the hostname and passes requests to nginx, which serves the app, adds the
+  security headers and forwards `/api` to the server. (The community's 報數 site is a separate app since
+  2026-11-16, with its own deploy: ARCHITECTURE.md §8.11.)
 - Only Caddy publishes ports (80 and 443). The database, API and nginx are reachable only inside Docker.
 - `/internal/` (the 報數 job trigger) is blocked at Caddy; the job runs on the server's own timer anyway.
 - The server runs with `NODE_ENV=production`: the CAPTCHA and authenticator shortcuts are refused, the API
@@ -40,17 +38,17 @@ In the EC2 console, **Launch instance**:
 
 Then **Elastic IPs → Allocate**, and associate it with the instance, so its address survives restarts.
 
-## 2. Names for the two sites
+## 2. A name for the site
 
-HTTPS needs two domain names, the diary's and the mantra site's, both pointing at the Elastic IP. Either:
+HTTPS needs a domain name pointing at the Elastic IP. Either:
 
-- **Your own domain:** add two `A` records to the Elastic IP: `diary.gcdr.org.au` and `mantra.gcdr.org.au`
-  (or test names such as `diary-test.example.com` and `mantra-test.example.com`); or
+- **Your own domain:** add an `A` record to the Elastic IP, e.g. `diary.gcdr.org.au` (or a test name such as
+  `diary-test.example.com`); or
 - **No domain:** use `sslip.io`, which turns an address into a name and answers for any name under it. For
-  `203.0.113.7`, use `diary.203-0-113-7.sslip.io` and `mantra.203-0-113-7.sslip.io`. If Let's Encrypt refuses a
-  certificate (it limits how many it issues per domain), use your own domain instead.
+  `203.0.113.7`, use `diary.203-0-113-7.sslip.io`. If Let's Encrypt refuses a certificate (it limits how many it
+  issues per domain), use your own domain instead.
 
-Caddy gets a certificate for each name on its first visit, so both must resolve before you open them.
+Caddy gets the certificate on the first visit, so the name must resolve before you open it.
 
 ## 3. Install Docker
 
@@ -128,7 +126,7 @@ Its images and volumes stay in the rootless daemon's storage, so the data comes 
 git clone <repository URL> diary-app      # for a private repository, use a deploy key or access token
 cd diary-app
 git checkout <branch>
-sh deploy/make-env.sh <diary domain> <mantra domain>   # writes deploy/.env with freshly generated keys
+sh deploy/make-env.sh <domain>            # writes deploy/.env with freshly generated keys
 ```
 
 **Copy `deploy/.env` somewhere safe off the server now** (e.g. a password manager):
@@ -146,9 +144,8 @@ admin alert emails.
 docker compose -f deploy/compose.yaml up -d --build --wait
 ```
 
-The first build takes a few minutes (it builds the web app twice, once per site). The server applies the
-database migrations as it starts. Then open `https://<diary domain>` and `https://<mantra domain>`: Caddy gets
-each certificate on the first visit, which can take a few seconds.
+The first build takes a few minutes. The server applies the database migrations as it starts. Then open
+`https://<domain>`: Caddy gets the certificate on the first visit, which can take a few seconds.
 
 ## 6. The first administrator
 
@@ -159,20 +156,11 @@ for a password, then shows a QR code for your authenticator app and asks for a c
 docker compose -f deploy/compose.yaml exec server node server/dist/cli.js create-sysadmin <username>
 ```
 
-Sign in at `https://<diary domain>` as that admin, and create the diary's accounts under 用戶: the diary is
-curated, so nobody registers for it. Its sign-in page points mantra-only visitors to the mantra site
-(`MANTRA_URL`, written by `make-env.sh`).
+Sign in at `https://<domain>` as that admin, and create the diary's accounts under 用戶: the diary is
+curated, so nobody registers for it.
 
-**Registering is open** on the mantra site (`REGISTRATION_OPEN=true`, written by `make-env.sh`). It only ever
-creates mantra-only accounts (COUNT_USER), which reach 報數 and their account page and nothing of the diary,
-and each must give an email or a phone so an admin can pass on a new password. If spam signups appear, set
-`REGISTRATION_OPEN=false` in `deploy/.env` and run `docker compose -f deploy/compose.yaml up -d server`: the
-register link disappears and the server refuses registrations. Under 用戶, filter by the 僅報數 role and
-batch-delete the spam accounts. An admin can promote a mantra-only account to 學員 once that person joins a
-course (never the other way).
-
-To install the apps on a phone, open each address in Chrome (Android: menu → Install app) or Safari (iPhone:
-Share → Add to Home Screen). The diary installs as 修行日記 and the mantra site as 大悲咒共修報數.
+To install the app on a phone, open the address in Chrome (Android: menu → Install app) or Safari (iPhone:
+Share → Add to Home Screen). It installs as 修行日記.
 
 ## Everyday tasks
 
@@ -222,4 +210,4 @@ A restore onto a new server needs the original `deploy/.env` (same keyrings) in 
 ## Removing the test server
 
 In the EC2 console, terminate the instance, then **release the Elastic IP** (AWS charges for an address
-that isn't attached to a running instance). If you used your own domain, remove both `A` records.
+that isn't attached to a running instance). If you used your own domain, remove the `A` record.
