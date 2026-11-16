@@ -63,7 +63,7 @@ export function countRoutes(app: FastifyInstance, ctx: AppContext): void {
       schema: {
         tags: TAG,
         summary:
-          '報數: report my number (1–1080) for today or one of the 5 days before (Beijing). It replaces my ' +
+          '報數: report my number (1–1080) for today or one of the 4 days before (Beijing). It replaces my ' +
           'earlier number for that date and becomes my saved number for auto-submit. At most 20 per date.',
         body: SubmitCountRequest,
         response: { 201: CountEntry },

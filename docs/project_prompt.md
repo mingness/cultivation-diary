@@ -53,7 +53,7 @@ This is a private diary platform with a supervision workflow:
 
 **comment** — belongs to one document and one course leader; text (**encrypted**); state (draft / submitted). Each course leader has at most one comment per document, which they may edit and resubmit.
 
-**count entry** — username, daily count (positive integer, 1–1080), count date (today or up to 5 days earlier, Beijing time), submit time, auto-submit flag.
+**count entry** — username, daily count (positive integer, 1–1080), count date (today or up to 4 days earlier, Beijing time), submit time, auto-submit flag.
 
 **Encryption requirements (non-negotiable):**
 - Diary content, drafts, history versions and comments are encrypted with **AES-256-GCM**, with a unique random nonce per encryption.
@@ -260,7 +260,7 @@ REPORTED_TODAY今日報告: <today> (entries紀錄: <n>)
 ### 7.2 Input rules
 - Daily count: digits only, invalid characters trimmed with a notice, value clamped to **1–1080** with a notice. The server enforces the same rules.
 - Manual submit → the user's number for that date (replacing any earlier one) + refresh all figures and the table; the value also becomes the user's saved default for auto-submit.
-- **Count date:** defaults to today; the user may pick any of the previous 5 days (Beijing time) to report a missed day. Never a future date.
+- **Count date:** defaults to today; the user may pick any of the previous 4 days (Beijing time) to report a missed day. Never a future date.
 - **Limit:** at most **20 manual reports per user per count date** (the auto-submitted entry does not count toward it). Since a report replaces the day's number, repeats can't inflate the total; the cap only limits traffic. It is per count date, not per submit day, so backdating cannot multiply it. Reaching it flags the account (§6.5); so does the 5th report for one date (a warning level, §5.5), without refusing anything.
 - "Today's Count" and "First Count Date" use the count date; "Latest Submit Time" uses the submit time.
 - Auto-submit checkbox persists immediately (reverts on failure). The typed value is saved continuously (debounced) so the nightly job always uses the latest number.
@@ -327,7 +327,7 @@ Build this only if testing on the users' actual phones shows the installable web
 - [ ] SYS_ADMIN: can search/add/edit/delete users and change roles, reset passwords, query/delete documents — but receives no plaintext content or comments from any endpoint; the last SYS_ADMIN cannot be removed.
 - [ ] COURSE_LEADER: sees today's submitted documents immediately after login; calendar/user navigation reaches the comment editor; can stop sharing an entry.
 - [ ] Password change and admin reset both keep the user's old documents readable by the user.
-- [ ] 报数: clamped 1–1080 input (client and server); count date today or up to 5 days back; a later report replaces that date's number; at most 20 manual reports per count date; manual submit updates everything; auto-submit toggle persists; admin list shows all users with toggle + delete-entries (all or by date range) + last-run status; auto job runs at 02:00 Beijing.
+- [ ] 报数: clamped 1–1080 input (client and server); count date today or up to 4 days back; a later report replaces that date's number; at most 20 manual reports per count date; manual submit updates everything; auto-submit toggle persists; admin list shows all users with toggle + delete-entries (all or by date range) + last-run status; auto job runs at 02:00 Beijing.
 - [ ] Attention: reaching a limit, failed-login bursts and new-device bursts flag the account in the SYS_ADMIN Attention list; with email configured, SYS_ADMINs also get a throttled email; activity views and emails contain no content; sign-out-all and lock work.
 - [ ] Installable: the app can be added to the home screen on Android and iPhone, opens standalone, stays logged in, picks up new versions, and never caches diary content.
 - [ ] Two sites: the mantra site offers registration (email or phone required, no verification) creating a COUNT_USER, and shows only 報數 and the account page; the diary site has no registration. A COUNT_USER is refused every diary, leader and translation endpoint; a SYS_ADMIN can promote a COUNT_USER but never make a diary member a COUNT_USER. Each site installs as its own app.
