@@ -10,7 +10,6 @@ import type { Messages } from './messages.js';
 
 export const vi: Messages = {
   'app.title': 'Nhật ký tu tập',
-  'app.titleMantra': 'Cộng tu Chú Đại Bi',
   'app.loading': 'Đang tải…',
   'lang.label': 'Ngôn ngữ 語言',
 
@@ -46,7 +45,6 @@ export const vi: Messages = {
     'Giữ đăng nhập trên thiết bị này tối đa 90 ngày. Mật khẩu của bạn không được lưu.',
   'auth.login': 'Đăng nhập',
   'auth.loggingIn': 'Đang đăng nhập…',
-  'auth.toRegister': 'Tạo tài khoản',
   'auth.toForgot': 'Quên mật khẩu?',
   'auth.backToLogin': 'Quay lại đăng nhập',
   'auth.required': 'Vui lòng điền {field}',
@@ -65,28 +63,15 @@ export const vi: Messages = {
   'enrol.submit': 'Hoàn tất cài đặt',
   'enrol.done': 'Đã cài đặt ứng dụng xác thực. Mỗi lần đăng nhập bạn sẽ cần một mã từ nó.',
 
-  'auth.mantraOnly': 'Bạn chỉ đến để báo số tụng chú?',
-  'auth.toMantra': 'Đến trang tụng chú',
-  'register.title': 'Tạo tài khoản',
-  'register.closed':
-    'Hiện đang tạm ngừng đăng ký. Để có tài khoản, vui lòng liên hệ quản trị viên.',
   'register.usernameHint':
     '3–32 ký tự: chữ cái, chữ số hoặc . _ -, bắt đầu bằng chữ cái hoặc chữ số. Không thể đổi về sau.',
   'register.familyName': 'Họ',
   'register.givenName': 'Tên',
   'register.address': 'Địa chỉ',
   'register.email': 'Email',
-  'register.displayName': 'Tên hiển thị',
-  'register.displayNameHint': 'Hiện trên bảng tụng chú thay cho tên đăng nhập',
   'register.phone': 'Điện thoại',
-  'register.contactHint':
-    'Hãy cho email hoặc số điện thoại (ít nhất một), để quản trị viên liên lạc được nếu bạn quên mật khẩu',
   'register.badPhone': 'Số điện thoại không đúng định dạng',
-  'register.contactRequired': 'Vui lòng cho email hoặc số điện thoại',
   'register.passwordHint': 'Ít nhất 8 ký tự',
-  'register.confirmPassword': 'Nhập lại mật khẩu',
-  'register.submit': 'Tạo tài khoản',
-  'register.submitting': 'Đang tạo tài khoản…',
   'register.badUsername': 'Tên đăng nhập không đúng định dạng',
   'register.badPassword': 'Mật khẩu cần ít nhất 8 ký tự',
   'register.badEmail': 'Địa chỉ email không đúng định dạng',
@@ -604,7 +589,6 @@ export const vi: Messages = {
   'account.totpReset': 'Nếu mất ứng dụng xác thực, hãy nhờ một quản trị viên khác gỡ nó.',
   'account.totpOn': 'Đã bật ứng dụng xác thực: khi đăng nhập sẽ cần mã của nó.',
 
-  'admin.role.COUNT_USER': 'Chỉ tụng chú',
   'admin.role.NORMAL_USER': 'Học viên',
   'admin.role.COURSE_LEADER': 'Người hướng dẫn',
   'admin.role.SYS_ADMIN': 'Quản trị viên',
@@ -677,15 +661,11 @@ export const vi: Messages = {
   'error.captcha_failed': 'Câu trả lời xác minh sai hoặc đã hết hạn. Đây là hình mới.',
   'error.username_taken': 'Tên đăng nhập này đã có người dùng.',
   'error.email_taken': 'Địa chỉ email này đã được dùng.',
-  'error.registration_closed': 'Hiện đang tạm ngừng đăng ký.',
   'error.totp_required': 'Vui lòng nhập mã xác thực trước.',
   'error.totp_invalid': 'Mã sai hoặc đã dùng rồi. Vui lòng chờ mã tiếp theo.',
   'error.csrf_failed': 'Kết nối đã hết hạn. Vui lòng tải lại trang.',
   'error.rate_limited': 'Thử quá nhiều lần. Vui lòng thử lại sau.',
   'error.last_admin': 'Luôn phải có ít nhất một quản trị viên hệ thống.',
-  'error.role_change_refused': 'Không thể đổi học viên hoặc người hướng dẫn thành chỉ tụng chú.',
-  'error.contact_required':
-    'Vui lòng giữ email hoặc số điện thoại, để quản trị viên liên lạc được với bạn.',
   'error.wrong_password': 'Mật khẩu hiện tại không đúng.',
   'error.self_action': 'Bạn không thể làm việc này với tài khoản của chính mình.',
   'error.limit_reached': 'Đã đạt giới hạn sử dụng.',

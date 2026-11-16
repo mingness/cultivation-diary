@@ -4,7 +4,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { readPref, writePref } from '../lib/storage.js';
-import { SITE_TITLE } from '../site.js';
 import { en } from './en.js';
 import {
   errorKey,
@@ -56,7 +55,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = lang;
-    document.title = TABLES[lang][SITE_TITLE];
+    document.title = TABLES[lang]['app.title'];
   }, [lang]);
 
   const setLang = useCallback((next: Lang) => {

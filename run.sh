@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs the whole stack locally in Docker.
-#   ./run.sh          build and start (diary :8080, mantra site :8082, API :3000)
+#   ./run.sh          build and start (diary :8080, API :3000)
 #   ./run.sh --seed   same, then wipe and load sample users/entries (password: password123)
 #   ./run.sh down     stop it
 set -euo pipefail
@@ -24,7 +24,6 @@ cat <<'EOF'
 
 Running:
   Diary        http://localhost:8080
-  Mantra site  http://localhost:8082
   API explorer http://localhost:3000/docs
 Stop with: ./run.sh down
 EOF

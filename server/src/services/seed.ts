@@ -7,7 +7,7 @@
  * Usernames say what each account is for: `<role>.<situation>`. Together they cover every state a screen can
  * show: each entry state, sharing and a leader's unshare, history, photos, the length counter, comments in
  * draft, new, seen and from a deleted leader, voice notes submitted and pending, a demoted leader, a locked
- * account, empty diaries and mantra-only accounts with and without a display name. The e2e projects sign in
+ * account and empty diaries. The e2e projects sign in
  * as some of these (web/playwright.config.ts); docs/DEVELOPING.md lists them all.
  */
 import { readFile } from 'node:fs/promises';
@@ -126,19 +126,6 @@ export const SEED_USERS: readonly SeedUser[] = [
     profile: person('陳', '美華'),
     note: "waiting for a password reset: can't sign in",
     resetPending: true,
-  },
-  // Mantra-only accounts (D30): one with a display name (kept as the given name), one without.
-  {
-    username: 'mantra.named',
-    role: 'COUNT_USER',
-    profile: person('', '妙音'),
-    note: 'mantra site only; display name 妙音',
-  },
-  {
-    username: 'mantra.noname',
-    role: 'COUNT_USER',
-    profile: person('', ''),
-    note: 'mantra site only; no display name (shows the username)',
   },
 ];
 
@@ -383,8 +370,6 @@ export const SEED_COUNTS: readonly [string, readonly number[], boolean][] = [
   ['student.daily', [1080, 1080, 1080, 1080, 1080, 1080, 1080], false],
   ['student.new', [0, 0, 0, 0, 0, 21, 0], false],
   ['leader.voice', [108, 108, 108, 108, 108, 108, 108], true],
-  ['mantra.named', [21, 49, 49, 108, 0, 108, 49], false],
-  ['mantra.noname', [0, 0, 0, 7, 7, 0, 7], false],
 ];
 
 /** Open Attention flags: at least one per e2e project, since each handles one (web/e2e/admin.spec.ts). */
@@ -395,7 +380,6 @@ const SEED_ALERTS: readonly (readonly [string, AlertRule])[] = [
   ['student.daily', 'limit_reached'],
   ['student.new', 'elevated_activity'],
   ['student.locked', 'login_failures'],
-  ['mantra.noname', 'new_devices'],
 ];
 
 /** The seed's recording: a 6-second tone as MP3, the format the app records (§8.14). */

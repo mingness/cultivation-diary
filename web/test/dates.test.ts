@@ -3,6 +3,7 @@ import {
   beijingDate,
   beijingMonth,
   formatDateTime,
+  formatDayChip,
   formatBeijingDateTime,
   formatDiaryDate,
   formatMonth,
@@ -41,6 +42,12 @@ describe('formatting (FRONTEND.md §7)', () => {
     expect(formatDiaryDate('2026-10-14', 'zh-Hant')).toBe('10月14日 週三');
     expect(formatDiaryDate('2026-10-14', 'en')).toBe('Wed 14 Oct');
     expect(formatDiaryDate('2026-10-14', 'vi')).toBe('Thứ 4, 14 thg 10');
+  });
+
+  it('writes the 報數 date chips as day and weekday only', () => {
+    expect(formatDayChip('2026-11-16', 'zh-Hant')).toBe('16日 週一');
+    expect(formatDayChip('2026-11-16', 'en')).toBe('Mon 16');
+    expect(formatDayChip('2026-11-16', 'vi')).toBe('Thứ 2, 16');
   });
 
   it('writes months and 24-hour times', () => {

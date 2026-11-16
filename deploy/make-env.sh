@@ -1,28 +1,25 @@
 #!/bin/sh
 # Writes deploy/.env for a server deploy, with freshly generated keys. Run once per server, with the diary's
-# and the mantra site's hostnames (docs/ARCHITECTURE.md §8.11):
-#   sh deploy/make-env.sh diary.gcdr.org.au mantra.gcdr.org.au
+# hostname:
+#   sh deploy/make-env.sh diary.gcdr.org.au
 # Then copy deploy/.env somewhere safe off the server: losing DIARY_KEYRING or PROFILE_KEYRING loses every
 # diary and profile, and the database backups can't be read without them.
 set -eu
 
 domain=${1:-}
-mantra_domain=${2:-}
-if [ -z "$domain" ] || [ -z "$mantra_domain" ]; then
-  echo "Usage: sh deploy/make-env.sh <diary domain> <mantra domain>" >&2
-  echo "   e.g. diary.gcdr.org.au mantra.gcdr.org.au, or diary.203-0-113-7.sslip.io mantra.203-0-113-7.sslip.io" >&2
+if [ -z "$domain" ]; then
+  echo "Usage: sh deploy/make-env.sh <domain>" >&2
+  echo "   e.g. diary.gcdr.org.au, or diary.203-0-113-7.sslip.io" >&2
   exit 1
 fi
 
-# Bare hostnames only: Caddy reads "name/" as "only the path /", so the page loads but its scripts don't.
-for name in "$domain" "$mantra_domain"; do
-  case "$name" in
-    */* | *:*)
-      echo "Give bare hostnames, without https:// or a trailing slash: got '$name'" >&2
-      exit 1
-      ;;
-  esac
-done
+# A bare hostname only: Caddy reads "name/" as "only the path /", so the page loads but its scripts don't.
+case "$domain" in
+  */* | *:*)
+    echo "Give a bare hostname, without https:// or a trailing slash: got '$domain'" >&2
+    exit 1
+    ;;
+esac
 
 target="$(dirname "$0")/.env"
 if [ -e "$target" ]; then
@@ -36,13 +33,7 @@ umask 077
 cat >"$target" <<ENV
 # Written by deploy/make-env.sh on $(date -u +%Y-%m-%d). Secrets: keep a copy offline, never commit.
 DOMAIN=$domain
-MANTRA_DOMAIN=$mantra_domain
-# The diary's sign-in page links here for people who only take part in 報數.
-MANTRA_URL=https://$mantra_domain
 LOG_LEVEL=info
-# Registering on the mantra site, which only ever makes mantra-only accounts (D30). Set to false to close it,
-# e.g. against spam signups. Diary accounts are always created by admins under 用戶.
-REGISTRATION_OPEN=true
 
 POSTGRES_PASSWORD=$(hex 16)
 # Losing either keyring loses the data it protects. Back them up separately from database backups.

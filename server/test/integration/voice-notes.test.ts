@@ -231,7 +231,6 @@ describe('who may record, remove and play', () => {
     const leader = await person('COURSE_LEADER');
     const otherLeader = await person('COURSE_LEADER');
     const student = await person('NORMAL_USER');
-    const countUser = await person('COUNT_USER');
     const admin = await signedInAdmin(t);
     const own = await create(student);
     const leaders = await create(leader);
@@ -244,7 +243,6 @@ describe('who may record, remove and play', () => {
     await share(leader, leaders.id);
     expect((await upload(otherLeader, leaders.id, mp3())).statusCode).toBe(403);
     expect((await upload(student, leaders.id, mp3())).statusCode).toBe(403);
-    expect((await upload(countUser, leaders.id, mp3())).statusCode).toBe(403);
     expect((await upload(admin, leaders.id, mp3())).statusCode).toBe(403);
     expect(
       (
@@ -263,7 +261,6 @@ describe('who may record, remove and play', () => {
     expect((await remove(otherLeader, leaders.id, a.id)).statusCode).toBe(403);
     expect((await remove(student, leaders.id, a.id)).statusCode).toBe(403);
     expect((await play(admin, leaders.id, a.id)).statusCode).toBe(403);
-    expect((await play(countUser, leaders.id, a.id)).statusCode).toBe(403);
     // A note can't be fetched through another entry's address.
     expect((await play(student, own.id, a.id)).statusCode).toBe(404);
   });

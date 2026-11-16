@@ -65,8 +65,6 @@ show (the seed command prints the same list; `server/src/services/seed.ts` has t
 | `student.new` | NORMAL_USER | No entries yet (empty diary); one count |
 | `student.exleader` | NORMAL_USER | A former leader: their shared entry keeps its voice note (D35) |
 | `student.locked` | NORMAL_USER | Waiting for a password reset: can't sign in until an admin sets one |
-| `mantra.named` | COUNT_USER | Mantra only (報數 and 我的); display name 妙音 |
-| `mantra.noname` | COUNT_USER | Mantra only; no display name, so the username shows |
 
 `leader.departed` is created, comments, and is deleted again, so `student.full`'s 放生 shows a comment from a
 former leader. Voice notes are a 6-second tone, as MP3 like the app's recordings, from `server/seed-assets/`.

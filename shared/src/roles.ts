@@ -1,20 +1,8 @@
 import { z } from 'zod';
 
-/**
- * Account roles. Each account has exactly one (docs/project_prompt.md §2). COUNT_USER reaches 報數 and the
- * account page only (D30): it is what self-registration on the mantra site creates.
- */
-export const Role = z.enum(['COUNT_USER', 'NORMAL_USER', 'COURSE_LEADER', 'SYS_ADMIN']);
+/** Account roles. Each account has exactly one (docs/project_prompt.md §2). */
+export const Role = z.enum(['NORMAL_USER', 'COURSE_LEADER', 'SYS_ADMIN']);
 export type Role = z.infer<typeof Role>;
-
-/**
- * Whether a SYS_ADMIN may move an account from one role to another (D30). Roles only move up: a diary member
- * (NORMAL_USER, COURSE_LEADER) keeps entries a COUNT_USER could never reach, so they are never made one.
- * The last-SYS_ADMIN rule is separate, since it depends on the other accounts.
- */
-export function canChangeRole(from: Role, to: Role): boolean {
-  return !(to === 'COUNT_USER' && (from === 'NORMAL_USER' || from === 'COURSE_LEADER'));
-}
 
 /**
  * Who can read a diary entry besides its owner and the course leaders (§5.3). The author decides; a leader

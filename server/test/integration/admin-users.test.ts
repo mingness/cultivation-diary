@@ -48,8 +48,8 @@ async function signedInAdmin(): Promise<Signin & { id: string }> {
   return { ...signin, csrf: res.json().csrfToken, id: user.id };
 }
 
-async function plainUser(role: 'NORMAL_USER' | 'COURSE_LEADER' | 'COUNT_USER' = 'NORMAL_USER') {
-  const username = name({ NORMAL_USER: 'u', COURSE_LEADER: 'lead', COUNT_USER: 'mantra' }[role]);
+async function plainUser(role: 'NORMAL_USER' | 'COURSE_LEADER' = 'NORMAL_USER') {
+  const username = name({ NORMAL_USER: 'u', COURSE_LEADER: 'lead' }[role]);
   const user = await createUser(t.ctx, {
     username,
     password: TEST_PASSWORD,
@@ -255,23 +255,6 @@ describe('editing users', () => {
     expect((await login(t.app, username)).res.json().status).toBe('totp_enrolment_required');
   });
 
-  it('promotes a COUNT_USER to the diary, but never moves a diary member to COUNT_USER (D30)', async () => {
-    const mantra = await plainUser('COUNT_USER');
-    const promoted = await call('PATCH', `/api/admin/users/${mantra.id}`, admin, {
-      role: 'NORMAL_USER',
-    });
-    expect(AdminUser.parse(promoted.json()).role).toBe('NORMAL_USER');
-
-    const leader = await plainUser('COURSE_LEADER');
-    const refused = await call('PATCH', `/api/admin/users/${leader.id}`, admin, {
-      role: 'COUNT_USER',
-    });
-    expect(refused.statusCode).toBe(409);
-    expect(code(refused)).toBe('role_change_refused');
-    const after = await call('GET', `/api/admin/users/${leader.id}`);
-    expect(AdminUser.parse(after.json()).role).toBe('COURSE_LEADER');
-  });
-
   it('needs the CSRF token', async () => {
     const { id } = await plainUser();
     const res = await t.app.inject({
@@ -324,9 +307,9 @@ describe('deleting users', () => {
     expect(code(await call('DELETE', `/api/admin/users/${admin.id}`))).toBe('self_action');
   });
 
-  it('batch delete removes only normal and mantra-only users, and reports the rest as skipped', async () => {
+  it('batch delete removes only normal users, and reports the rest as skipped', async () => {
     const u1 = await plainUser();
-    const u2 = await plainUser('COUNT_USER');
+    const u2 = await plainUser();
     const leader = await plainUser('COURSE_LEADER');
     const missing = '00000000-0000-4000-8000-000000000000';
     const res = await call('POST', '/api/admin/users/batch-delete', admin, {

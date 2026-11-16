@@ -4,8 +4,7 @@
  *  2. wipe and reseed its database, keeping the admins' authenticator keys (the seed makes new random ones
  *     each time and prints them only then);
  *  3. sign each project's user and leader in once through the API, and one SYS_ADMIN (with their authenticator
- *     code) and one mantra-only account, so tests reuse the sessions instead of spending the server's sign-in
- *     limit.
+ *     code), so tests reuse the sessions instead of spending the server's sign-in limit.
  * The stack keeps running afterwards so the next run starts quickly; `npm run e2e:down` removes it.
  */
 import { execFileSync } from 'node:child_process';
@@ -45,8 +44,6 @@ function reseed(databaseUrl: string): Record<string, string> {
 
 /** The SYS_ADMIN every project's admin tests share (auth.spec signs `admin.main` in through the form). */
 export const SESSION_ADMIN = 'admin.backup';
-/** The mantra-only account (COUNT_USER) every project shares. */
-export const SESSION_MANTRA = 'mantra.named';
 
 async function saveSession(baseURL: string, username: string, totpKey?: string): Promise<void> {
   const context = await request.newContext({ baseURL });
@@ -94,6 +91,5 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
   );
   for (const user of users) await saveSession(baseURL, user!);
   await saveSession(baseURL, SESSION_ADMIN, totpKeys[SESSION_ADMIN]);
-  await saveSession(baseURL, SESSION_MANTRA);
   step('ready');
 }

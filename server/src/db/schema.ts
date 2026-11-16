@@ -28,7 +28,7 @@ import {
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => 'bytea' });
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' });
 
-export const roleEnum = pgEnum('role', ['COUNT_USER', 'NORMAL_USER', 'COURSE_LEADER', 'SYS_ADMIN']);
+export const roleEnum = pgEnum('role', ['NORMAL_USER', 'COURSE_LEADER', 'SYS_ADMIN']);
 export const themeEnum = pgEnum('theme', ['light', 'dark', 'system']);
 export const sessionKindEnum = pgEnum('session_kind', ['browser', 'device']);
 /**

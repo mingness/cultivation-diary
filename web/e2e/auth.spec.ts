@@ -1,11 +1,10 @@
 /**
- * Sign-in, the authenticator steps and forgot password on the diary site (FRONTEND.md §4.1, spec §4), as a user
- * meets them in the browser. The rules behind them (throttles, locked accounts, CAPTCHA checks) are covered
- * by the server's integration tests. Registering is on the mantra site (mantra.spec.ts).
+ * Sign-in, the authenticator steps and forgot password (FRONTEND.md §4.1, spec §4), as a user meets them in
+ * the browser. The rules behind them (throttles, locked accounts, CAPTCHA checks) are covered by the server's
+ * integration tests. Nobody registers: SYS_ADMINs create the diary's accounts.
  */
 import { TOTP } from 'otpauth';
 import { expect, seedInfo, signIn, test, unusedUsername } from './fixtures.js';
-import { stackAddresses } from './stack.js';
 
 function codeFor(secret: string): string {
   return new TOTP({ secret, digits: 6, period: 30 }).generate();
@@ -104,21 +103,6 @@ test.describe('administrators', () => {
     // Set up: the page asked for (/me) now opens.
     await expect(page.getByRole('heading', { name: t('account.appearance') })).toBeVisible();
   });
-});
-
-test('the diary offers no registration, and points mantra-only visitors to the mantra site', async ({
-  page,
-  t,
-}) => {
-  await page.goto('/login');
-  await expect(page.getByRole('link', { name: t('auth.toRegister') })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: t('auth.toMantra') })).toHaveAttribute(
-    'href',
-    stackAddresses().mantraURL,
-  );
-  // The register screen isn't part of the diary build: signed out, the address leads to sign-in.
-  await page.goto('/register');
-  await expect(page).toHaveURL(/\/login$/);
 });
 
 test.describe('one project only (the server allows few of these per hour)', () => {

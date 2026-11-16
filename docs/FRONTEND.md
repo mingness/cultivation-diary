@@ -43,33 +43,6 @@ just hue.
 | `--focus` | `#2F5D8C` | `#8DB4DE` | 3 px focus ring |
 | `--leader-0`…`5` | `#0F6B6B` `#6B3FA0` `#A3324F` `#2F5D8C` `#4A6A1A` `#9A4A12` | `#6FCFCF` `#C3A3EF` `#F19AB0` `#8DB4DE` `#A8CF73` `#F0A868` | each leader's own colour (D36): name, entry edge, comment cards; 5:1 or more as text on every surface |
 
-### 2.1.1 Mantra site palette (D31; built 2026-11-02)
-
-The mantra site (ARCHITECTURE.md §8.11) uses the same token names with colours taken from the Gold Coast
-Dharma Realm site (https://gcdr.org.au/): forest green, muted gold and warm off-whites. The diary keeps its
-brown, which already sits close to that gold, so the two apps look related without being the same. Tokens
-not listed (status colours, danger, focus) stay as in §2.1 until checked against these backgrounds.
-
-| Token | Light | Dark | Note |
-|---|---|---|---|
-| `--bg` | `#FBFBFA` | `#1B231E` | |
-| `--surface` | `#FFFFFF` | `#222E27` | |
-| `--surface-2` | `#F0EDE6` | `#29382F` | |
-| `--text` | `#1E2420` | `#FBFBFA` | |
-| `--muted` | `#565956` | `#B9BFB8` | |
-| `--border` | `#D6D2C8` | `#3A4A40` | |
-| `--primary` | `#29382F` (green) | `#BF956C` (gold) | white on the green ≈ 12:1 |
-| `--on-primary` | `#FFFFFF` | `#1B231E` | |
-| `--primary-soft` | `#E6EBE3` | `#2F3D34` | |
-| `--blue` (progress, auto-submit names) | `#674E35` | `#BF956C` | gold; ≈ 6:1 on the row tint |
-| `--blue-soft` (alternate rows) | `#F3EDE4` | `#2A352E` | |
-
-The lighter gold proposed first (`#8A6A4A`) fell to about 4.2:1 on the alternate rows, so names use
-gcdr.org.au's own darker gold for light backgrounds. The 報數 banner placeholder has a mantra copy in green
-and gold (`web/src/assets/count-logo-mantra.svg`).
-The site's heading face (Cormorant Garamond) is not adopted: a web font is download weight for little gain on
-phones (§2.2). The icon is 大悲 in off-white on the green.
-
 ### 2.2 Type
 
 - **Fonts are system fonts only.** CJK web fonts run to megabytes and can't come from a CDN (§12.4).
@@ -98,7 +71,6 @@ phones (§2.2). The icon is 大悲 in off-white on the green.
 |---|---|---|
 | NORMAL_USER | 筆記 · 班級 · 報數 · 我的 | same four, as top links |
 | COURSE_LEADER | 批閱 · 筆記 · 班級 · 報數 · 我的 | 批閱 · 我的筆記 · 班級 · 報數 · 我的 |
-| COUNT_USER (either site) | 報數 · 我的 | same two |
 | SYS_ADMIN | 注意 (badge) · 用戶 (badge) · 筆記 · 報數 · 我的 | 注意 (badge) · 用戶 (badge) · 筆記管理 · 報數 · 我的 (報數管理 is a link on 報數; admins take part in 報數 too) |
 
 - **Names (D38, 2026-11-16):** the screens were 我的日記 and 開放日記; they are now **我的筆記** ("My notes")
@@ -106,8 +78,6 @@ phones (§2.2). The icon is 大悲 in off-white on the green.
   written there too. The product keeps its name, 修行日記. These docs and the code still say 我的日記 / 開放日記
   (`MyDiaryScreen`, `OpenDiaryScreen`, `/open`) for the same two screens. The user chose the English; the
   Chinese is waiting for review.
-- **The mantra site** shows only 報數 · 我的, whatever the role: diary members who sign in there see the
-  same two tabs, and use the diary site for the rest.
 - The tab bar replaces the spec's My Diary / Open Diary toggle and its scattered header buttons (§6.2, §7.4).
   "Go Diary" from the count page is simply the 日記 tab.
 - The language switch (spec §10.1) sits top right on every screen and shows every offered language, the one in
@@ -122,20 +92,14 @@ phones (§2.2). The icon is 大悲 in off-white on the green.
 
 Each screen lists what it needs from the API. The API column feeds the ARCHITECTURE.md revision.
 
-### 4.1 Login, register, forgot password (all)
+### 4.1 Login, forgot password (all)
 
 - **Login fields:** username, password (show/hide), CAPTCHA image + 更新 + answer, "記住此裝置" (default
-  on), 登入. Signing in lands on the role's diary home (COUNT_USER: 報數).
+  on), 登入. Signing in lands on the role's diary home.
 - **Errors** show inline above the button, and a failed CAPTCHA reloads the image.
 - **TOTP step:** if the account needs a second factor (SYS_ADMIN), a second step asks for the 6-digit code.
-- **Register (mantra site only, D30):** the same visual pattern, with username, display name (optional,
-  "shown on the 報數 board"), email and phone (help text: "at least one, so the admin can reach you if you
-  forget your password"), password twice and CAPTCHA.
-- **Diary site:** no register link; one line under the form points mantra-only visitors to the mantra site
-  (`mantraUrl`).
-- **Mantra site:** signing in lands on 報數.
 - **Forgot password:** username, then the confirmation "已經提交給管理員".
-- **API:** `GET captcha → {id, svg}`; `POST login → {user, needsTotp?}`; `POST login/totp`; `POST register`;
+- **API:** `GET captcha → {id, svg}`; `POST login → {user, needsTotp?}`; `POST login/totp`;
   `POST forgot-password`.
 
 ### 4.2 My diary (users and leaders)
@@ -237,7 +201,7 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
   progress bar; under that, the goal (10,000,000) and the percentage completed side by side, in large type. Below it, a slim "reported today"
   row (sum + number of entries). There is no separate goal tile (agreed).
 - **Input card:** 今日報數 with a numeric keypad, a date choice (今天 by default, or one of the previous 4 days,
-  shown as short weekday chips), 提交, and the 自動報數 checkbox with "每天北京時間凌晨 2:00". After 20 reports for
+  shown as chips with day and weekday, "13日 週二", so all five fit one row at full width; 2026-11-16), 提交, and the 自動報數 checkbox with "每天北京時間凌晨 2:00". After 20 reports for
   the chosen date, 提交 is disabled with the reason. Reporting again for a date replaces that day's number
   (say so next to 提交 when the chosen date already has one).
   Trimming and clamping happen as the user types, with the notice in a live region.
@@ -258,8 +222,6 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
 - **Signed-in devices:** device name from the user agent, "this device" marker, last used, and 登出 for each.
 - **Rows:** change password (a sheet), "加到手機主畫面" (the install how-to), 登出.
 - **SYS_ADMIN:** an authenticator section.
-- **COUNT_USER:** profile is display name, email and phone (at least one stays); no photo, address or storage
-  row. Appearance, password, devices, install how-to and 登出 as for everyone.
 - **API:** `GET/PUT me` (including `fontSize`, `theme`), `POST me/password`, `GET/DELETE me/sessions`,
   `POST me/totp/*`.
 
@@ -357,8 +319,7 @@ snapshot at 360 px and 1280 px.
 
 ## 9. Installable app UX
 
-- **Two apps (D31):** the diary installs as 修行日記 and the mantra site as 大悲咒共修報數, each with its own icon
-  and theme colour.
+- The diary installs as 修行日記. (The community's 報數 is its own app, 大悲咒共修報數, since 2026-11-16: D39.)
 - After the user's third visit on a phone browser that supports installing, a dismissible banner offers
   "加到主畫面" once. The Account page always has the how-to.
 - When a new version is ready, a banner at the top offers "新版本可用 — 重新載入". It's never shown while an editor has

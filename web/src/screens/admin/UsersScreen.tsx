@@ -80,8 +80,7 @@ export function UsersScreen() {
   });
 
   // The server's batch delete takes these two roles only (spec §6.5).
-  const deletable = (user: AdminUser) =>
-    (user.role === 'NORMAL_USER' || user.role === 'COUNT_USER') && user.id !== me.id;
+  const deletable = (user: AdminUser) => user.role === 'NORMAL_USER' && user.id !== me.id;
   const toggle = (id: string) =>
     setSelected((current) => {
       const next = new Set(current);

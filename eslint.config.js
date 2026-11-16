@@ -8,7 +8,6 @@ export default tseslint.config(
   {
     ignores: [
       '**/dist/**',
-      '**/dist-mantra/**',
       '**/coverage/**',
       'db/migrations/**',
       'docs/**',

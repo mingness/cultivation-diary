@@ -160,7 +160,6 @@ describe('session rules', () => {
     ['browser', 'SYS_ADMIN', 'verified', BROWSER_IDLE_MS],
     ['device', 'NORMAL_USER', 'not_required', DEVICE_IDLE_MS],
     ['device', 'NORMAL_USER', 'verified', DEVICE_IDLE_MS],
-    ['device', 'COUNT_USER', 'not_required', DEVICE_IDLE_MS],
     ['device', 'COURSE_LEADER', 'not_required', PRIVILEGED_DEVICE_IDLE_MS],
     ['device', 'SYS_ADMIN', 'verified', PRIVILEGED_DEVICE_IDLE_MS],
     ['device', 'SYS_ADMIN', 'pending', MFA_PENDING_MS],

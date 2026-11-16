@@ -13,13 +13,13 @@ activity log, Attention list and optional email alerts; the diary (encrypted ent
 history, limits, sanitising) and SYS_ADMIN document management; the leader API (review lists, calendar,
 reading submitted entries with a read audit, comments, and stopping sharing); open diaries; the account API (profile, appearance, password, devices); 報數 (count, progress, auto-submit at
 02:00 Beijing, SYS_ADMIN tools); translation through an optional OpenAI-compatible provider. Phase B (the web
-app) has begun: the app shell (themes, text sizes, both languages); sign-in, registration, forgot password
+app) has begun: the app shell (themes, text sizes, both languages); sign-in, forgot password
 and authenticator setup; my diary, the entry view, the editor (photos, limits, 提交/更新, history) and open
 diaries; the leaders' review; the SYS_ADMIN screens; 報數 and the account page; the installable app (manifest,
 app-shell-only service worker, offline notice, update banner, install help) (slices 11–17). Next: the D10 phone
-check, then Phase C (production). Phase D (2026-11-02) is built: 報數 is open to the community on its own
-site, mantra.gcdr.org.au, with self-registered mantra-only accounts, beside the curated diary at
-diary.gcdr.org.au. See the delivery plan in ARCHITECTURE.md §11.
+check, then Phase C (production). The community's 報數 site (Phase D, 2026-11-02) became a separate app with
+its own repository on 2026-11-16 (D39); this repository is the curated diary only. See the delivery plan in
+ARCHITECTURE.md §11.
 
 ## Quick start
 

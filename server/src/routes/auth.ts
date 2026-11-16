@@ -1,5 +1,5 @@
 /**
- * Login, logout, registration and forgot-password (spec §4.1–4.3).
+ * Login, logout and forgot-password (spec §4.1, §4.3).
  *
  * Failed logins say the same thing, and take the same time, whether the username is unknown, the password is
  * wrong or the account is locked pending a reset, so the form can't be used to discover accounts.
@@ -8,14 +8,12 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { eq } from 'drizzle-orm';
 import {
-  AuthOptions,
   CaptchaResponse,
   ErrorCode,
   ForgotPasswordRequest,
   LoginRequest,
   LoginResponse,
   OkResponse,
-  RegisterRequest,
   TotpCode,
   type SessionUser,
 } from '@diary/shared';
@@ -41,14 +39,7 @@ import {
   revokeUserSessions,
   setSessionMfa,
 } from '../services/sessions.js';
-import {
-  createUser,
-  EmailTakenError,
-  findUserByUsername,
-  UsernameTakenError,
-  type UserRow,
-} from '../services/users.js';
-import { EMPTY_PROFILE } from '../services/profiles.js';
+import { findUserByUsername, type UserRow } from '../services/users.js';
 
 export interface RateLimit {
   readonly max: number;
@@ -59,7 +50,6 @@ export interface AuthLimits {
   readonly captcha: RateLimit;
   readonly login: RateLimit;
   readonly totp: RateLimit;
-  readonly register: RateLimit;
   readonly forgotPassword: RateLimit;
 }
 
@@ -68,7 +58,6 @@ export const DEFAULT_AUTH_LIMITS: AuthLimits = {
   captcha: { max: 60, timeWindow: '1 minute' },
   login: { max: 20, timeWindow: '1 minute' },
   totp: { max: 20, timeWindow: '1 minute' },
-  register: { max: 10, timeWindow: '1 hour' },
   forgotPassword: { max: 5, timeWindow: '1 hour' },
 };
 
@@ -240,63 +229,6 @@ export function authRoutes(
       await revokeSession(ctx, authOf(request).session.idHash);
       clearSessionCookie(reply, ctx);
       return { ok: true as const };
-    },
-  );
-
-  routes.get(
-    '/api/auth/options',
-    {
-      schema: {
-        tags: AUTH_TAG,
-        summary: 'What the sign-in screens may offer, such as registering',
-        response: { 200: AuthOptions },
-      },
-    },
-    async () => ({ registration: ctx.config.registrationOpen, mantraUrl: ctx.config.mantraUrl }),
-  );
-
-  routes.post(
-    '/api/auth/register',
-    {
-      config: { rateLimit: limits.register },
-      // Before the body is read, so a closed server says so instead of complaining about the form.
-      onRequest: async () => {
-        if (!ctx.config.registrationOpen) {
-          throw new HttpError(403, ErrorCode.RegistrationClosed, 'Registration is closed');
-        }
-      },
-      schema: {
-        tags: AUTH_TAG,
-        summary:
-          'Create a mantra-only account (COUNT_USER, D30): email or phone required, neither verified (spec §4.2)',
-        body: RegisterRequest,
-        response: { 201: OkResponse },
-      },
-    },
-    async (request, reply) => {
-      const { captchaId, captchaAnswer, username, password, email, phone, displayName } =
-        request.body;
-      if (!(await consumeCaptcha(ctx, captchaId, captchaAnswer))) throw captchaFailed();
-      try {
-        // The diary is curated: registering only ever creates a mantra-only account.
-        const user = await createUser(ctx, {
-          username,
-          password,
-          email,
-          role: 'COUNT_USER',
-          profile: { ...EMPTY_PROFILE, givenName: displayName, phone },
-        });
-        request.log.info({ event: 'register', userId: user.id }, 'registered');
-      } catch (err) {
-        if (err instanceof UsernameTakenError) {
-          throw new HttpError(409, ErrorCode.UsernameTaken, 'Username taken');
-        }
-        if (err instanceof EmailTakenError) {
-          throw new HttpError(409, ErrorCode.EmailTaken, 'Email already in use');
-        }
-        throw err;
-      }
-      return reply.code(201).send({ ok: true as const });
     },
   );
 
