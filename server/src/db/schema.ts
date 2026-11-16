@@ -317,7 +317,47 @@ export const comments = pgTable(
   ],
 );
 
-export const usageKindEnum = pgEnum('usage_kind', ['create', 'submit', 'update', 'comment']);
+export const audioMimeEnum = pgEnum('audio_mime', ['audio/mp4', 'audio/webm']);
+/** What the next 提交/更新 does with a voice note; null = part of the submitted entry. */
+export const audioPendingEnum = pgEnum('audio_pending', ['add', 'remove']);
+
+/**
+ * Voice notes on a COURSE_LEADER's own entry (D35, docs/ARCHITECTURE.md §8.14). Part of the entry like its
+ * text: readers and other leaders get the submitted set (`pending` null or `remove`), the owner's editor the
+ * working set (`pending` null or `add`), and 提交/更新 applies the pending changes.
+ */
+export const documentAudio = pgTable(
+  'document_audio',
+  {
+    id: uuid('id').primaryKey(),
+    documentId: uuid('document_id')
+      .notNull()
+      .references(() => documents.id, { onDelete: 'cascade' }),
+    /** The recording, sealed with the entry's DEK and bound to this note. */
+    audioCt: bytea('audio_ct').notNull(),
+    audioNonce: bytea('audio_nonce').notNull(),
+    /** From the file's magic bytes, never the request header. */
+    mime: audioMimeEnum('mime').notNull(),
+    /** As the recorder measured it; the server can only check the range. */
+    durationMs: integer('duration_ms').notNull(),
+    /** The recording's size before encryption. */
+    bytes: integer('bytes').notNull(),
+    pending: audioPendingEnum('pending'),
+    createdAt: timestamptz('created_at').notNull(),
+  },
+  (t) => [
+    index('document_audio_document_idx').on(t.documentId, t.createdAt),
+    check('document_audio_duration_range', sql`${t.durationMs} BETWEEN 1 AND 120000`),
+  ],
+);
+
+export const usageKindEnum = pgEnum('usage_kind', [
+  'create',
+  'submit',
+  'update',
+  'comment',
+  'audio',
+]);
 
 /**
  * Counters for the daily limits (D21). Kept apart from the entries so deleting an entry refunds nothing.

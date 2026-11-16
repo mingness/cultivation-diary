@@ -66,10 +66,10 @@ test.describe('administrators', () => {
 
   test('a SYS_ADMIN enters an authenticator code after the password', async ({ page, t }) => {
     await page.goto('/login');
-    await signIn(page, t, 'admin');
+    await signIn(page, t, 'admin.main');
     await expect(page.getByRole('heading', { name: t('totp.title') })).toBeVisible();
 
-    await page.getByLabel(t('totp.code')).fill(codeFor(seedInfo().totpKeys.admin!));
+    await page.getByLabel(t('totp.code')).fill(codeFor(seedInfo().totpKeys['admin.main']!));
     await page.getByRole('button', { name: t('totp.submit') }).click();
     // In, on the management home (spec §4.1).
     await expect(

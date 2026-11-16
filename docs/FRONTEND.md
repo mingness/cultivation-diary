@@ -163,6 +163,12 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
   submitted once. Checking it asks for confirmation (nobody reviews the entry first), then shares at once;
   unchecking stops sharing. After a leader stops sharing, the hint says so and the box stays disabled until
   an 更新 that changes the entry.
+- **Voice notes (leaders only, D35):** under the body, a 錄音 button (hidden for students) and the entry's
+  notes. Recording opens a sheet with a countdown from 2:00 and a stop button; it stops itself at the limit.
+  Then 試聽 / 保留 / 重錄 / 捨棄. 保留 uploads the note at once (creating the entry first if it is new); it
+  is heard by others only after 提交/更新, and a note added or removed since shows a muted 待更新. After the
+  sixth note the button is disabled with "每篇最多 6 段錄音". A refused microphone shows how to allow it.
+  A recording not yet kept or discarded counts as unsaved writing (`useReportUnsaved`).
 - **Sticky bottom bar:** 暫存 (secondary), 提交 (primary; reads **更新** once the entry has been submitted),
   歷史版本. Enable and disable follow spec §5.2.
 - **History** opens as a bottom sheet (phone) or side panel (desktop) listing the versions, each expandable.
@@ -177,6 +183,8 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
   then the body.
 - **Translation:** one small button at the right (low-key, 2026-10-15) that translates into the interface language (翻譯成中文 / Translate into English / Dịch sang tiếng Việt; D34, 2026-11-13), with the result shown as plain text below it. When the server
   has no translation provider (`GET /api/me` → `features.translation: false`), the buttons are greyed out.
+- **Voice notes (D35):** under the body, one compact player per note (play/pause, elapsed / length). The audio
+  downloads only when play is first tapped. Readers hear the submitted notes only.
 - **Comments:** the `Comment:` label, then one card per submitted comment (leader name, date, text, its own
   translate buttons).
 - **Owner actions:** 編輯 (opens 4.3), and the share box.

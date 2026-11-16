@@ -23,14 +23,26 @@ export default defineConfig<E2eOptions>({
   // Each project signs in as its own seeded user, so projects running side by side never share settings.
   // Leaders are shared by two or three projects, so leader tests work on entries their own test just created.
   projects: [
-    { name: 'phone-zh', use: { ...phone, lang: 'zh-Hant', user: 'chenmd', leader: 'leader.lin' } },
-    { name: 'phone-en', use: { ...phone, lang: 'en', user: 'zhangsf', leader: 'leader.huang' } },
+    {
+      name: 'phone-zh',
+      use: { ...phone, lang: 'zh-Hant', user: 'student.full', leader: 'leader.voice' },
+    },
+    {
+      name: 'phone-en',
+      use: { ...phone, lang: 'en', user: 'student.shared', leader: 'leader.reviewer' },
+    },
     {
       name: 'desktop-zh',
-      use: { ...desktop, lang: 'zh-Hant', user: 'wangdt', leader: 'leader.lin' },
+      use: { ...desktop, lang: 'zh-Hant', user: 'student.commented', leader: 'leader.voice' },
     },
-    { name: 'desktop-en', use: { ...desktop, lang: 'en', user: 'wuml', leader: 'leader.huang' } },
+    {
+      name: 'desktop-en',
+      use: { ...desktop, lang: 'en', user: 'student.daily', leader: 'leader.reviewer' },
+    },
     // Vietnamese runs longest, so it gets the narrow screen (D34).
-    { name: 'phone-vi', use: { ...phone, lang: 'vi', user: 'linjy', leader: 'leader.lin' } },
+    {
+      name: 'phone-vi',
+      use: { ...phone, lang: 'vi', user: 'student.new', leader: 'leader.voice' },
+    },
   ],
 });

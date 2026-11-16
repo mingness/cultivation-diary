@@ -58,8 +58,8 @@ interface Fixtures {
 
 export const test = base.extend<E2eOptions & Fixtures>({
   lang: ['zh-Hant', { option: true }],
-  user: ['chenmd', { option: true }],
-  leader: ['leader.lin', { option: true }],
+  user: ['student.full', { option: true }],
+  leader: ['leader.voice', { option: true }],
   suggestInstall: [false, { option: true }],
 
   page: async ({ page, lang, suggestInstall }, use) => {
@@ -87,14 +87,14 @@ export const test = base.extend<E2eOptions & Fixtures>({
 
   adminPage: async ({ browser, lang, suggestInstall }, use) => {
     // Matches SESSION_ADMIN in global-setup.ts.
-    const page = await signedInPage(browser, { lang, suggestInstall }, 'admin2');
+    const page = await signedInPage(browser, { lang, suggestInstall }, 'admin.backup');
     await use(page);
     await page.context().close();
   },
 
   mantraPage: async ({ browser, lang, suggestInstall }, use) => {
     // Matches SESSION_MANTRA in global-setup.ts.
-    const page = await signedInPage(browser, { lang, suggestInstall }, 'mantra.amy');
+    const page = await signedInPage(browser, { lang, suggestInstall }, 'mantra.named');
     await use(page);
     await page.context().close();
   },

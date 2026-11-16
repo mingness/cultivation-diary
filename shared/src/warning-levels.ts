@@ -19,6 +19,8 @@ export const DAILY_WARNINGS = {
   update: 25,
   /** Comments submitted or resubmitted by a leader (no cap; drafts don't count). */
   comment: 40,
+  /** Voice notes uploaded by a leader (cap: 40). */
+  audio: 20,
 } as const;
 export type DailyWarningKind = keyof typeof DAILY_WARNINGS;
 

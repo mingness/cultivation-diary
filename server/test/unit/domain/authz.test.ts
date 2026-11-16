@@ -105,6 +105,15 @@ describe('canOnDocument', () => {
       sysAdmin: [false, false],
       countUser: [false, false],
     },
+    // D35: leaders record on their own entries only; students never.
+    [A.RecordAudio]: {
+      owner: [false, false],
+      ownerLeader: [true, true],
+      otherUser: [false, false],
+      otherLeader: [false, false],
+      sysAdmin: [false, false],
+      countUser: [false, false],
+    },
     [A.Delete]: {
       owner: [false, false],
       ownerLeader: [false, false],

@@ -21,6 +21,7 @@ import { fieldAad } from '../../domain/crypto/contexts.js';
 import { beijingDate, monthDates } from '../../domain/count/schedule.js';
 import { inspectBody, type InspectedBody } from '../../domain/diary/sanitize.js';
 import { HttpError } from '../../http-errors.js';
+import { applyPendingAudio, hasPendingAudio, pendingAudioExists } from './audio-pending.js';
 import { documentKey, newDocumentKey } from './keys.js';
 import { consumeDaily, LimitReachedError, type Elevated, type Tx } from './usage.js';
 
@@ -56,12 +57,20 @@ function seal(dek: Buffer, html: string, aad: string) {
   return { ct: ciphertext, nonce };
 }
 
-function stateOf(row: DocumentRow): OwnDocument['state'] {
+function stateOf(row: DocumentRow, pendingAudio: boolean): OwnDocument['state'] {
   if (!row.firstSubmittedAt) return 'draft';
-  return row.draftCt ? 'submitted_with_draft' : 'submitted';
+  return row.draftCt || pendingAudio ? 'submitted_with_draft' : 'submitted';
 }
 
-export function toOwnDocument(ctx: AppContext, row: DocumentRow): OwnDocument {
+/**
+ * The owner's view of an entry row. `pendingAudio`: whether voice notes were added or removed since the last
+ * submission (D35), which counts as a pending change like a text draft.
+ */
+export function toOwnDocument(
+  ctx: AppContext,
+  row: DocumentRow,
+  pendingAudio: boolean,
+): OwnDocument {
   const dek = documentKey(ctx, row.id, row.dekWrapped);
   const submitted =
     row.contentCt && row.contentNonce && row.lastSubmittedAt
@@ -90,7 +99,7 @@ export function toOwnDocument(ctx: AppContext, row: DocumentRow): OwnDocument {
   return {
     id: row.id,
     diaryDate: row.diaryDate,
-    state: stateOf(row),
+    state: stateOf(row, pendingAudio),
     access: row.access,
     unsharedByLeader: row.unsharedByLeaderAt !== null,
     submitted,
@@ -146,7 +155,7 @@ export async function createDocument(
     if (!inserted) throw new Error('insert returned no row');
     return inserted;
   });
-  return { document: toOwnDocument(ctx, row), activity: 'entry_created', elevated };
+  return { document: toOwnDocument(ctx, row, false), activity: 'entry_created', elevated };
 }
 
 /**
@@ -190,9 +199,13 @@ export async function saveDraft(
       .where(eq(documents.id, id))
       .returning();
     if (!updated) throw notFound();
-    return updated;
+    return { updated, pendingAudio: await hasPendingAudio(tx, id) };
   });
-  return { document: toOwnDocument(ctx, row), activity: null, elevated: null };
+  return {
+    document: toOwnDocument(ctx, row.updated, row.pendingAudio),
+    activity: null,
+    elevated: null,
+  };
 }
 
 /**
@@ -219,6 +232,8 @@ export async function submitDocument(
     const content = seal(dek, body.html, fieldAad.documentContent(id));
     const clearDraft = { draftTitle: null, draftCt: null, draftNonce: null, draftSavedAt: null };
 
+    // Voice notes added or removed since the last submission (D35) are a change, like changed text.
+    const audioChanged = await hasPendingAudio(tx, id);
     if (!current.firstSubmittedAt) {
       elevated = await consumeDaily(tx, ctx, ownerId, 'submit');
       activity = 'entry_submitted';
@@ -231,7 +246,8 @@ export async function submitDocument(
         },
         fieldAad.documentContent(id),
       );
-      if (previous === body.html && current.title === input.title) {
+      const textChanged = previous !== body.html || current.title !== input.title;
+      if (!textChanged && !audioChanged) {
         const [unchanged] = await tx
           .update(documents)
           .set(clearDraft)
@@ -241,8 +257,10 @@ export async function submitDocument(
       }
       elevated = await consumeDaily(tx, ctx, ownerId, 'update');
       activity = 'entry_updated';
-      await archiveVersion(tx, id, dek, previous, now);
+      // History keeps text only, so an update that changes only voice notes adds no version.
+      if (textChanged) await archiveVersion(tx, id, dek, previous, now);
     }
+    await applyPendingAudio(tx, id);
 
     const [updated] = await tx
       .update(documents)
@@ -252,7 +270,8 @@ export async function submitDocument(
         contentNonce: content.nonce,
         firstSubmittedAt: current.firstSubmittedAt ?? now,
         lastSubmittedAt: now,
-        // An update with a change is what a leader's unshare waits for (an unchanged 更新 returned above).
+        // An update with a change (text or voice notes) is what a leader's unshare waits for (an unchanged
+        // 更新 returned above).
         unsharedByLeaderAt: null,
         ...clearDraft,
         updatedAt: now,
@@ -262,7 +281,8 @@ export async function submitDocument(
     if (!updated) throw notFound();
     return updated;
   });
-  return { document: toOwnDocument(ctx, row), activity, elevated };
+  // Every pending voice-note change was applied above, or there was none.
+  return { document: toOwnDocument(ctx, row, false), activity, elevated };
 }
 
 /** Stores the outgoing body as the next version and drops all but the newest MAX_VERSIONS. */
@@ -300,7 +320,7 @@ export async function listOwnMonth(ctx: AppContext, ownerId: string, month: stri
       title: sql<string>`coalesce(${documents.draftTitle}, ${documents.title})`,
       diaryDate: documents.diaryDate,
       firstSubmittedAt: documents.firstSubmittedAt,
-      hasDraft: sql<boolean>`${documents.draftCt} IS NOT NULL`,
+      hasDraft: sql<boolean>`${documents.draftCt} IS NOT NULL OR ${pendingAudioExists}`,
       access: documents.access,
       commentCount: sql<number>`(count(${comments.id}) FILTER (WHERE ${comments.state} = 'submitted'))::int`,
       unseen: sql<number>`(count(${comments.id}) FILTER (WHERE ${comments.state} = 'submitted' AND ${comments.seenByOwnerAt} IS NULL))::int`,

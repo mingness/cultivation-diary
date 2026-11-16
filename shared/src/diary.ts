@@ -19,9 +19,36 @@ export const DocumentIdParams = z.object({ id: z.uuid() });
 /**
  * - draft: never submitted; only the owner can see it.
  * - submitted: leaders see it; nothing pending.
- * - submitted_with_draft: submitted, and the owner has unsaved-to-leaders changes (their 更新 is pending).
+ * - submitted_with_draft: submitted, and the owner has changes leaders don't see yet (text or voice notes;
+ *   their 更新 is pending).
  */
 export const DocumentState = z.enum(['draft', 'submitted', 'submitted_with_draft']);
+
+/** The formats a voice note may be stored in (D35): what MediaRecorder produces on phones and desktops. */
+export const AudioMime = z.enum(['audio/mp4', 'audio/webm']);
+export type AudioMime = z.infer<typeof AudioMime>;
+
+/** A voice note on a leader's entry (D35), as readers and other leaders get it: part of the submitted entry. */
+export const AudioNote = z.object({
+  id: z.uuid(),
+  durationMs: z.number().int(),
+  createdAt: z.iso.datetime(),
+});
+export type AudioNote = z.infer<typeof AudioNote>;
+
+/**
+ * A voice note as its owner sees it. `pending` says what the next 提交/更新 does with it: `add` makes it part
+ * of the entry, `remove` takes it out; null means it is already part of the submitted entry and stays.
+ */
+export const OwnAudioNote = AudioNote.extend({ pending: z.enum(['add', 'remove']).nullable() });
+export type OwnAudioNote = z.infer<typeof OwnAudioNote>;
+
+/** `POST /api/documents/:id/audio?durationMs=`: the recording's length, as the recorder measured it. */
+export const AudioUploadQuery = z.object({
+  durationMs: z.coerce.number().int().min(1).max(ENTRY_LIMITS.audioMs),
+});
+
+export const AudioIdParams = z.object({ id: z.uuid(), audioId: z.uuid() });
 
 /** The owner's view of one entry. */
 export const OwnDocument = z.object({
@@ -74,6 +101,8 @@ export const OwnerEntryView = OwnDocument.extend({
   ),
   /** A leader's own comment on their own entry (never one of `comments`); null for everyone else. */
   myComment: MyComment.nullable(),
+  /** Voice notes (D35), oldest first, including those waiting for 提交/更新. */
+  audio: z.array(OwnAudioNote),
 });
 
 /** Whose entry it is, as leaders see it. */
@@ -94,6 +123,8 @@ export const LeaderEntryView = z.object({
   submittedAt: z.iso.datetime(),
   comments: z.array(SubmittedComment),
   myComment: MyComment.nullable(),
+  /** The submitted entry's voice notes (D35), oldest first. */
+  audio: z.array(AudioNote),
 });
 
 /**
@@ -109,6 +140,8 @@ export const ReaderEntryView = z.object({
   body: z.string(),
   submittedAt: z.iso.datetime(),
   comments: z.array(SubmittedComment),
+  /** The submitted entry's voice notes (D35), oldest first. */
+  audio: z.array(AudioNote),
 });
 
 export const EntryView = z.discriminatedUnion('view', [

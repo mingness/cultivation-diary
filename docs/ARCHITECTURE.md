@@ -153,6 +153,14 @@ comments                                  -- at most one per (document, leader)
   seen_by_owner_at NULL                   -- set when the owner opens the entry; drives the "new comment" marker
   UNIQUE (document_id, author_id)
 
+document_audio                            -- D35; voice notes on a COURSE_LEADER's own entry, at most 6 per entry
+  id, document_id FK CASCADE
+  audio_ct, audio_nonce                   -- bytea, sealed with the entry's DEK, AAD document:{id}:audio:{audioId}
+  mime ENUM(audio/mp4, audio/webm)        -- from the file's magic bytes, never the request header
+  duration_ms (1..120000), bytes, created_at
+  pending ENUM(add, remove) NULL          -- NULL = part of the submitted entry; add/remove wait for 提交/更新
+  INDEX (document_id, created_at)
+
 announcements                             -- D32; the whole class (one class for now), never the mantra site
   id, author_id FK users SET NULL         -- a deleted leader's announcements stay, as "former leader" (like D18)
   title (plaintext, like documents.title)
@@ -317,6 +325,8 @@ bodies are ignored.
 | `GET /api/leader/calendar?month=` → submitted-entry count per day | – | ❌ | ❌ | ✅ | ❌ |
 | `GET /api/leader/users?month=` → names + entries this month | – | ❌ | ❌ | ✅ | ❌ |
 | `PUT /api/documents/:id/comments/mine` (`{body, state}`) | – | ❌ | ❌ | ✅ submitted, own included | ❌ |
+| `POST /api/documents/:id/audio?durationMs=` (raw `audio/mp4` or `audio/webm` body), `DELETE /:id/audio/:audioId` (D35) | – | ❌ | ❌ (delete: own, if once a leader) | own; daily limit | ❌ |
+| `GET /api/documents/:id/audio/:audioId` (D35) | – | ❌ | per §7.1, submitted notes | per §7.1, submitted notes; own: all | ❌ |
 | `GET /api/admin/users?q=&role=&status=&page=&size=`; `GET /api/admin/users/:id` | – | ❌ | ❌ | ❌ | ✅ incl. decrypted profiles |
 | `POST /api/admin/users`; `PATCH /api/admin/users/:id` (role, email, profile; never username) | – | ❌ | ❌ | ❌ | ✅ not demoting the last SYS_ADMIN; never a diary member to COUNT_USER |
 | `DELETE /api/admin/users/:id`; `POST /api/admin/users/batch-delete` (NORMAL_USER and COUNT_USER only) | – | ❌ | ❌ | ❌ | ✅ not yourself, not the last SYS_ADMIN |
@@ -631,6 +641,48 @@ the transcript becomes the announcement's text, which the leader corrects before
   transcription provider when the leader asks for a transcript. Choosing the provider is open, like the
   translation provider's (check what it keeps, and that it is reachable from Hong Kong).
 
+### 8.14 Voice notes on leaders' entries (D35, agreed 2026-11-15)
+
+A COURSE_LEADER can record short voice notes on their own diary entry, for the class to play. A note is part
+of the entry, like its text: it goes out with 提交/更新 and reaches exactly the readers the entry does (§7.1),
+so students hear it once the leader shares the entry. Students can't record. Announcements (D32, D33) are set
+aside for now; when they return they should reuse this recorder and player.
+
+- **Caps (`shared/src/limits.ts`):** 6 notes per entry (`ENTRY_LIMITS.audioNotes`), 2 minutes each
+  (`audioMs: 120000`), 1.5 MB each (`audioBytes`), and 40 uploads per user per day (`DAILY_LIMITS.audio`,
+  warning level 20). These are boundaries against a hijacked account, not a limit on how much a leader says,
+  so they sit well above honest use. Re-recording counts as an upload; the daily cap is what bounds storage,
+  since there is still no quota (D25). Notes count towards `storageBytes`.
+- **Recording:** `MediaRecorder` in the browser, at `audioBitsPerSecond: 32000` (a hint). It prefers
+  `audio/mp4` (Chrome, Android and iOS Safari all record it now) and falls back to `audio/webm` (Firefox).
+  MP4/AAC plays on every phone, and Chrome's WebM recordings carry no duration, which breaks players' time
+  and seeking. No server transcoding (no ffmpeg). A countdown from 2:00 stops the recording at the limit;
+  the leader listens back, then keeps it, records again or discards it. Playback across iPhone and Android
+  is checked on real phones (with D10).
+- **Server checks:** a per-route body limit refuses anything over `audioBytes` (413 `payload_too_large`); the magic
+  bytes decide the type (MP4 `ftyp` at offset 4, WebM `1A45DFA3`), otherwise 400. The duration comes from the
+  client (reading it from the file would need a parser), so it is checked to be 1..120000; the byte cap is
+  the real guard. Only a COURSE_LEADER uploads, and only to their own entry (403 otherwise; 404 for someone
+  else's entry). A leader made a NORMAL_USER keeps their notes and may still remove them.
+- **Draft and submitted (D35):** a new note is stored straight away with `pending = add`; removing a
+  submitted note marks it `pending = remove` (an unsubmitted one is deleted outright). Readers and other
+  leaders get the submitted set (`pending` NULL or `remove`); the owner's editor works on the working set
+  (`pending` NULL or `add`), and the 6-note cap counts that set. 提交/更新 applies the pending changes in its
+  transaction. Pending audio makes a submitted entry `submitted_with_draft` like a text draft does, and an
+  更新 that changes only audio is a change: it counts toward the update limit and clears a leader's unshare
+  (§7.2). History versions keep text only, so an audio-only 更新 adds no version.
+- **Playback:** the read view lists the notes under the body, each with play/pause, elapsed time and length
+  (from `duration_ms`). The audio is fetched through `api()` as a blob only when play is first tapped (saves
+  mobile data) and played from an object URL, which keeps the session and error handling in one place and
+  avoids Safari's byte-range needs. Responses are `Cache-Control: no-store`; the service worker never caches
+  `/api/`, so recordings don't stay on devices. Playing isn't recorded anywhere (D14); a leader's read of the
+  entry is already in the read audit.
+- **Encryption:** sealed with the entry's DEK, AAD `document:{id}:audio:{audioId}`, in
+  `server/src/services/diary/`, so the keyring rule and the "no plaintext for SYS_ADMIN" test apply as they
+  are. SYS_ADMINs see no audio; deleting an entry or user deletes its notes.
+- **Accepted gap:** a voice note can't be read by a deaf member or translated; no labels and no
+  transcription for now (D35).
+
 ### 8.8 Android fallback (only if D10 says so)
 
 A minimal Kotlin WebView that loads the **remote** HTTPS site, not bundled assets. The site updates itself as
@@ -808,8 +860,8 @@ states. Each slice is one screen group, with Playwright e2e tests at 360 px and 
     went: no 申請開放 filter, badge or `GET /api/leader/open-requests`; leaders keep 取消開放.)*
 15. **SYS_ADMIN screens**, including Attention and activity. *(Done, except 報數管理, which comes with 報數 in
     slice 16. Password resets became a filter of 用戶 (the 等待重設 count is its tab's badge) rather than a tab.
-    Tabs: 注意 · 用戶 · 日記管理 · 我的. The e2e setup signs in one SYS_ADMIN (`admin2`, with its
-    authenticator code) shared by every project; `admin` stays for the sign-in form test, since a code can't
+    Tabs: 注意 · 用戶 · 日記管理 · 我的. The e2e setup signs in one SYS_ADMIN (`admin.backup`, with its
+    authenticator code) shared by every project; `admin.main` stays for the sign-in form test, since a code can't
     be used twice.)*
 16. **報數 and account.** *(Done. `GET /api/count/summary` gained `mine` (my number and manual reports for
     each allowed date). 報數 is a tab for every role, SYS_ADMINs included; 報數管理 is a link from it. The
@@ -857,7 +909,7 @@ most.
 24. **Vietnamese UI:** `vi.ts` (drafted), `Lang` and the three-way switch, `:lang(vi)` fonts, `OFFERED_LANGS`
     (Vietnamese hidden until the review at first, offered from 2026-11-14); the e2e `t` fixture and the 360 px / 22 px checks in
     Vietnamese. Both sites. *(Done 2026-11-13, waiting for the review. A fifth e2e project, `phone-vi`
-    (student `linjy`, sharing `leader.lin`), runs every test in Vietnamese at 360 px; it found the admin
+    (student `student.new`, sharing `leader.voice`), runs every test in Vietnamese at 360 px; it found the admin
     filters overflowing, since a select is as wide as its longest option. The seed now opens a few 注意 flags,
     because each project's 注意 test handles one and five projects outran the flags other tests raise.)*
 25. **Translation targets:** `target` replaces `direction` (old field accepted for one release), the prompt
@@ -877,6 +929,19 @@ most.
 30. **Transcription:** `ctx.transcriber`, config and `.env.example`, the Traditional-character conversion,
     rate limit, the transcribe button; PRIVACY.md wording. Then Vietnamese goes into the switch once the
     review is done.
+
+### Phase F: leaders' voice notes (D35, agreed 2026-11-15)
+
+Built before Phase E, which is set aside for now.
+
+31. **Voice notes API:** `document_audio` and its migration; upload, delete and play routes; the pending
+    changes applied by 提交/更新, entry states and the unchanged-更新 check; caps, magic bytes, daily limit and
+    warning level, `storageBytes`. Integration tests for every role, allowed and denied (students and
+    COUNT_USERs refused; readers hear only submitted notes of entries they may read). *(Done 2026-11-15:
+    migration 0011, `services/diary/audio.ts` and `audio-pending.ts`, `server/test/integration/voice-notes.test.ts`.)*
+32. **Voice notes screens:** the recorder in the editor (leaders only), the player in the read view and
+    feeds, unsaved-recording guard, spec/FRONTEND text; e2e with Chromium's fake microphone and axe in both
+    themes. Then real-phone playback checks (iPhone ↔ Android).
 
 ### Phase C: production
 
@@ -928,4 +993,5 @@ Each slice ships with tests, both languages where it has UI, permission tests pe
 | D32 | Course announcements | **Agreed** (2026-11-13): leaders post to the whole class (one class for now); diary members read and reply; announcements share one screen (課堂) with 開放日記, told apart by a filter; COUNT_USERs and the mantra site have none. Replies form **one thread everyone in the class sees** (rejected: replies only to leaders, or a per-announcement choice). Bodies, replies and recordings encrypted with a per-announcement DEK under `DIARY_KEYRING`, in `services/diary/`. §8.12 |
 | D33 | Recording announcements | **Agreed** (2026-11-13): a leader may record an announcement in English or Chinese; the recording is **kept and the class can play it**; a speech-to-text provider transcribes it into the draft, which the leader corrects before publishing. Open: the provider, and how Simplified output becomes Traditional. §8.13 |
 | D34 | Vietnamese | **Agreed** (2026-11-13): a third interface language on both sites, reviewed by a Vietnamese practitioner before it is offered; translation gains Vietnamese as a target. Alert email unchanged. §8.10, §8.6 |
+| D35 | Voice notes on leaders' entries | **Agreed** (2026-11-15): a COURSE_LEADER may add up to 6 voice notes, 2 minutes each, to their own entries; students can't. A note is part of the entry: it goes out with 提交/更新 and is heard by whoever may read the entry, so the class hears it once the entry is shared. No labels or transcription (deaf and translation gap accepted). Comments and announcements get none for now. §8.14 |
 | F1–F6 | Frontend decisions | **Agreed**: see FRONTEND.md §11 |

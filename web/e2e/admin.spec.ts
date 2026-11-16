@@ -103,8 +103,8 @@ test('editing a user saves their details; their own row never offers 刪除', as
   ).toHaveValue('改名');
   await expect(page.getByLabel(t('users.role'))).toHaveValue('COURSE_LEADER');
 
-  await page.goto('/admin/users?q=admin2');
-  const mine = page.getByRole('row').filter({ hasText: 'admin2' });
+  await page.goto('/admin/users?q=admin.backup');
+  const mine = page.getByRole('row').filter({ hasText: 'admin.backup' });
   await expect(mine.getByRole('link', { name: t('users.edit') })).toBeVisible();
   await expect(mine.getByRole('button', { name: t('users.delete') })).toHaveCount(0);
 });

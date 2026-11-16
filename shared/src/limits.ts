@@ -15,6 +15,11 @@ export const DAILY_LIMITS = {
   submit: 20,
   /** Updates (更新) of submitted entries; a backstop that protects the 3-version history. */
   update: 50,
+  /**
+   * Voice notes uploaded by a leader (D35); re-recording counts. Well above honest use: it bounds storage for
+   * a hijacked leader account (about 60 MB a day), not what a leader may say.
+   */
+  audio: 40,
 } as const;
 export type DailyLimitKind = keyof typeof DAILY_LIMITS;
 
@@ -30,6 +35,15 @@ export const ENTRY_LIMITS = {
   /** The whole sanitised entry body. */
   bodyBytes: 8_000_000,
   titleChars: 100,
+  /**
+   * Voice notes on a leader's own entry (D35), counted over what the entry will hold after the next 提交/更新.
+   * A boundary against misuse, not a limit on leaders' teaching.
+   */
+  audioNotes: 6,
+  /** Longest voice note; the recorder stops itself here. The server can only check the client's claim. */
+  audioMs: 120_000,
+  /** One voice note's file: about three times what 2 minutes takes at the requested 32 kbit/s. */
+  audioBytes: 1_500_000,
 } as const;
 
 /**
@@ -66,11 +80,11 @@ export function visibleCharCount(text: string): number {
   return [...text.replace(/\s+/gu, '')].length;
 }
 
-export type LimitName = DailyLimitKind | 'images' | 'chars' | 'count';
+export type LimitName = DailyLimitKind | 'images' | 'chars' | 'audioNotes' | 'count';
 
 /**
  * The caps that flag the account when reached: volume caps, which honest users don't meet. The per-entry
- * limits (photos, characters) are refused kindly but don't flag (D28).
+ * limits (photos, characters, voice notes) are refused kindly but don't flag (D28).
  */
 export const FLAGGING_LIMITS: ReadonlySet<LimitName> = new Set([
   ...(Object.keys(DAILY_LIMITS) as DailyLimitKind[]),
