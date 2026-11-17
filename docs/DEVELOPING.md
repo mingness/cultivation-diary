@@ -41,6 +41,21 @@ Vietnamese practitioner's review (ARCHITECTURE.md §8.10). A future language can
 Vietnamese first did: leave it out of `OFFERED_LANGS` in `web/src/i18n/messages.ts`, and open any page with
 `?lang=<code>` to preview it on that device (the switch then keeps it there).
 
+## Adding a recitation
+
+The recitations a leader can pick on 持誦 (spec §7.5, D40) are a list in the code, so every name is translated
+and reviewed like the rest of the interface.
+
+1. Add a key to `RECITATIONS` in `shared/src/count.ts` (lower case with underscores, e.g. `shurangama_mantra`).
+   The list's order is the dropdown's order.
+2. Add `recitation.<key>` to `web/src/i18n/en.ts`, `zh-Hant.ts` and `vi.ts`. `npm run typecheck` fails until all
+   three have it. Mark the Vietnamese for the reviewer.
+3. Deploy. No migration is needed.
+
+Never remove or rename a key once a leader has used it, because old rounds would lose their name. To stop
+offering one, add it to `RETIRED_RECITATIONS` in the same file. If it's the one in use, it stays selectable
+until a leader picks another.
+
 ## Sample data
 
 ```sh

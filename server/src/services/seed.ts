@@ -11,10 +11,10 @@
  * as some of these (web/playwright.config.ts); docs/DEVELOPING.md lists them all.
  */
 import { readFile } from 'node:fs/promises';
-import { eq, sql } from 'drizzle-orm';
+import { eq, ne, sql } from 'drizzle-orm';
 import type { Access, Profile, Role } from '@diary/shared';
 import type { AppContext } from '../context.js';
-import { comments, users } from '../db/schema.js';
+import { comments, countRecitations, users } from '../db/schema.js';
 import { generateTotpSecret } from '../domain/auth/totp.js';
 import type { AlertRule } from '../domain/limits/attention.js';
 import { raiseAlert } from './activity.js';
@@ -423,7 +423,15 @@ export async function seed(ctx: AppContext, options: { reset: boolean }): Promis
       'The database already has users. Run with --reset to wipe and re-seed.',
     );
   }
-  if (options.reset) await ctx.db.delete(users);
+  if (options.reset) {
+    await ctx.db.delete(users);
+    // Back to migration 0014's single recitation, so a run that changed it (e2e, trying it out) starts clean.
+    await ctx.db.delete(countRecitations).where(ne(countRecitations.startsOn, '2000-01-01'));
+    await ctx.db
+      .update(countRecitations)
+      .set({ recitation: 'great_compassion_mantra', goal: 10_000_000, restart: true, setBy: null })
+      .where(eq(countRecitations.startsOn, '2000-01-01'));
+  }
   const recording = await loadRecording();
 
   const created = new Map<string, UserRow>();

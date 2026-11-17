@@ -41,6 +41,8 @@ export const Capability = {
   ReviewActivity: 'admin.activity',
   /** Report and view 報數. */
   Count: 'count.participate',
+  /** Set what is recited, the goal, and start counting again (spec §7.5, D40). */
+  SetRecitation: 'count.recitation',
   /** Translate text the actor is already allowed to read. */
   Translate: 'translate',
 } as const;
@@ -51,7 +53,14 @@ const C = Capability;
 const ROLE_CAPABILITIES: Readonly<Record<Role, ReadonlySet<Capability>>> = {
   NORMAL_USER: new Set([C.WriteDiary, C.ReadOpenDiaries, C.Count, C.Translate]),
   // Leaders may keep their own diary too (D19).
-  COURSE_LEADER: new Set([C.WriteDiary, C.ReadOpenDiaries, C.LeaderReview, C.Count, C.Translate]),
+  COURSE_LEADER: new Set([
+    C.WriteDiary,
+    C.ReadOpenDiaries,
+    C.LeaderReview,
+    C.Count,
+    C.SetRecitation,
+    C.Translate,
+  ]),
   // SYS_ADMIN never gets anything that reads diary content: no diary, no open diaries, no translation.
   SYS_ADMIN: new Set([
     C.ManageUsers,
@@ -60,6 +69,7 @@ const ROLE_CAPABILITIES: Readonly<Record<Role, ReadonlySet<Capability>>> = {
     C.ManageCount,
     C.ReviewActivity,
     C.Count,
+    C.SetRecitation,
   ]),
 };
 

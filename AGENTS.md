@@ -119,6 +119,8 @@ Keep this file up to date when commands, conventions or pitfalls change.
   `web/src/api/client.ts` inside TanStack Query; screens show `ApiError` codes with `tError` and the request
   ID. Styles are CSS modules using the tokens in `web/src/styles/tokens.css`, sized in rem. A new screen gets
   an axe check in both themes in `web/e2e/` and works at 360 px and 22 px text.
+- **Recitations** (what 持誦 counts, D40) are the list `RECITATIONS` in `shared/src/count.ts`, named in every
+  language as `recitation.<key>`. Keys are append-only once used; see `docs/DEVELOPING.md` to add one.
 - **Unsaved writing:** an editor that can lose typing calls `useReportUnsaved(dirty)` (`web/src/lib/unsaved.ts`);
   the new-version banner waits while any editor reports unsaved changes.
 - **Service worker:** it caches the built app files only. Never add runtime caching of `/api/` (diary content

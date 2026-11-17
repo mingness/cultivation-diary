@@ -51,7 +51,9 @@ This is a private diary platform with a supervision workflow:
 
 **comment** — belongs to one document and one course leader; text (**encrypted**); state (draft / submitted). Each course leader has at most one comment per document, which they may edit and resubmit.
 
-**count entry** — username, daily count (positive integer, 1–1080), count date (today or up to 4 days earlier, Beijing time), submit time, auto-submit flag.
+**count entry** — username, daily count (positive integer, 1–5000), count date (today or up to 4 days earlier, Beijing time), submit time, auto-submit flag.
+
+**recitation** — what is recited (picked from a list kept in the code, each named in every interface language, e.g. Great Compassion Mantra / 大悲咒 / Chú Đại Bi), the goal (a positive number, or none), whether counting starts again from 0, and the Beijing date it applies from. Kept for good, so every count date has a known recitation (§7.5).
 
 **Encryption requirements (non-negotiable):**
 - Diary content, drafts, history versions and comments are encrypted with **AES-256-GCM**, with a unique random nonce per encryption.
@@ -235,22 +237,22 @@ Both sets of values are constants, each in its own file so they're easy to find 
 
 ### 7.1 Count page layout
 ```
-标题: 合计报数
+标题: <what is recited, §7.5>
 <progress card>  TOTAL COMPLETED總完成: <total>  (largest figure on the page)
                  <blue progress bar>
-                 GOAL COUNT目標數: 10,000,000   |   xx.xx% completed (both in large type)
+                 GOAL COUNT目標數: <goal>   |   xx.xx% completed (both in large type; neither when there is no goal, §7.5)
 REPORTED_TODAY今日報告: <today> (entries紀錄: <n>)
 今日报数 | <count date, default today> | <number box> | <manual submit> | <auto submit checkbox>
 <latest-20 entries table>
 ```
 - The total is the most prominent figure, with the goal and percentage in large type below the bar; there is no separate goal tile.
-- 报数 is app-wide: one shared total for all users.
+- 报数 is app-wide: one shared total for all users, for the current round (§7.5).
 - **A report is the user's number for its count date, not an addition.** Reporting again for the same date replaces the earlier number (e.g. to correct a typo); every figure uses each user's latest report per count date. All reports are kept, for SYS_ADMINs to see the traffic.
-- Total = the sum of every user's number for every count date. "Reported today" = the sum of today's numbers, and how many people have reported for today.
-- Progress = all-time total ÷ 10,000,000 × 100%. "Today" is the current date in Beijing time. Table columns: Username (family+given name if known), Today's Count, Total, First Count Date, Latest Submit Time. Adjacent rows alternate light / sky-blue; auto-submit users shown in blue; table auto-refreshes (≈ every minute / on submit).
+- Total = the sum of every user's number for every count date in the current round. "Reported today" = the sum of today's numbers, and how many people have reported for today.
+- Progress = the current round's total ÷ the goal × 100% (§7.5). "Today" is the current date in Beijing time. Table columns: Username (family+given name if known), Today's Count, Total, First Count Date, Latest Submit Time. Adjacent rows alternate light / sky-blue; auto-submit users shown in blue; table auto-refreshes (≈ every minute / on submit).
 
 ### 7.2 Input rules
-- Daily count: digits only, invalid characters trimmed with a notice, value clamped to **1–1080** with a notice. The server enforces the same rules.
+- Daily count: digits only, invalid characters trimmed with a notice, value clamped to **1–5000** with a notice (a safeguard against misuse, not a practice rule; raised from 1080 on 2026-11-16 so a name recited thousands of times a day fits). The server enforces the same rules.
 - Manual submit → the user's number for that date (replacing any earlier one) + refresh all figures and the table; the value also becomes the user's saved default for auto-submit.
 - **Count date:** defaults to today; the user may pick any of the previous 4 days (Beijing time) to report a missed day. Never a future date.
 - **Limit:** at most **20 manual reports per user per count date** (the auto-submitted entry does not count toward it). Since a report replaces the day's number, repeats can't inflate the total; the cap only limits traffic. It is per count date, not per submit day, so backdating cannot multiply it. Reaching it flags the account (§6.5); so does the 5th report for one date (a warning level, §5.5), without refusing anything.
@@ -264,6 +266,15 @@ REPORTED_TODAY今日報告: <today> (entries紀錄: <n>)
 ### 7.4 Diary ↔ count navigation
 - Diary pages have a 报数 button → count page; the count page has a "Go Diary" button → role home, and the user chip → profile.
 - The count page header shows the **logo** (green variant, 400×80) with `countTitle` beneath it (`\n` renders as line breaks).
+
+### 7.5 What is recited, the goal, and starting again (D40, 2026-11-16)
+- A COURSE_LEADER or SYS_ADMIN picks **what is recited** from a dropdown (the leader tells the class the rest), sets the **goal** (a number, or none), and chooses whether counting **starts again from 0**. The page heading shows the name in the reader's language; with no goal the page shows the total without a goal or progress bar.
+- The list is kept in the code and changed by a developer, so every name is translated and reviewed like the rest of the interface; leaders can't type their own. It starts with: Great Compassion Mantra (大悲咒), Amitabha Buddha's name (南無阿彌陀佛), Guanyin Bodhisattva's name (南無觀世音菩薩), Medicine Buddha Mantra (藥師咒), Heart Sutra (心經). An option once used stays known, so old rounds keep their name; it can be withdrawn from the dropdown.
+- A change applies from today's count date (Beijing). A count date has one recitation: reports for today, including any made earlier today, belong to the new setting. Reports for an earlier date keep that date's recitation and round.
+- **Starting again** begins a new round: the page's total, today's figure and the latest-20 table count only count dates from the round's first day. Nothing is deleted; earlier rounds stay in the database, and a report for a date before the restart counts in the earlier round.
+- Changing only the goal, or changing the name without starting again, keeps the round's total.
+- Changes made on the day they were set can be corrected in place (a typo, the wrong goal, starting again by mistake). On a later day, a change is a new setting from that day, so earlier dates keep what was set for them.
+- When the recitation changes, everyone's auto-submit is switched off (their saved number was for the old recitation), and each affected user sees a notice on the page until they turn it on again.
 
 ## 8. Translation Feature
 
@@ -317,7 +328,7 @@ Build this only if testing on the users' actual phones shows the installable web
 - [ ] SYS_ADMIN: can search/add/edit/delete users and change roles, reset passwords, query/delete documents — but receives no plaintext content or comments from any endpoint; the last SYS_ADMIN cannot be removed.
 - [ ] COURSE_LEADER: sees today's submitted documents immediately after login; calendar/user navigation reaches the comment editor; can stop sharing an entry.
 - [ ] Password change and admin reset both keep the user's old documents readable by the user.
-- [ ] 报数: clamped 1–1080 input (client and server); count date today or up to 4 days back; a later report replaces that date's number; at most 20 manual reports per count date; manual submit updates everything; auto-submit toggle persists; admin list shows all users with toggle + delete-entries (all or by date range) + last-run status; auto job runs at 02:00 Beijing.
+- [ ] 报数: clamped 1–5000 input (client and server); count date today or up to 4 days back; a leader or SYS_ADMIN sets what is recited and the goal (or none), and can start counting again from 0 without losing any data; a later report replaces that date's number; at most 20 manual reports per count date; manual submit updates everything; auto-submit toggle persists; admin list shows all users with toggle + delete-entries (all or by date range) + last-run status; auto job runs at 02:00 Beijing.
 - [ ] Attention: reaching a limit, failed-login bursts and new-device bursts flag the account in the SYS_ADMIN Attention list; with email configured, SYS_ADMINs also get a throttled email; activity views and emails contain no content; sign-out-all and lock work.
 - [ ] Installable: the app can be added to the home screen on Android and iPhone, opens standalone, stays logged in, picks up new versions, and never caches diary content.
 - [ ] Seed data (test environments only): 2 SYS_ADMINs, 2 COURSE_LEADERs, several NORMAL_USERs with encrypted sample diaries (including three shared, one a leader stopped sharing, one never-submitted draft, one submitted diary with a later unsubmitted draft, and comments in draft and submitted state from different leaders).

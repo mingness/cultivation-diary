@@ -1,6 +1,7 @@
 /**
- * 報數 (spec §7, FRONTEND.md §4.5): the shared progress (the total is the largest figure), today's report with
- * its date chips, automatic counting, and the latest 20 reports. Input is trimmed and clamped as it is typed,
+ * 報數 (spec §7, FRONTEND.md §4.5): what is recited, the shared progress (the total is the largest figure),
+ * today's report with its date chips, automatic counting, and the latest 20 reports. Leaders and SYS_ADMINs can
+ * change what is recited, the goal, and start counting again (spec §7.5). Input is trimmed and clamped as it is typed,
  * with every change said in words (spec §10.5); the typed number is also saved for the nightly job.
  */
 import { useEffect, useRef, useState } from 'react';
@@ -27,23 +28,40 @@ import { useI18n, type Lang } from '../../i18n/index.js';
 import { LOCALES } from '../../i18n/messages.js';
 import { formatDateTime, formatDayChip, formatDiaryDate } from '../../lib/dates.js';
 import { useMediaQuery } from '../../lib/media.js';
-import { dateState, noticeKeys } from './countRules.js';
+import { dateState, noticeKeys, recitationKey } from './countRules.js';
+import { RecitationForm } from './RecitationForm.js';
 import styles from './CountScreen.module.css';
 
 const number = (n: number, lang: Lang) => n.toLocaleString(LOCALES[lang]);
 
 export function CountScreen() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const me = useMe();
   const summary = useCountSummary();
+  const [changing, setChanging] = useState(false);
+  const canChange = me.role === 'COURSE_LEADER' || me.role === 'SYS_ADMIN';
+  const data = summary.data;
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        {/* Decorative and wordless, so it suits both languages; the title below names the page. */}
+        {/* Decorative and wordless, so it suits every language; the heading below names the page. */}
         <img className={styles.logo} src={logo} alt="" width={400} height={80} />
-        <h1>{t('count.title')}</h1>
-        <p className={styles.subtitle}>{t('count.subtitle')}</p>
+        {/* What is recited, named in the reader's language. */}
+        <h1>{data ? t(recitationKey(data.recitation)) : t('nav.count')}</h1>
+        {data && (
+          <p className={styles.subtitle}>
+            {data.goal === null
+              ? t('count.subtitleNoGoal')
+              : t('count.subtitleGoal', { goal: number(data.goal, lang) })}
+          </p>
+        )}
+        {data && canChange && !changing && (
+          <Button variant="secondary" onClick={() => setChanging(true)}>
+            {t('count.change')}
+          </Button>
+        )}
       </header>
+      {data && changing && <RecitationForm summary={data} onDone={() => setChanging(false)} />}
       {summary.isPending ? (
         <LoadingState />
       ) : summary.isError ? (
@@ -66,35 +84,46 @@ export function CountScreen() {
 
 function Progress({ summary }: { summary: SummaryData }) {
   const { t, lang } = useI18n();
-  const percent = Math.min(100, summary.percent);
   return (
     <section className={styles.card} aria-labelledby="progress-heading">
       <h2 id="progress-heading" className={styles.totalLabel}>
         {t('count.total')}
       </h2>
       <p className={styles.total}>{number(summary.total, lang)}</p>
+      {/* Without a goal there is nothing to measure progress against (spec §7.5). */}
+      {summary.goal !== null && summary.percent !== null && (
+        <GoalProgress goal={summary.goal} percent={summary.percent} />
+      )}
+      <p className={styles.today}>
+        {t('count.today', { sum: number(summary.today.sum, lang), n: summary.today.entries })}
+      </p>
+    </section>
+  );
+}
+
+function GoalProgress({ goal, percent }: { goal: number; percent: number }) {
+  const { t, lang } = useI18n();
+  return (
+    <>
       <div
         className={styles.bar}
         role="progressbar"
         aria-label={t('count.progress')}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={summary.percent}
-        aria-valuetext={t('count.percent', { p: summary.percent.toFixed(2) })}
+        aria-valuenow={Math.min(100, percent)}
+        aria-valuetext={t('count.percent', { p: percent.toFixed(2) })}
       >
         {/* React sets this through the CSSOM, which the Content-Security-Policy allows. */}
-        <div className={styles.barFill} style={{ width: `${percent}%` }} />
+        <div className={styles.barFill} style={{ width: `${Math.min(100, percent)}%` }} />
       </div>
       <div className={styles.goalRow}>
         <span>
-          {t('count.goal')} {number(summary.goal, lang)}
+          {t('count.goal')} {number(goal, lang)}
         </span>
-        <span>{t('count.percent', { p: summary.percent.toFixed(2) })}</span>
+        <span>{t('count.percent', { p: percent.toFixed(2) })}</span>
       </div>
-      <p className={styles.today}>
-        {t('count.today', { sum: number(summary.today.sum, lang), n: summary.today.entries })}
-      </p>
-    </section>
+    </>
   );
 }
 
@@ -225,6 +254,11 @@ function ReportFormLoaded({ summary, saved }: { summary: SummaryData; saved: Set
           {t('count.submit')}
         </Button>
       </form>
+      {current.autoStopped && (
+        <Notice kind="warning" live={false}>
+          {t('count.autoStopped', { name: t(recitationKey(summary.recitation)) })}
+        </Notice>
+      )}
       <CheckboxRow
         label={t('count.auto')}
         hint={t('count.autoHint')}

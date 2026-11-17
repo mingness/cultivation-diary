@@ -4,6 +4,7 @@
  */
 import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
+import type { Recitation } from '@diary/shared';
 import { expect, SEED_PASSWORD, test, unusedUsername } from './fixtures.js';
 
 async function csrf(page: Page): Promise<string> {
@@ -20,9 +21,9 @@ test('input is cleaned as it is typed, with a notice for each change, and a repo
   await box.fill('12a');
   await expect(box).toHaveValue('12');
   await expect(page.getByText(t('count.notice.non_digits_removed'))).toBeVisible();
-  await box.fill('5000');
-  await expect(box).toHaveValue('1080');
-  await expect(page.getByText(t('count.notice.clamped_to_max', { max: 1080 }))).toBeVisible();
+  await box.fill('9999');
+  await expect(box).toHaveValue('5000');
+  await expect(page.getByText(t('count.notice.clamped_to_max', { max: 5000 }))).toBeVisible();
 
   await box.fill('37');
   await page.getByRole('button', { name: t('count.submit'), exact: true }).click();
@@ -86,6 +87,39 @@ test('報數 passes axe in both themes and fits at the largest text size', async
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     ),
   ).toBeLessThanOrEqual(0);
+});
+
+test('a leader opens the recitation form with today’s settings; students have no 更改', async ({
+  leaderPage: page,
+  userPage,
+  t,
+}) => {
+  // Saving it unchanged writes nothing: a real change would reach every project's 報數 at once (D40).
+  await page.goto('/count');
+  const summary = await (await page.request.get('/api/count/summary')).json();
+  const name = t(`recitation.${summary.recitation as Recitation}`);
+  // Named in the page's language, from the app's own string table.
+  await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
+  await page.getByRole('button', { name: t('count.change'), exact: true }).click();
+  await expect(page.getByLabel(t('recite.name'))).toHaveValue(summary.recitation);
+  await expect(page.getByLabel(t('recite.name')).locator('option:checked')).toHaveText(name);
+  await expect(page.getByLabel(new RegExp(t('recite.goal')))).toHaveValue(
+    summary.goal === null ? '' : String(summary.goal),
+  );
+  for (const scheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: scheme });
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target)}`)).toEqual([]);
+  }
+  await page.getByRole('button', { name: t('recite.save'), exact: true }).click();
+  await expect(page.getByText(t('recite.unchanged'))).toBeVisible();
+  await expect(page.getByLabel(t('recite.name'))).toBeHidden();
+
+  await userPage.goto('/count');
+  await expect(userPage.getByRole('progressbar')).toBeVisible();
+  await expect(userPage.getByRole('button', { name: t('count.change'), exact: true })).toHaveCount(
+    0,
+  );
 });
 
 test('報數管理 switches a user’s automatic counting and runs the job', async ({

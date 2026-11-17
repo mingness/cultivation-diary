@@ -77,7 +77,7 @@ README.md          what it is, quick start, how to run tests
 - **Sanitise rich-text HTML on the server** with an allowlist (the editor's tags and attributes only) before storing
   and before rendering. Shared diaries are shown to other users, so stored XSS is a real risk. Set a
   Content-Security-Policy.
-- Validate all input on the server (including the 1–1080 clamp, image size limits, and request body size). Client
+- Validate all input on the server (including the 1–5000 clamp, image size limits, and request body size). Client
   validation is UX only.
 - Use parameterised queries only. Rate-limit login, registration, forgot-password, and translation (cost control).
 - The internal cron endpoint compares the Bearer secret in constant time and is not reachable through the public

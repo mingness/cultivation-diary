@@ -1,5 +1,11 @@
 /** The 報數 form's rules as pure functions (spec §7.2), so they can be tested exactly. */
-import { COUNT_LIMITS, type CountNotice, type CountSummary } from '@diary/shared';
+import {
+  COUNT_LIMITS,
+  RECITATION_GOAL_MAX,
+  type CountNotice,
+  type CountSummary,
+  type Recitation,
+} from '@diary/shared';
 import type { z } from 'zod';
 import type { MessageKey } from '../../i18n/index.js';
 
@@ -30,3 +36,20 @@ const NOTICE: Record<CountNotice, MessageKey> = {
 export function noticeKeys(notices: readonly CountNotice[]): MessageKey[] {
   return notices.map((n) => NOTICE[n]);
 }
+
+/**
+ * The recitation form's goal box (spec §7.5): empty means no goal; otherwise a whole number from 1 to the
+ * maximum. Spaces, thousands separators and full-width digits (Chinese input methods) are accepted.
+ */
+export function parseGoal(raw: string): number | null | 'invalid' {
+  const text = raw
+    .replace(/[０-９]/g, (d) => String(d.charCodeAt(0) - 0xff10))
+    .replace(/[\s,，.、']/g, '');
+  if (text === '') return null;
+  if (!/^\d+$/.test(text) || text.length > String(RECITATION_GOAL_MAX).length) return 'invalid';
+  const n = Number(text);
+  return n >= 1 && n <= RECITATION_GOAL_MAX ? n : 'invalid';
+}
+
+/** The string-table key naming a recitation; the type check fails if a language lacks one. */
+export const recitationKey = (r: Recitation): MessageKey => `recitation.${r}`;

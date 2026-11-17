@@ -69,9 +69,9 @@ just hue.
 
 | Role | Phone (< 768 px): bottom tab bar | Desktop (≥ 1024 px): top bar |
 |---|---|---|
-| NORMAL_USER | 筆記 · 班級 · 報數 · 我的 | same four, as top links |
-| COURSE_LEADER | 批閱 · 筆記 · 班級 · 報數 · 我的 | 批閱 · 我的筆記 · 班級 · 報數 · 我的 |
-| SYS_ADMIN | 注意 (badge) · 用戶 (badge) · 筆記 · 報數 · 我的 | 注意 (badge) · 用戶 (badge) · 筆記管理 · 報數 · 我的 (報數管理 is a link on 報數; admins take part in 報數 too) |
+| NORMAL_USER | 筆記 · 班級 · 持誦 · 我的 | same four, as top links |
+| COURSE_LEADER | 批閱 · 筆記 · 班級 · 持誦 · 我的 | 批閱 · 我的筆記 · 班級 · 持誦 · 我的 |
+| SYS_ADMIN | 注意 (badge) · 用戶 (badge) · 筆記 · 持誦 · 我的 | 注意 (badge) · 用戶 (badge) · 筆記管理 · 持誦 · 我的 (報數管理 is a link on 持誦; admins take part too) |
 
 - **Names (D38, 2026-11-16):** the screens were 我的日記 and 開放日記; they are now **我的筆記** ("My notes")
   and **班級** ("Class"), and one piece of writing is **一篇筆記** ("an entry"), since leaders' notices are
@@ -196,9 +196,10 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
 
 ### 4.5 報數 (all)
 
-- **Header:** the logo (400×80 placeholder) and 合計報數.
+- **Header:** the logo (400×80 placeholder), then what is recited as the heading, in the reader's language (D40) and a line "reciting together toward {goal}", or "reciting together" without a goal.
 - **Stats:** one progress card leads. The all-time total is the largest number on the page; under it, a thick
-  progress bar; under that, the goal (10,000,000) and the percentage completed side by side, in large type. Below it, a slim "reported today"
+  progress bar; under that, the goal and the percentage completed side by side, in large type (bar, goal and
+  percentage only when there is a goal; the total counts the current round, D40). Below it, a slim "reported today"
   row (sum + number of entries). There is no separate goal tile (agreed).
 - **Input card:** 今日報數 with a numeric keypad, a date choice (今天 by default, or one of the previous 4 days,
   shown as chips with day and weekday, "13日 週二", so all five fit one row at full width; 2026-11-16), 提交, and the 自動報數 checkbox with "每天北京時間凌晨 2:00". After 20 reports for
@@ -211,7 +212,13 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
 - **Built (2026-10-15):** the logo is a placeholder (`web/src/assets/count-logo.svg`, 400 × 80) to replace with
   the real green artwork. The form starts from the user's saved number; the typed number is saved quietly
   (debounced) for the 02:00 job. Auto-submit users are blue with the word 自動 too.
-- **API:** `GET count/summary` (with `mine`: my number and manual reports per allowed date, for the "replaces"
+- **Changing the recitation (D40):** leaders and SYS_ADMINs get a 更改 / "Change" button by the heading. It opens
+  a form on the page: what to recite (a dropdown of the list in the code), the goal (a number, or empty for none) and a
+  "start counting again from 0" checkbox with a note that nothing is deleted. Saving says what changed. When a
+  name change has switched a user's auto-submit off, their input card shows a notice above the checkbox until
+  they tick or untick it.
+- **Adding a recitation:** see DEVELOPING.md; the names go in all three string tables.
+- **API:** `GET count/summary` (with `recitation`, `goal`, and `mine`: my number and manual reports per allowed date, for the "replaces"
   note and the per-date limit), `GET count/latest`, `GET/PUT count/settings`, `POST count`.
 
 ### 4.6 Account (all)
@@ -300,7 +307,8 @@ snapshot at 360 px and 1280 px.
   有新文档). The zh-Hant table uses traditional throughout: 暫存, 報數, 兩次密碼輸入不同, 翻譯, 歷史版本,
   有新文件 / 有新批注. "攥写日记" in spec §6.2 is a typo for **撰寫日記** (F5, agreed).
 - English UI name: **Cultivation Diary** for 修行日記 (agreed). 報數 counts **Great Compassion Mantra** recitations:
-  its tab is 大悲咒 / "Mantra" and the page 大悲咒共修報數 / "Great Compassion Mantra recitation" (2026-10-15); 批注 is
+  its tab was 大悲咒 / "Mantra" (2026-10-15); since D40 (2026-11-16) a leader sets what is recited, so the tab is
+  持誦 / "Recitation" (prayer-bead icon) and the page heading is the chosen recitation's name; 批注 is
   "comment", 導師 is "course leader" ("Leader …" before a name), and 學員 is "student".
 - Every string lives in `web/src/i18n/{zh-Hant,en,vi}.ts` (alert emails, written by the server, use
   `server/src/i18n/`; ARCHITECTURE §8.10). Dates use `Intl.DateTimeFormat` with the active locale

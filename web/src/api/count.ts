@@ -13,6 +13,8 @@ import type {
   CountSummary,
   DeletedCount,
   RunNowResponse,
+  SetRecitationRequest,
+  SetRecitationResult,
 } from '@diary/shared';
 import { api } from './client.js';
 
@@ -61,6 +63,16 @@ export function useUpdateCountSettings() {
     mutationFn: (body: Partial<CountSettings>) =>
       api<CountSettings>('PUT', '/api/count/settings', body),
     onSuccess: (settings) => queryClient.setQueryData(['count', 'settings'], settings),
+  });
+}
+
+/** Leaders and SYS_ADMINs: what is recited, the goal, and starting again (spec §7.5). Refreshes every figure. */
+export function useSetRecitation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SetRecitationRequest) =>
+      api<z.infer<typeof SetRecitationResult>>('PUT', '/api/count/recitation', body),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['count'] }),
   });
 }
 
