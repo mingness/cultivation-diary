@@ -1,21 +1,23 @@
 /**
  * 報數 (spec §7, docs/ARCHITECTURE.md §8.5): one app-wide total everyone adds to. A report is the user's number
  * for its count date: a later report for the same date replaces the earlier ones in every total, while all
- * reports are kept (they show traffic). Counts are not content, so nothing here is encrypted; names for the
- * latest-20 table come from profiles.
+ * reports are kept (they show traffic). What is recited, the goal and the current round come from
+ * `count_recitations` and apply by count date (spec §7.5, D40). Counts are not content, so nothing here is
+ * encrypted; names for the latest-20 table come from profiles.
  */
 import { randomUUID } from 'node:crypto';
 import { and, asc, desc, eq, gte, lte, sql, type SQL } from 'drizzle-orm';
 import {
-  COUNT_GOAL,
   COUNT_LIMITS,
   COUNT_WARNING,
   countDateChoices,
   ErrorCode,
+  Recitation,
   type CountSettings,
+  type SetRecitationRequest,
 } from '@diary/shared';
 import type { AppContext } from '../context.js';
-import { countEntries, countSettings, jobRuns, users } from '../db/schema.js';
+import { countEntries, countRecitations, countSettings, jobRuns, users } from '../db/schema.js';
 import { beijingDate, nextDailyRunAt, AUTO_SUBMIT_HOUR_BEIJING } from '../domain/count/schedule.js';
 import { HttpError } from '../http-errors.js';
 import { LimitReachedError, type Elevated } from './diary/usage.js';
@@ -30,12 +32,39 @@ const MISSED_RUN_GRACE_MS = 15 * 60 * 1000;
 
 const today = (ctx: AppContext) => beijingDate(ctx.clock());
 
-/** Each user's number per count date: their latest report for it. */
-const LATEST = sql`(
+/** Each user's number per count date from `since` on: their latest report for it. */
+const latestSince = (since: string) => sql`(
   SELECT DISTINCT ON (user_id, count_date) user_id, count_date, daily_count
     FROM count_entries
+   WHERE count_date >= ${since}::date
    ORDER BY user_id, count_date, seq DESC)`;
 const allowedDates = (ctx: AppContext) => countDateChoices(today(ctx), COUNT_LIMITS.backdateDays);
+
+/** Advisory lock key that serialises recitation changes (two leaders saving at once). */
+const RECITATION_LOCK = sql`hashtext('count-recitation')`;
+
+type Db = AppContext['db'] | Parameters<Parameters<AppContext['db']['transaction']>[0]>[0];
+
+/**
+ * What applies on `date`: the recitation row in effect (the latest `starts_on` on or before it), and the first
+ * day of its round (the latest restart on or before it). Migration 0014's row from 2000-01-01 guarantees both.
+ */
+async function recitationOn(db: Db, date: string) {
+  const [current] = await db
+    .select()
+    .from(countRecitations)
+    .where(lte(countRecitations.startsOn, date))
+    .orderBy(desc(countRecitations.startsOn))
+    .limit(1);
+  const [round] = await db
+    .select({ startsOn: countRecitations.startsOn })
+    .from(countRecitations)
+    .where(and(lte(countRecitations.startsOn, date), eq(countRecitations.restart, true)))
+    .orderBy(desc(countRecitations.startsOn))
+    .limit(1);
+  if (!current || !round) throw new Error('count_recitations has no row for ' + date);
+  return { current, roundStartsOn: round.startsOn };
+}
 
 /**
  * Records a manual count for today or one of the previous 5 Beijing dates (D23); it replaces the user's earlier
@@ -106,12 +135,13 @@ export async function submitCount(
 }
 
 /**
- * The progress card: the all-time total, and what has been reported for today (one number per user); plus the
- * caller's own number and manual reports for each date they may report for.
+ * The progress card: what is recited, the current round's total and goal, and what has been reported for today
+ * (one number per user); plus the caller's own number and manual reports for each date they may report for.
  */
 export async function countSummary(ctx: AppContext, userId: string) {
   const date = today(ctx);
   const dates = allowedDates(ctx);
+  const { current, roundStartsOn } = await recitationOn(ctx.db, date);
   const { rows } = await ctx.db.execute<{
     total: string;
     today_sum: number;
@@ -120,14 +150,17 @@ export async function countSummary(ctx: AppContext, userId: string) {
     SELECT coalesce(sum(l.daily_count), 0)::bigint AS total,
            coalesce(sum(l.daily_count) FILTER (WHERE l.count_date = ${date}::date), 0)::int AS today_sum,
            (count(*) FILTER (WHERE l.count_date = ${date}::date))::int AS today_users
-      FROM ${LATEST} l`);
+      FROM ${latestSince(roundStartsOn)} l`);
   const row = rows[0];
   // bigint arrives as a string; the total stays far below 2^53.
   const total = Number(row?.total ?? 0);
+  const goal = current.goal;
   return {
+    recitation: Recitation.parse(current.recitation),
     total,
-    goal: COUNT_GOAL,
-    percent: Math.round((total / COUNT_GOAL) * 10_000) / 100,
+    goal,
+    percent: goal === null ? null : Math.round((total / goal) * 10_000) / 100,
+    roundStartsOn,
     today: { date, sum: row?.today_sum ?? 0, entries: row?.today_users ?? 0 },
     countDates: dates,
     mine: await myCountDates(ctx, userId, dates),
@@ -154,9 +187,10 @@ async function myCountDates(ctx: AppContext, userId: string, dates: readonly str
   });
 }
 
-/** The latest-20 table: one row per user, most recent report first. */
+/** The latest-20 table for the current round: one row per user, most recent report first. */
 export async function latestCounts(ctx: AppContext) {
   const date = today(ctx);
+  const { roundStartsOn } = await recitationOn(ctx.db, date);
   const { rows } = await ctx.db.execute<{
     user_id: string;
     latest_submit_at: Date | string;
@@ -167,14 +201,15 @@ export async function latestCounts(ctx: AppContext) {
   }>(sql`
     WITH recent AS (
       SELECT user_id, max(submitted_at) AS latest_submit_at
-        FROM count_entries GROUP BY user_id ORDER BY 2 DESC LIMIT 20)
+        FROM count_entries WHERE count_date >= ${roundStartsOn}::date
+       GROUP BY user_id ORDER BY 2 DESC LIMIT 20)
     SELECT r.user_id, r.latest_submit_at,
            coalesce(sum(l.daily_count) FILTER (WHERE l.count_date = ${date}::date), 0)::int AS today_count,
            sum(l.daily_count)::int AS total,
            min(l.count_date)::text AS first_count_date,
            coalesce(s.auto_submit, false) AS auto_submit
       FROM recent r
-      JOIN ${LATEST} l ON l.user_id = r.user_id
+      JOIN ${latestSince(roundStartsOn)} l ON l.user_id = r.user_id
       LEFT JOIN count_settings s ON s.user_id = r.user_id
      GROUP BY r.user_id, r.latest_submit_at, s.auto_submit
      ORDER BY r.latest_submit_at DESC`);
@@ -201,15 +236,24 @@ export async function latestCounts(ctx: AppContext) {
   };
 }
 
+const settingsColumns = {
+  autoSubmit: countSettings.autoSubmit,
+  savedCount: countSettings.savedCount,
+  autoStopped: sql<boolean>`${countSettings.autoStoppedAt} IS NOT NULL`,
+};
+
 export async function getCountSettings(ctx: AppContext, userId: string): Promise<CountSettings> {
   const [row] = await ctx.db
-    .select({ autoSubmit: countSettings.autoSubmit, savedCount: countSettings.savedCount })
+    .select(settingsColumns)
     .from(countSettings)
     .where(eq(countSettings.userId, userId));
-  return row ?? { autoSubmit: false, savedCount: 0 };
+  return row ?? { autoSubmit: false, savedCount: 0, autoStopped: false };
 }
 
-/** Saves the auto-submit choice or the typed number (sent as the user types, debounced). */
+/**
+ * Saves the auto-submit choice or the typed number (sent as the user types, debounced). Choosing auto-submit
+ * either way clears the "switched off because the recitation changed" notice.
+ */
 export async function updateCountSettings(
   ctx: AppContext,
   userId: string,
@@ -217,7 +261,9 @@ export async function updateCountSettings(
 ): Promise<CountSettings> {
   const now = ctx.clock();
   const set = {
-    ...(changes.autoSubmit !== undefined ? { autoSubmit: changes.autoSubmit } : {}),
+    ...(changes.autoSubmit !== undefined
+      ? { autoSubmit: changes.autoSubmit, autoStoppedAt: null }
+      : {}),
     ...(changes.savedCount !== undefined ? { savedCount: changes.savedCount } : {}),
     updatedAt: now,
   };
@@ -226,7 +272,7 @@ export async function updateCountSettings(
       .insert(countSettings)
       .values({ userId, ...set })
       .onConflictDoUpdate({ target: countSettings.userId, set })
-      .returning({ autoSubmit: countSettings.autoSubmit, savedCount: countSettings.savedCount });
+      .returning(settingsColumns);
     if (!row) throw new Error('upsert returned no row');
     return row;
   } catch (err) {
@@ -236,6 +282,56 @@ export async function updateCountSettings(
     }
     throw err;
   }
+}
+
+/**
+ * Sets what is recited from today, the goal (null: none) and whether counting starts again (spec §7.5, D40).
+ * The row that started today is corrected in place; otherwise a new row starts today, so earlier dates keep
+ * what was set for them. Nothing changing is a no-op. A change of recitation switches off everyone's auto-submit (their
+ * saved number was for the old recitation) and marks it, so their page can say why.
+ */
+export async function setRecitation(
+  ctx: AppContext,
+  actorId: string,
+  input: SetRecitationRequest,
+): Promise<{ changed: boolean; autoStopped: number }> {
+  return ctx.db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(${RECITATION_LOCK})`);
+    const date = today(ctx);
+    const now = ctx.clock();
+    const { current, roundStartsOn } = await recitationOn(tx, date);
+    const restartedToday = roundStartsOn === date;
+    const same =
+      input.recitation === current.recitation &&
+      input.goal === current.goal &&
+      input.restart === restartedToday;
+    if (same) return { changed: false, autoStopped: 0 };
+
+    const values = {
+      recitation: input.recitation,
+      goal: input.goal,
+      restart: input.restart,
+      setBy: actorId,
+    };
+    if (current.startsOn === date) {
+      await tx
+        .update(countRecitations)
+        .set({ ...values, updatedAt: now })
+        .where(eq(countRecitations.id, current.id));
+    } else {
+      await tx
+        .insert(countRecitations)
+        .values({ id: randomUUID(), startsOn: date, ...values, createdAt: now, updatedAt: now });
+    }
+
+    if (input.recitation === current.recitation) return { changed: true, autoStopped: 0 };
+    const stopped = await tx
+      .update(countSettings)
+      .set({ autoSubmit: false, autoStoppedAt: now, updatedAt: now })
+      .where(eq(countSettings.autoSubmit, true))
+      .returning({ userId: countSettings.userId });
+    return { changed: true, autoStopped: stopped.length };
+  });
 }
 
 /**

@@ -11,11 +11,11 @@ describe('normaliseDailyCount', () => {
     // [input, value, text, notices]
     ['108', 108, '108', []],
     ['1', 1, '1', []],
-    ['1080', 1080, '1080', []],
+    ['5000', 5000, '5000', []],
     ['007', 7, '7', []],
     ['', null, '', []],
-    ['1081', 1080, '1080', ['clamped_to_max']],
-    ['99999', 1080, '1080', ['clamped_to_max']],
+    ['5001', 5000, '5000', ['clamped_to_max']],
+    ['99999', 5000, '5000', ['clamped_to_max']],
     ['0', 1, '1', ['clamped_to_min']],
     ['000', 1, '1', ['clamped_to_min']],
     ['10a8', 108, '108', ['non_digits_removed']],
@@ -24,7 +24,7 @@ describe('normaliseDailyCount', () => {
     ['1,080', 1080, '1080', ['non_digits_removed']],
     [' 108 ', 108, '108', ['non_digits_removed']],
     ['abc', null, '', ['non_digits_removed']],
-    ['12x3456', 1080, '1080', ['non_digits_removed', 'clamped_to_max']],
+    ['12x3456', 5000, '5000', ['non_digits_removed', 'clamped_to_max']],
     ['-0', 1, '1', ['non_digits_removed', 'clamped_to_min']],
   ] as const)('%j → %j', (input, value, text, notices) => {
     expect(normaliseDailyCount(input)).toEqual({ value, text, notices });
@@ -32,9 +32,9 @@ describe('normaliseDailyCount', () => {
 
   it('accepts full-width digits from Chinese input methods without a notice', () => {
     expect(normaliseDailyCount('１０８')).toEqual({ value: 108, text: '108', notices: [] });
-    expect(normaliseDailyCount('２０００')).toEqual({
-      value: 1080,
-      text: '1080',
+    expect(normaliseDailyCount('６０００')).toEqual({
+      value: 5000,
+      text: '5000',
       notices: ['clamped_to_max'],
     });
   });
@@ -54,8 +54,8 @@ describe('normaliseDailyCount', () => {
 });
 
 describe('DailyCount (API schema)', () => {
-  it.each([1, 540, 1080])('accepts %d', (n) => expect(DailyCount.safeParse(n).success).toBe(true));
-  it.each([0, 1081, -1, 1.5, Number.NaN, '108'])('rejects %j', (n) =>
+  it.each([1, 540, 5000])('accepts %d', (n) => expect(DailyCount.safeParse(n).success).toBe(true));
+  it.each([0, 5001, -1, 1.5, Number.NaN, '108'])('rejects %j', (n) =>
     expect(DailyCount.safeParse(n).success).toBe(false),
   );
 });

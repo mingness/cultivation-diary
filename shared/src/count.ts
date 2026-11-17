@@ -5,10 +5,34 @@
 import { z } from 'zod';
 
 export const DAILY_COUNT_MIN = 1;
-export const DAILY_COUNT_MAX = 1080;
+/** A guard against misuse, not a practice rule (D40: raised from 1080 so a name recited all day fits). */
+export const DAILY_COUNT_MAX = 5000;
 
-/** The shared goal everyone's counts add up toward (spec §7.1). */
-export const COUNT_GOAL = 10_000_000;
+/**
+ * What can be recited (spec §7.5, D40): the leader picks one of these keys. Each language's name is in the web
+ * app's string tables (`recitation.<key>`), so the type check fails if one is missing. Append-only: a key in the
+ * database must stay here, or old rounds lose their name; to stop offering one, add it to RETIRED_RECITATIONS.
+ * How to add one: docs/DEVELOPING.md.
+ */
+export const RECITATIONS = [
+  'great_compassion_mantra',
+  'amitabha',
+  'guanyin',
+  'medicine_buddha_mantra',
+  'heart_sutra',
+] as const;
+export const Recitation = z.enum(RECITATIONS);
+export type Recitation = z.infer<typeof Recitation>;
+
+/** Kept for old rounds but no longer offered in the dropdown. */
+export const RETIRED_RECITATIONS: readonly Recitation[] = [];
+
+/** The keys a leader may pick now, in the dropdown's order. */
+export const OFFERED_RECITATIONS: readonly Recitation[] = RECITATIONS.filter(
+  (r) => !RETIRED_RECITATIONS.includes(r),
+);
+/** The largest goal a leader may set; totals stay far below 2^53. */
+export const RECITATION_GOAL_MAX = 1_000_000_000;
 
 /** What normalising changed, so the UI can tell the user (spec §10.5: never silently accept bad input). */
 export type CountNotice = 'non_digits_removed' | 'clamped_to_max' | 'clamped_to_min';
@@ -29,7 +53,7 @@ function toAsciiDigits(raw: string): string {
 }
 
 /**
- * Turns whatever was typed into a valid daily count: keeps digits only, then clamps to 1–1080.
+ * Turns whatever was typed into a valid daily count: keeps digits only, then clamps to 1–5000.
  * Every change is reported in `notices`.
  */
 export function normaliseDailyCount(raw: string): NormalisedCount {
@@ -91,14 +115,21 @@ export const CountEntry = z.object({
 });
 
 /**
- * The progress card (spec §7.1). App-wide: one shared total. Every figure uses each user's latest report per
- * count date: reporting again for a date replaces that day's number, it doesn't add to it.
+ * The progress card (spec §7.1). App-wide: one shared total for the current round (§7.5). Every figure uses each
+ * user's latest report per count date: reporting again for a date replaces that day's number, it doesn't add to
+ * it.
  */
 export const CountSummary = z.object({
+  /** What is recited today (the page heading, named in the reader's language). */
+  recitation: Recitation,
+  /** The current round's total. */
   total: z.number().int(),
-  goal: z.number().int(),
-  /** total ÷ goal × 100, to two decimals. */
-  percent: z.number(),
+  /** Null: no goal, so no progress bar. */
+  goal: z.number().int().nullable(),
+  /** total ÷ goal × 100, to two decimals; null without a goal. */
+  percent: z.number().nullable(),
+  /** The first count date of the current round. */
+  roundStartsOn: z.iso.date(),
   /** Today's Beijing date, the sum of today's numbers, and how many people have reported for today. */
   today: z.object({ date: z.iso.date(), sum: z.number().int(), entries: z.number().int() }),
   /** The dates the caller may report for, newest first (today first). */
@@ -137,9 +168,28 @@ export const CountLatest = z.object({
 export const CountSettings = z.object({
   autoSubmit: z.boolean(),
   savedCount: z.number().int().min(0).max(DAILY_COUNT_MAX),
+  /** Auto-submit was switched off because the recitation changed (D40); false once the user chooses again. */
+  autoStopped: z.boolean(),
 });
 export type CountSettings = z.infer<typeof CountSettings>;
-export const UpdateCountSettings = CountSettings.partial();
+export const UpdateCountSettings = CountSettings.pick({
+  autoSubmit: true,
+  savedCount: true,
+}).partial();
+
+/** `PUT /api/count/recitation` (spec §7.5): what is recited from today, the goal (null: none), and a restart. */
+export const SetRecitationRequest = z.object({
+  recitation: Recitation.refine((r) => !RETIRED_RECITATIONS.includes(r), 'no longer offered'),
+  goal: z.number().int().min(1).max(RECITATION_GOAL_MAX).nullable(),
+  restart: z.boolean(),
+});
+export type SetRecitationRequest = z.infer<typeof SetRecitationRequest>;
+
+/** What `PUT /api/count/recitation` did: which parts changed, and how many users' auto-submit it switched off. */
+export const SetRecitationResult = z.object({
+  changed: z.boolean(),
+  autoStopped: z.number().int(),
+});
 
 /** SYS_ADMIN 報數 list (spec §6.5.3): every user. */
 export const AdminCountUsers = z.object({

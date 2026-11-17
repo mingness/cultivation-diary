@@ -6,6 +6,8 @@ import {
   CountLatest,
   CountSettings,
   CountSummary,
+  SetRecitationRequest,
+  SetRecitationResult,
   SubmitCountRequest,
   UpdateCountSettings,
 } from '@diary/shared';
@@ -17,6 +19,7 @@ import {
   countSummary,
   getCountSettings,
   latestCounts,
+  setRecitation,
   submitCount,
   updateCountSettings,
 } from '../services/count.js';
@@ -35,8 +38,8 @@ export function countRoutes(app: FastifyInstance, ctx: AppContext): void {
       schema: {
         tags: TAG,
         summary:
-          'The progress card: all-time total, goal, percent, today, the dates I may report for, and my own ' +
-          'number and manual reports for each of them',
+          'The progress card: what is recited, the current round’s total, goal (or none) and percent, today, ' +
+          'the dates I may report for, and my own number and manual reports for each of them',
         response: { 200: CountSummary },
       },
     },
@@ -63,7 +66,7 @@ export function countRoutes(app: FastifyInstance, ctx: AppContext): void {
       schema: {
         tags: TAG,
         summary:
-          '報數: report my number (1–1080) for today or one of the 4 days before (Beijing). It replaces my ' +
+          '報數: report my number (1–5000) for today or one of the 4 days before (Beijing). It replaces my ' +
           'earlier number for that date and becomes my saved number for auto-submit. At most 20 per date.',
         body: SubmitCountRequest,
         response: { 201: CountEntry },
@@ -114,11 +117,28 @@ export function countRoutes(app: FastifyInstance, ctx: AppContext): void {
       schema: {
         tags: TAG,
         summary:
-          'Save my auto-submit choice or the number I typed (0–1080); the 02:00 job submits it daily',
+          'Save my auto-submit choice or the number I typed (0–5000); the 02:00 job submits it daily',
         body: UpdateCountSettings,
         response: { 200: CountSettings },
       },
     },
     async (request) => updateCountSettings(ctx, authOf(request).user.id, request.body),
+  );
+
+  routes.put(
+    '/api/count/recitation',
+    {
+      onRequest: requireCapability(Capability.SetRecitation),
+      schema: {
+        tags: TAG,
+        summary:
+          'COURSE_LEADER, SYS_ADMIN: set what is recited from today, the goal (null: none) and whether counting ' +
+          'starts again. Corrects today’s setting in place; earlier dates keep theirs. A name change switches ' +
+          'off everyone’s auto-submit.',
+        body: SetRecitationRequest,
+        response: { 200: SetRecitationResult },
+      },
+    },
+    async (request) => setRecitation(ctx, authOf(request).user.id, request.body),
   );
 }

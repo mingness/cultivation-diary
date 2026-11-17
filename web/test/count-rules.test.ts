@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dateState, noticeKeys } from '../src/screens/count/countRules.js';
+import { dateState, noticeKeys, parseGoal } from '../src/screens/count/countRules.js';
 
 const mine = [
   { countDate: '2026-10-15', count: 30, manualReports: 2 },
@@ -23,4 +23,20 @@ describe('noticeKeys', () => {
       'count.notice.clamped_to_max',
     ]);
   });
+});
+
+describe('parseGoal (spec §7.5)', () => {
+  it.each([
+    ['', null],
+    ['  ', null],
+    ['10,000,000', 10_000_000],
+    ['１０８', 108],
+    ['1 000', 1000],
+    ['1', 1],
+    ['1000000000', 1_000_000_000],
+  ])('reads %j as %j', (raw, goal) => expect(parseGoal(raw)).toBe(goal));
+
+  it.each(['0', '1000000001', '99999999999999999999', '-5', '1e6', '十'])('refuses %j', (raw) =>
+    expect(parseGoal(raw)).toBe('invalid'),
+  );
 });

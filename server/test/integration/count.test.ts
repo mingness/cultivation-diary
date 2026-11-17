@@ -5,6 +5,7 @@ import {
   AdminCountUsers,
   COUNT_LIMITS,
   COUNT_WARNING,
+  DAILY_COUNT_MAX,
   CountJobRuns,
   CountLatest,
   CountSummary,
@@ -82,7 +83,7 @@ describe('reporting a count (spec §7.2)', () => {
     expect((await report(u, 1, '2026-10-10')).statusCode).toBe(201);
     expect(code(await report(u, 1, '2026-10-09')).code).toBe('validation_failed');
     expect(code(await report(u, 1, '2026-10-15')).code).toBe('validation_failed');
-    expect((await report(u, 1081)).statusCode).toBe(400);
+    expect((await report(u, DAILY_COUNT_MAX + 1)).statusCode).toBe(400);
   });
 
   it('makes the number my saved count for auto-submit, and records activity', async () => {
@@ -91,6 +92,7 @@ describe('reporting a count (spec §7.2)', () => {
     expect((await call(u, 'GET', '/api/count/settings')).json()).toEqual({
       autoSubmit: false,
       savedCount: 216,
+      autoStopped: false,
     });
     const events = await t.ctx.db
       .select()
@@ -159,7 +161,9 @@ describe('the progress card and latest table (spec §7.1)', () => {
     expect(after.today.sum - before.today.sum).toBe(30);
     // One person reported for today, however many times.
     expect(after.today.entries - before.today.entries).toBe(1);
-    expect(after.percent).toBe(Math.round((after.total / after.goal) * 10_000) / 100);
+    // Migration 0014's recitation: the Great Compassion Mantra toward 10,000,000.
+    expect(after.goal).toBe(10_000_000);
+    expect(after.percent).toBe(Math.round((after.total / 10_000_000) * 10_000) / 100);
     expect(after.countDates).toEqual([
       TODAY,
       '2026-10-13',

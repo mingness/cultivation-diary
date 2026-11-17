@@ -432,7 +432,7 @@ export const countEntries = pgTable(
     seq: bigint('seq', { mode: 'number' }).generatedAlwaysAsIdentity().notNull(),
   },
   (t) => [
-    check('count_entries_daily_count_range', sql`${t.dailyCount} BETWEEN 1 AND 1080`),
+    check('count_entries_daily_count_range', sql`${t.dailyCount} BETWEEN 1 AND 5000`),
     index('count_entries_user_date_idx').on(t.userId, t.countDate, t.seq),
     index('count_entries_date_idx').on(t.countDate),
     // At most one auto entry per user per date, so running the job twice in a day changes nothing.
@@ -452,6 +452,37 @@ export const countSettings = pgTable(
     /** The number the 02:00 job submits; 0 until the user has typed one. */
     savedCount: integer('saved_count').notNull().default(0),
     updatedAt: timestamptz('updated_at').notNull(),
+    /** Auto-submit was switched off because the recitation changed (D40); cleared when the user chooses again. */
+    autoStoppedAt: timestamptz('auto_stopped_at'),
   },
-  (t) => [check('count_settings_saved_count_range', sql`${t.savedCount} BETWEEN 0 AND 1080`)],
+  (t) => [check('count_settings_saved_count_range', sql`${t.savedCount} BETWEEN 0 AND 5000`)],
+);
+
+/**
+ * What is recited from each date on (spec §7.5, D40). A count date's recitation is the row with the latest
+ * `starts_on` on or before it; the current round starts at the latest such row with `restart`. Rows are never
+ * deleted, and migration 0014 adds one from 2000-01-01, so every date has one.
+ */
+export const countRecitations = pgTable(
+  'count_recitations',
+  {
+    id: uuid('id').primaryKey(),
+    startsOn: date('starts_on', { mode: 'string' }).notNull(),
+    /**
+     * A key from `RECITATIONS` in shared/src/count.ts (e.g. `great_compassion_mantra`); each language's name is
+     * in the web app's string tables. The API validates it; no CHECK, so adding an option needs no migration.
+     */
+    recitation: text('recitation').notNull(),
+    /** Null: no goal; the page shows the total only. */
+    goal: integer('goal'),
+    /** A new round starts here: the page counts from this date. */
+    restart: boolean('restart').notNull(),
+    setBy: uuid('set_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamptz('created_at').notNull(),
+    updatedAt: timestamptz('updated_at').notNull(),
+  },
+  (t) => [
+    uniqueIndex('count_recitations_starts_on_key').on(t.startsOn),
+    check('count_recitations_goal_positive', sql`${t.goal} IS NULL OR ${t.goal} > 0`),
+  ],
 );

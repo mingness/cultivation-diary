@@ -501,10 +501,32 @@ export const vi: Messages = {
     'Bài viết, lịch sử, các đoạn ghi âm và các lời phê của bài sẽ bị xóa ngay, vĩnh viễn. Không thể hoàn tác.',
   'docs.deleted': 'Đã xóa bài.',
 
-  'nav.count': 'Chú Đại Bi',
+  // For the reviewer (D40): 持誦 Trì tụng, the tab for whatever the leader sets.
+  'nav.count': 'Trì tụng',
 
-  'count.title': 'Cộng tu Chú Đại Bi',
-  'count.subtitle': 'Cùng nhau trì tụng Chú Đại Bi, hướng đến 10.000.000 biến.',
+  // For the reviewer (D40).
+  'count.subtitleGoal': 'Cùng nhau trì tụng, hướng đến {goal} biến.',
+  'count.subtitleNoGoal': 'Cùng nhau trì tụng.',
+  'count.change': 'Thay đổi',
+  'count.autoStopped':
+    'Nội dung trì tụng đã thay đổi nên tự động báo số đã tắt. Hãy bật lại nếu bạn muốn dùng cho {name}.',
+  // What can be recited (shared/src/count.ts RECITATIONS); one per key, append-only.
+  'recitation.great_compassion_mantra': 'Chú Đại Bi',
+  'recitation.amitabha': 'Niệm Phật A Di Đà',
+  'recitation.guanyin': 'Niệm Bồ Tát Quán Thế Âm',
+  'recitation.medicine_buddha_mantra': 'Chú Dược Sư',
+  'recitation.heart_sutra': 'Bát Nhã Tâm Kinh',
+  'recite.heading': 'Thay đổi nội dung trì tụng',
+  'recite.name': 'Trì tụng gì',
+  'recite.goal': 'Mục tiêu',
+  'recite.goalHint': 'Để trống nếu không đặt mục tiêu.',
+  'recite.goalInvalid': 'Nhập số nguyên từ 1 đến {max}, hoặc để trống.',
+  'recite.restart': 'Bắt đầu đếm lại từ 0',
+  'recite.restartHint': 'Từ hôm nay. Các số đã báo trước đây vẫn được giữ lại.',
+  'recite.autoNote': 'Tự động báo số của mọi người sẽ tắt, vì số đã lưu là cho {old}.',
+  'recite.save': 'Lưu',
+  'recite.saved': 'Đã thay đổi.',
+  'recite.unchanged': 'Không có gì thay đổi.',
   'count.total': 'Tổng đã hoàn thành',
   'count.goal': 'Mục tiêu',
   'count.percent': 'Đã hoàn thành {p}%',

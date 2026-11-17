@@ -188,11 +188,19 @@ announcement_reads                        -- the unread badge, "new replies" and
   PRIMARY KEY (announcement_id, user_id)
 
 count_entries
-  id, user_id FK CASCADE, daily_count INT CHECK (1..1080), count_date DATE, submitted_at, auto BOOL
+  id, user_id FK CASCADE, daily_count INT CHECK (1..5000), count_date DATE, submitted_at, auto BOOL
   INDEX (user_id, count_date)             -- count_date is today or up to 4 days earlier, checked by the server
 
 count_settings
-  user_id PK, auto_submit BOOL, saved_count INT CHECK (0..1080), updated_at
+  user_id PK, auto_submit BOOL, saved_count INT CHECK (0..5000), updated_at
+  auto_stopped_at NULL                    -- auto-submit was switched off because the recitation changed (D40); cleared when the user chooses again
+
+count_recitations                         -- what is recited from each date on (D40); never deleted
+  id, starts_on DATE UNIQUE               -- applies to count dates from here until the next row's starts_on
+  recitation TEXT                         -- a key from RECITATIONS (shared/src/count.ts); names live in the web string tables
+  goal INT NULL CHECK (> 0)               -- null: no goal, the page shows the total only
+  restart BOOL                            -- a new round starts here: the page counts from this date
+  set_by FK SET NULL, created_at, updated_at   -- set_by: who set it, kept for leaders and SYS_ADMINs
 
 daily_usage                               -- counters for the daily caps and warning levels (D21, D28); survive deletes, so an admin delete refunds nothing
   user_id FK CASCADE, day DATE, kind ENUM(create, submit, update, comment, announce, reply), n INT   -- comment: warn only, no cap
@@ -336,7 +344,8 @@ bodies are ignored.
 | `DELETE /api/admin/users/:id`; `POST /api/admin/users/batch-delete` (NORMAL_USER only) | – | ❌ | ❌ | ✅ not yourself, not the last SYS_ADMIN |
 | `POST /api/admin/users/:id/password` (chosen or generated; unlocks reset-pending); `DELETE /api/admin/users/:id/totp` | – | ❌ | ❌ | ✅ (TOTP: not your own) |
 | `GET /api/admin/documents?user&date`, `DELETE /:id` | – | ❌ | ❌ | ✅ metadata only |
-| `GET /api/count/summary`, `/latest`; `POST /api/count` (`{count, countDate}`); `GET/PUT /api/count/settings` | – | ✅ | ✅ | ✅ |
+| `GET /api/count/summary` (with the current recitation and goal), `/latest`; `POST /api/count` (`{count, countDate}`); `GET/PUT /api/count/settings` | – | ✅ | ✅ | ✅ |
+| `PUT /api/count/recitation` (`{recitation, goal, restart}`, D40) | – | ❌ | ✅ | ✅ |
 | `GET /api/admin/count/users`, `PUT /:u/auto`, `DELETE /:u/entries?from=&to=`, `GET /job-runs`, `POST /run-now` | – | ❌ | ❌ | ✅ |
 | `GET /api/admin/attention?status=`, `/attention/status`, `POST /api/admin/attention/:id/handled`; `GET /api/admin/activity?userId=&kind=&from=&to=`, `/activity/summary?sort=` | – | ❌ | ❌ | ✅ metadata only |
 | `POST /api/admin/users/:id/sign-out-all`, `/lock` | – | ❌ | ❌ | ✅ (lock: not yourself, never the last usable SYS_ADMIN) |
@@ -477,8 +486,9 @@ traditional characters throughout (F5); no offline writing in v1 (F6).
 
 ### 8.5 报数
 
-- App-wide: one shared total (agreed).
-- `normaliseDailyCount` in `shared/src/count.ts` trims non-digits and clamps to 1–1080, returning notices. The same function runs in
+- App-wide: one shared total (agreed), for the current round (D40).
+- `normaliseDailyCount` in `shared/src/count.ts` trims non-digits and clamps to 1–5000 (a misuse guard, raised from 1080
+  in D40), returning notices. The same function runs in
   the client (UX) and the server (enforcement), and DB CHECKs are the backstop.
 - **Count date (D23):** today or up to 4 days earlier (Asia/Shanghai), from `countDateChoices` in
   `shared/src/count.ts` (the summary returns the allowed dates for the chips); never in the future. Manual entries are limited to 20 per user per `count_date` (the auto entry is exempt), so backdating
@@ -495,6 +505,24 @@ traditional characters throughout (F5); no offline writing in v1 (F6).
   succeeded within 15 minutes of the last 02:00. A manual entry also becomes the user's saved number.
 - `POST /internal/count/auto-run` (Bearer `CRON_SECRET`, compared in constant time) runs the same job for an
   external cron. The proxy must not route `/internal/` from the internet (Phase C).
+- **What is recited (D40, spec §7.5):** `count_recitations` rows apply by count date: a date's recitation is the
+  row with the latest `starts_on` on or before it, and the current round starts at the latest such row with
+  `restart`. Everything is decided by date, so a report never needs a recitation column, replacing a day's
+  number keeps working unchanged, and a report for a date before a restart counts in the earlier round. Migration
+  0014 adds the first row (`great_compassion_mantra`, goal 10,000,000, from 2000-01-01, so every past and backdated date is
+  covered); no row is ever deleted, so every date always has one.
+- **The list is in the code**, not the database: `RECITATIONS` in `shared/src/count.ts` holds the keys, and each
+  language names them as `recitation.<key>` in `web/src/i18n/`, so the type check fails if a name is missing. The
+  zod schema accepts only listed keys; the column has no CHECK, so adding an option needs no migration. Keys are
+  append-only (a stored key must still have a name); `RETIRED_RECITATIONS` withdraws one from the dropdown.
+  Rejected: free text typed by the leader (one language only) and machine translation (no provider yet, and
+  unreliable for these names).
+- `PUT /api/count/recitation` (COURSE_LEADER and SYS_ADMIN, `Capability.SetRecitation`) sets the recitation, goal
+  and restart from today: if the current row started today it is corrected in place, otherwise a new row starts
+  today. Nothing changing is a no-op. A change of recitation switches off everyone's auto-submit and stamps
+  `auto_stopped_at`, in the same transaction; the user's page shows a notice until they choose again. Changes
+  are serialised with a transaction-level advisory lock, so two leaders saving at once can't both insert a row
+  for today.
 
 ### 8.6 Translation (§8)
 
@@ -974,6 +1002,16 @@ Built before Phase E, which is set aside for now.
     then drops the role). 報數 offers today and 4 earlier days, and its date chips show day and weekday only,
     so all five fit one row at full width. *(Built 2026-11-16.)*
 
+### Phase I: what is recited (D40, agreed 2026-11-16)
+
+36. **Recitation, goal, restart:** `count_recitations` and `count_settings.auto_stopped_at` (migration 0014,
+    which also raises the daily cap to 5000); the current round in every 報數 figure; `PUT
+    /api/count/recitation` for leaders and SYS_ADMINs; the list of recitations in the code, named in every
+    language; the page heading shows the name, the progress bar only with a goal; a 更改 form with a dropdown for
+    leaders and admins; the auto-submit notice; the 報數 tab becomes 持誦 /
+    "Recitation" with a prayer-bead icon. *(Built 2026-11-16: `services/count.ts` `setRecitation`,
+    `RecitationForm.tsx`, `server/test/integration/recitation.test.ts`.)*
+
 ### Phase C: production
 
 18. **Ops:** deploy to Hong Kong with TLS, backup/restore, key rotation, RUNBOOK, SECURITY.md, PRIVACY.md,
@@ -1029,4 +1067,5 @@ Each slice ships with tests, both languages where it has UI, permission tests pe
 | D37 | Draft, sent, shared | **Agreed** (2026-11-16): one 誰可以閱讀 choice (只有我 / 導師 / 導師和同班學員) instead of 提交 plus a share box; 只有我 is fine for good ("the practice is the most important"). Buttons 儲存, then 先儲存 / 發佈修改 once sent. An entry may go back to 只有我 until someone else has commented ("once there's a comment, it's already a dialogue"). §7.2, §8.3 |
 | D38 | Screen names | **Agreed** (2026-11-16; Chinese and Vietnamese for review): 我的日記 → 我的筆記 / "My notes", 開放日記 → 班級 / "Class", one entry → 一篇筆記 / "entry"; leaders' notices made "diary" too narrow. The product stays 修行日記. Only the UI strings changed; code names and these docs keep 日記 / 開放日記. FRONTEND.md §3 |
 | D39 | The mantra site becomes its own app | **Agreed** (2026-11-16): the community's 報數 moves to a standalone app with its own repository, server, database and accounts; it supersedes D30 and D31. The diary keeps 報數 for its members (a separate tally), has no self-registration, and drops the COUNT_USER role (any such accounts are deleted). 報數 backdating cut to 4 days (5 date chips). §8.11 |
+| D40 | What is recited | **Agreed** (2026-11-16): a COURSE_LEADER or SYS_ADMIN picks what is recited from a list a developer keeps in the code, named in every language (free text and machine translation rejected: the names must follow the reader's language and be reviewed; the leader explains the practice in class), an optional goal, and whether counting starts again from 0. Settings apply by count date and are never deleted, so the data stays and a backdated report counts in its date's round. A change of recitation switches off everyone's auto-submit, with a notice. Daily cap raised to 5000, as a misuse guard only. The tab becomes 持誦 / "Recitation". Spec §7.5, §8.5 |
 | F1–F6 | Frontend decisions | **Agreed**: see FRONTEND.md §11 |

@@ -223,3 +223,11 @@
 .manage {
   align-self: flex-end;
 }
+
+/* Cancel and save on the recitation form; they wrap at large text sizes. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
