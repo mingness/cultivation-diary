@@ -651,6 +651,8 @@ export const vi: Messages = {
   'pwa.update': 'Đã có phiên bản mới.',
   'pwa.reload': 'Tải lại',
   'install.title': 'Thêm vào màn hình chính',
+  // For the reviewer (new 2026-11-16).
+  'install.open': 'Cách thêm vào màn hình chính',
   'install.why':
     'Khi đã ở trên màn hình chính, Nhật ký tu tập mở ra như một ứng dụng và giữ bạn đăng nhập.',
   'install.button': 'Cài đặt',
@@ -658,10 +660,14 @@ export const vi: Messages = {
   'install.ios1': 'Chạm nút Chia sẻ của Safari (hình vuông có mũi tên hướng lên).',
   'install.ios2': 'Kéo xuống và chọn “Thêm vào MH chính”.',
   'install.ios3': 'Chạm “Thêm” ở góc trên bên phải.',
-  'install.android1': 'Chạm menu của trình duyệt (⋮) ở góc trên bên phải.',
+  // For the reviewer (new 2026-11-16).
+  'install.android1': 'Chạm menu của trình duyệt (⋮ hoặc ⋯, ở đầu hoặc cuối màn hình).',
   'install.android2': 'Chọn “Thêm vào màn hình chính” hoặc “Cài đặt ứng dụng”.',
   'install.wechat':
     'Không thể cài đặt trong WeChat. Chạm “⋯” ở góc trên bên phải, chọn “Mở bằng trình duyệt”, rồi thêm vào màn hình chính từ đó.',
+  // For the reviewer (new 2026-11-16).
+  'install.browsers':
+    'Trên iPhone hoặc iPad, hãy dùng Safari. Trên điện thoại và máy tính khác, chúng tôi khuyên dùng trình duyệt Chrome, Firefox hoặc Edge. Trình duyệt có sẵn trong WeChat không thể thêm vào màn hình chính.',
   'install.banner': 'Thêm Nhật ký tu tập vào màn hình chính để mở dễ hơn.',
   'install.how': 'Chỉ cho tôi',
   'install.dismiss': 'Không, cảm ơn',

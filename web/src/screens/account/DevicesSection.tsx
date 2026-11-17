@@ -1,10 +1,12 @@
 /**
  * Signed-in devices (spec §4.1, §4.4): each with its name from the browser, this device marked, when it was
- * last used, and 登出. Signing out this device is the same as 登出.
+ * last used, and 登出. Signing out this device is the same as 登出. Below them, how to add the app to this
+ * device's home screen.
  */
 import { useDevices, useSignOutDevice } from '../../api/account.js';
 import { Button } from '../../components/Button.js';
 import { Chip } from '../../components/Chip.js';
+import { InstallButton } from '../../components/InstallHelp.js';
 import { ErrorState, LoadingState } from '../../components/States.js';
 import { useToast } from '../../components/Toast.js';
 import { useI18n } from '../../i18n/index.js';
@@ -57,6 +59,9 @@ export function DevicesSection() {
           ))}
         </ul>
       )}
+      <div>
+        <InstallButton />
+      </div>
     </section>
   );
 }

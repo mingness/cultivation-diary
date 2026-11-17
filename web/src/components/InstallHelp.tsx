@@ -22,7 +22,15 @@ function Steps() {
   const offer = useInstallOffer();
   const platform = currentPlatform();
   if (platform === 'installed') return <p>{t('install.standalone')}</p>;
-  if (platform === 'wechat') return <p>{t('install.wechat')}</p>;
+  // Which browsers can install is shown everywhere, so people who can't use this one know where to go.
+  const browsers = <p>{t('install.browsers')}</p>;
+  if (platform === 'wechat')
+    return (
+      <>
+        <p>{t('install.wechat')}</p>
+        {browsers}
+      </>
+    );
   return (
     <>
       <p>{t('install.why')}</p>
@@ -46,17 +54,18 @@ function Steps() {
           )}
         </ol>
       )}
+      {browsers}
     </>
   );
 }
 
-/** The account page's "加到手機主畫面" row. */
+/** The account page's "如何加到手機主畫面" row: it opens the how-to rather than installing, and says so. */
 export function InstallButton() {
   const t = useT();
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button onClick={() => setOpen(true)}>{t('install.title')}</Button>
+      <Button onClick={() => setOpen(true)}>{t('install.open')}</Button>
       <Sheet open={open} title={t('install.title')} onClose={() => setOpen(false)}>
         <Steps />
       </Sheet>
