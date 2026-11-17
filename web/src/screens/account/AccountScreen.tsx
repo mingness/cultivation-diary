@@ -1,6 +1,6 @@
 /**
  * The account page (FRONTEND.md §4.6, spec §4.4): profile, appearance, storage used, password, the
- * authenticator (SYS_ADMINs), signed-in devices, and signing out. (Installing the app: slice 17.)
+ * authenticator (SYS_ADMINs), signed-in devices (with how to install the app), and signing out.
  */
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,7 +13,6 @@ import { Icon } from '../../components/Icon.js';
 import { useToast } from '../../components/Toast.js';
 import { useI18n, useT } from '../../i18n/index.js';
 import { formatBytes } from '../../lib/images.js';
-import { InstallButton } from '../../components/InstallHelp.js';
 import { DevicesSection } from './DevicesSection.js';
 import { PasswordButton } from './PasswordSheet.js';
 import { ProfileSection } from './ProfileSection.js';
@@ -47,16 +46,18 @@ export function AccountScreen() {
         <div>
           <p className={styles.name}>{displayName(me)}</p>
           <p className={styles.username}>{me.username}</p>
+          {/* The account's space on the server, so it sits with the account rather than with the devices. */}
+          <p className={styles.username}>
+            {t('account.storage', { size: formatBytes(me.storageBytes) })}
+          </p>
         </div>
       </div>
       <ProfileSection />
       <AppearanceSection />
       <section className={styles.section} aria-labelledby="security-heading">
         <h2 id="security-heading">{t('userForm.security')}</h2>
-        <p>{t('account.storage', { size: formatBytes(me.storageBytes) })}</p>
         <div className={styles.rowButtons}>
           <PasswordButton />
-          <InstallButton />
         </div>
         {me.role === 'SYS_ADMIN' && (
           <div>

@@ -138,7 +138,7 @@ installing the app and offline use need HTTPS (or `localhost`). Two ways round b
   against real data.
 
 On the real deployment (HTTPS, Phase C), users just open the address and install it the same way. The app's
-account page (加到主畫面) shows these steps for the phone it's on.
+account page (如何加到手機主畫面) shows these steps for the phone it's on.
 
 ## Tests
 

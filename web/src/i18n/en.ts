@@ -634,6 +634,7 @@ export const en: Messages = {
   'pwa.update': 'A new version is available.',
   'pwa.reload': 'Reload',
   'install.title': 'Add to home screen',
+  'install.open': 'How to add to home screen',
   'install.why':
     'Once it’s on your home screen, Cultivation Diary opens like an app and keeps you signed in.',
   'install.button': 'Install',
@@ -641,10 +642,12 @@ export const en: Messages = {
   'install.ios1': 'Tap Safari’s Share button (the square with an arrow pointing up).',
   'install.ios2': 'Scroll down and choose “Add to Home Screen”.',
   'install.ios3': 'Tap “Add” at the top right.',
-  'install.android1': 'Tap the browser’s menu (⋮) at the top right.',
+  'install.android1': 'Tap the browser’s menu (⋮ or ⋯, at the top or bottom of the screen).',
   'install.android2': 'Choose “Add to Home screen” or “Install app”.',
   'install.wechat':
     'Installing isn’t possible inside WeChat. Tap “⋯” at the top right, choose “Open in browser”, then add it to the home screen from there.',
+  'install.browsers':
+    'On an iPhone or iPad, use Safari. On other phones and computers, we recommend using Chrome, Firefox, or Edge. WeChat’s built-in browser can’t add it to the home screen.',
   'install.banner': 'Add Cultivation Diary to your home screen to open it more easily.',
   'install.how': 'Show me',
   'install.dismiss': 'No thanks',

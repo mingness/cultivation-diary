@@ -64,9 +64,10 @@ test('offline, the app still opens with a notice, and no API reply is ever cache
 
 test('the account page explains installing, and passes axe', async ({ userPage: page, t }) => {
   await page.goto('/me');
-  await page.getByRole('button', { name: t('install.title') }).click();
+  await page.getByRole('button', { name: t('install.open') }).click();
   const sheet = page.getByRole('dialog', { name: t('install.title') });
   await expect(sheet.getByText(t('install.why'))).toBeVisible();
+  await expect(sheet.getByText(t('install.browsers'))).toBeVisible();
   for (const scheme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme: scheme });
     const results = await new AxeBuilder({ page }).analyze();

@@ -225,9 +225,10 @@ Each screen lists what it needs from the API. The API column feeds the ARCHITECT
 
 - **Profile:** photo (picked and resized to 300×300 in the browser), name, address, email, 儲存.
 - **Appearance:** text size (with a live preview) and theme (淺色 / 深色 / 跟隨裝置).
-- **Storage used:** one information row ("已使用 12.4 MB"), no limit or warning.
-- **Signed-in devices:** device name from the user agent, "this device" marker, last used, and 登出 for each.
-- **Rows:** change password (a sheet), "加到手機主畫面" (the install how-to), 登出.
+- **Storage used:** one information line under the name and username ("已使用 12.4 MB"), no limit or warning.
+- **Signed-in devices:** device name from the user agent, "this device" marker, last used, and 登出 for each; below them "如何加到手機主畫面" (opens the install how-to, with which
+  browsers can install).
+- **Rows:** change password (a sheet), 登出.
 - **SYS_ADMIN:** an authenticator section.
 - **API:** `GET/PUT me` (including `fontSize`, `theme`), `POST me/password`, `GET/DELETE me/sessions`,
   `POST me/totp/*`.
